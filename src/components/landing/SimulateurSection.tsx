@@ -1,13 +1,17 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Calculator, Plus, Minus, AlertCircle, CheckCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Calculator, Plus, Minus, AlertCircle, ChevronDown, ChevronUp, TrendingUp, Users, UserPlus, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { simulatePrime, formatCFA, type OptionKey, type SimulationResult } from '@/lib/actuarial-engine';
+
+const formuleNames: Record<string, string> = { A: 'Dignité Simple', B: 'Serein', C: 'Prestige', D: 'Excellence' };
 
 export function SimulateurSection() {
   const [option, setOption] = useState<OptionKey>('B');
@@ -18,6 +22,7 @@ export function SimulateurSection() {
   const [enfants, setEnfants] = useState<{ dob: string; included: boolean }[]>([]);
   const [ascendants, setAscendants] = useState<{ dob: string; included: boolean; label: string }[]>([]);
   const [result, setResult] = useState<SimulationResult | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   const addEnfant = () => { if (enfants.length < 4) setEnfants([...enfants, { dob: '', included: true }]); };
   const addAscendant = () => { if (ascendants.length < 2) setAscendants([...ascendants, { dob: '', included: true, label: ascendants.length === 0 ? 'Père/Mère' : 'Oncle/Tante' }]); };
@@ -35,27 +40,33 @@ export function SimulateurSection() {
     setResult(res);
   };
 
+  const pieData = [
+    { name: 'Nature (70%)', value: 70, color: 'hsl(var(--primary))' },
+    { name: 'Espèces (30%)', value: 30, color: 'hsl(var(--secondary))' },
+  ];
+
+  const barData = result?.persons.filter(p => p.eligible).map(p => ({
+    name: p.label.length > 12 ? p.label.slice(0, 12) + '…' : p.label,
+    prime: Math.round(p.pap),
+  })) || [];
+
   return (
-    <section id="simulateur" className="py-24">
+    <section id="simulateur" className="py-20 bg-gradient-to-b from-accent/30 to-background">
       <div className="container mx-auto px-4">
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
-          <span className="text-primary text-sm font-semibold uppercase tracking-wider">Simulateur</span>
-          <h2 className="text-3xl md:text-5xl font-bold mt-3 font-display">Calculez votre prime annuelle</h2>
+          <span className="text-secondary font-semibold text-sm uppercase tracking-wider">Simulateur</span>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mt-3 font-display">Calculez votre prime annuelle</h2>
           <p className="text-muted-foreground mt-4 max-w-xl mx-auto">Moteur actuariel CIMA H intégré. Résultats instantanés et détaillés.</p>
         </motion.div>
 
-        <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
-          {/* Form */}
-          <Card className="border-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+          <Card className="border-2 shadow-xl">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 font-display"><Calculator className="w-5 h-5 text-primary" /> Paramètres de simulation</CardTitle>
+              <CardTitle className="flex items-center gap-2 font-display"><Calculator className="w-5 h-5 text-primary" /> Paramètres</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Date de souscription</Label>
-                  <Input type="date" value={quoteDate} onChange={e => setQuoteDate(e.target.value)} />
-                </div>
+            <CardContent className="space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div><Label>Date de souscription</Label><Input type="date" value={quoteDate} onChange={e => setQuoteDate(e.target.value)} /></div>
                 <div>
                   <Label>Formule</Label>
                   <Select value={option} onValueChange={v => setOption(v as OptionKey)}>
@@ -70,50 +81,40 @@ export function SimulateurSection() {
                 </div>
               </div>
 
-              {/* Principal */}
               <div className="p-4 rounded-xl bg-accent/50 space-y-3">
-                <Label className="text-base font-semibold">Assuré Principal *</Label>
+                <Label className="text-base font-semibold flex items-center gap-2"><Shield className="w-4 h-4" /> Assuré Principal *</Label>
                 <Input type="date" value={principalDob} onChange={e => setPrincipalDob(e.target.value)} />
               </div>
 
-              {/* Conjoint */}
               <div className="p-4 rounded-xl bg-accent/50 space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label className="text-base font-semibold">Conjoint(e)</Label>
+                  <Label className="text-base font-semibold flex items-center gap-2"><Users className="w-4 h-4" /> Conjoint(e)</Label>
                   <Switch checked={conjointIncluded} onCheckedChange={setConjointIncluded} />
                 </div>
                 {conjointIncluded && <Input type="date" value={conjointDob} onChange={e => setConjointDob(e.target.value)} />}
               </div>
 
-              {/* Enfants */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label className="text-base font-semibold">Enfants ({enfants.length}/4)</Label>
+                  <Label className="text-base font-semibold flex items-center gap-2"><UserPlus className="w-4 h-4" /> Enfants ({enfants.length}/4)</Label>
                   <Button type="button" size="sm" variant="outline" onClick={addEnfant} disabled={enfants.length >= 4}><Plus className="w-4 h-4 mr-1" /> Ajouter</Button>
                 </div>
                 {enfants.map((e, i) => (
                   <div key={i} className="flex gap-2 items-end">
-                    <div className="flex-1">
-                      <Label className="text-xs">Enfant {i + 1} – Date de naissance</Label>
-                      <Input type="date" value={e.dob} onChange={ev => { const n = [...enfants]; n[i].dob = ev.target.value; setEnfants(n); }} />
-                    </div>
+                    <div className="flex-1"><Label className="text-xs">Enfant {i + 1}</Label><Input type="date" value={e.dob} onChange={ev => { const n = [...enfants]; n[i].dob = ev.target.value; setEnfants(n); }} /></div>
                     <Button type="button" size="icon" variant="ghost" onClick={() => setEnfants(enfants.filter((_, j) => j !== i))}><Minus className="w-4 h-4" /></Button>
                   </div>
                 ))}
               </div>
 
-              {/* Ascendants */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label className="text-base font-semibold">Ascendants ({ascendants.length}/2)</Label>
+                  <Label className="text-base font-semibold flex items-center gap-2"><Users className="w-4 h-4" /> Ascendants ({ascendants.length}/2)</Label>
                   <Button type="button" size="sm" variant="outline" onClick={addAscendant} disabled={ascendants.length >= 2}><Plus className="w-4 h-4 mr-1" /> Ajouter</Button>
                 </div>
                 {ascendants.map((a, i) => (
                   <div key={i} className="flex gap-2 items-end">
-                    <div className="flex-1">
-                      <Label className="text-xs">{a.label} – Date de naissance</Label>
-                      <Input type="date" value={a.dob} onChange={ev => { const n = [...ascendants]; n[i].dob = ev.target.value; setAscendants(n); }} />
-                    </div>
+                    <div className="flex-1"><Label className="text-xs">{a.label}</Label><Input type="date" value={a.dob} onChange={ev => { const n = [...ascendants]; n[i].dob = ev.target.value; setAscendants(n); }} /></div>
                     <Button type="button" size="icon" variant="ghost" onClick={() => setAscendants(ascendants.filter((_, j) => j !== i))}><Minus className="w-4 h-4" /></Button>
                   </div>
                 ))}
@@ -125,76 +126,96 @@ export function SimulateurSection() {
             </CardContent>
           </Card>
 
-          {/* Results */}
           <div className="space-y-6">
             {result ? (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                {/* Errors */}
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
                 {result.eligibilityErrors.length > 0 && (
-                  <Card className="border-destructive mb-4">
-                    <CardContent className="pt-4 space-y-2">
-                      {result.eligibilityErrors.map((err, i) => (
-                        <div key={i} className="flex items-start gap-2 text-destructive text-sm"><AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />{err}</div>
-                      ))}
-                    </CardContent>
-                  </Card>
+                  <Card className="border-destructive"><CardContent className="pt-4 space-y-2">
+                    {result.eligibilityErrors.map((err, i) => (
+                      <div key={i} className="flex items-start gap-2 text-destructive text-sm"><AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />{err}</div>
+                    ))}
+                  </CardContent></Card>
                 )}
 
-                {/* Prime */}
-                <Card className="border-2 border-primary bg-primary/5">
-                  <CardContent className="pt-6 text-center">
-                    <p className="text-sm text-muted-foreground mb-2">Prime annuelle à payer</p>
-                    <p className="text-4xl md:text-5xl font-bold text-primary font-display">{formatCFA(result.primeAnnuelle)}</p>
-                    <p className="text-xs text-muted-foreground mt-2">Formule {option} – Paiement annuel</p>
-                  </CardContent>
-                </Card>
-
-                {/* Détails */}
-                <Card>
-                  <CardHeader><CardTitle className="text-lg font-display">Ventilation détaillée</CardTitle></CardHeader>
-                  <CardContent className="space-y-3">
-                    {result.persons.map((p, i) => (
-                      <div key={i} className="flex justify-between items-center py-2 border-b border-border last:border-0">
-                        <div>
-                          <p className="font-medium text-sm">{p.label}</p>
-                          <p className="text-xs text-muted-foreground">{p.age} ans – Capital : {formatCFA(p.capital)}</p>
-                        </div>
-                        <div className="text-right">
-                          {p.eligible ? (
-                            <p className="font-semibold text-sm">{formatCFA(Math.round(p.pap))}</p>
-                          ) : (
-                            <span className="text-xs text-destructive">Non éligible</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-
-                {/* Calcul */}
-                <Card>
-                  <CardHeader><CardTitle className="text-lg font-display">Détail du calcul</CardTitle></CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <div className="flex justify-between"><span>PAP Total (Prime Pure)</span><span className="font-medium">{formatCFA(result.papTotal)}</span></div>
-                    <div className="flex justify-between"><span>PAI (Prime Inventaire) × 1.002</span><span className="font-medium">{formatCFA(result.pai)}</span></div>
-                    <div className="flex justify-between"><span>PAC (Prime Commerciale) ÷ 0.85</span><span className="font-medium">{formatCFA(result.pac)}</span></div>
-                    <div className="flex justify-between"><span>Frais fixes annuels</span><span className="font-medium">{formatCFA(2500)}</span></div>
-                    <div className="border-t border-border pt-2 flex justify-between text-base font-bold">
-                      <span>Prime Annuelle Due</span><span className="text-primary">{formatCFA(result.primeAnnuelle)}</span>
+                <Card className="border-2 border-primary bg-gradient-to-br from-primary/5 to-secondary/5 shadow-xl">
+                  <CardContent className="pt-8 text-center">
+                    <p className="text-sm text-muted-foreground mb-2 uppercase tracking-wider">Prime annuelle à payer</p>
+                    <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200 }}
+                      className="text-4xl sm:text-5xl font-bold text-primary font-display">{formatCFA(result.primeAnnuelle)}</motion.p>
+                    <div className="flex justify-center gap-3 mt-3">
+                      <Badge variant="outline">Formule {option} – {formuleNames[option]}</Badge>
+                      <Badge variant="outline" className="bg-secondary/10">{result.persons.filter(p => p.eligible).length} assuré(s)</Badge>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Button className="w-full bg-secondary hover:bg-secondary/90 text-lg" size="lg" asChild>
-                  <a href="/souscrire">Souscrire maintenant</a>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Card>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm font-display">Répartition couverture</CardTitle></CardHeader>
+                    <CardContent className="h-48">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" label={({ value }) => `${value}%`}>
+                            {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                          </Pie>
+                          <Tooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                  {barData.length > 0 && (
+                    <Card>
+                      <CardHeader className="pb-2"><CardTitle className="text-sm font-display">Prime par assuré</CardTitle></CardHeader>
+                      <CardContent className="h-48">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={barData} layout="vertical">
+                            <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
+                            <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 10 }} />
+                            <Tooltip formatter={(v: number) => formatCFA(v)} />
+                            <Bar dataKey="prime" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+
+                <Button variant="outline" className="w-full gap-2" onClick={() => setShowDetails(!showDetails)}>
+                  {showDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  {showDetails ? 'Masquer' : 'Voir'} le détail
+                </Button>
+                <AnimatePresence>
+                  {showDetails && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                      <Card><CardContent className="pt-4 space-y-2">
+                        {result.persons.map((p, i) => (
+                          <div key={i} className="flex justify-between items-center py-2 border-b border-border last:border-0">
+                            <div><p className="font-medium text-sm">{p.label}</p><p className="text-xs text-muted-foreground">{p.age} ans – Capital : {formatCFA(p.capital)}</p></div>
+                            {p.eligible ? <p className="font-semibold text-sm text-primary">{formatCFA(Math.round(p.pap))}</p> : <Badge variant="destructive" className="text-xs">Non éligible</Badge>}
+                          </div>
+                        ))}
+                        <div className="border-t pt-3 space-y-1 text-sm">
+                          <div className="flex justify-between"><span>PAP Total</span><span>{formatCFA(result.papTotal)}</span></div>
+                          <div className="flex justify-between"><span>PAI (×1.002)</span><span>{formatCFA(result.pai)}</span></div>
+                          <div className="flex justify-between"><span>PAC (÷0.85)</span><span>{formatCFA(result.pac)}</span></div>
+                          <div className="flex justify-between"><span>Frais fixes</span><span>{formatCFA(2500)}</span></div>
+                          <div className="flex justify-between font-bold text-primary pt-2 border-t"><span>Prime annuelle</span><span>{formatCFA(result.primeAnnuelle)}</span></div>
+                        </div>
+                      </CardContent></Card>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <Button className="w-full bg-secondary hover:bg-secondary/90 text-lg gap-2" size="lg" asChild>
+                  <a href="/login"><TrendingUp className="w-5 h-5" /> Souscrire maintenant</a>
                 </Button>
               </motion.div>
             ) : (
-              <div className="flex items-center justify-center h-full">
+              <div className="flex items-center justify-center h-full min-h-[400px]">
                 <div className="text-center text-muted-foreground py-20">
-                  <Calculator className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                  <p className="text-lg font-medium">Remplissez le formulaire pour voir votre simulation</p>
-                  <p className="text-sm mt-2">Le calcul est basé sur la table CIMA H officielle</p>
+                  <Calculator className="w-16 h-16 mx-auto mb-4 opacity-20" />
+                  <p className="text-lg font-display">Remplissez le formulaire pour voir votre simulation</p>
+                  <p className="text-sm mt-2">Calcul basé sur la table CIMA H officielle</p>
                 </div>
               </div>
             )}
