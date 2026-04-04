@@ -1,0 +1,61 @@
+import { motion } from 'framer-motion';
+import { ArrowRight, Calculator, Shield, Heart } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import heroImg from '@/assets/hero-family.jpg';
+
+const stats = [
+  { value: '15 000+', label: 'Familles protégées' },
+  { value: '< 12h', label: 'Délai de paiement' },
+  { value: '30%', label: 'Bonus Fidélité' },
+  { value: '25+', label: "Années d'expérience" },
+];
+
+export function HeroSection() {
+  return (
+    <section id="accueil" className="relative min-h-screen flex items-center overflow-hidden">
+      {/* Background */}
+      <div className="absolute inset-0">
+        <img src={heroImg} alt="Famille africaine heureuse" className="w-full h-full object-cover" width={1920} height={1080} />
+        <div className="absolute inset-0 bg-gradient-hero" />
+      </div>
+
+      <div className="container mx-auto px-4 relative z-10 pt-24 pb-16">
+        <div className="max-w-3xl">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
+            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm text-white/90 text-sm font-medium mb-6">
+              <Shield className="w-4 h-4" />
+              Assurance Obsèques par SONAM VIE
+            </span>
+          </motion.div>
+
+          <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }} className="text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6 font-display">
+            Protégez votre famille avec <span className="text-sonam-green">AssurDignité</span>
+          </motion.h1>
+
+          <motion.p initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }} className="text-lg md:text-xl text-white/80 mb-8 max-w-2xl font-sans leading-relaxed">
+            Une couverture obsèques complète : 70% en prestations nature, 30% en espèces versés en moins de 12 heures. Offrez à vos proches la dignité qu'ils méritent.
+          </motion.p>
+
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.6 }} className="flex flex-wrap gap-4 mb-16">
+            <Button size="lg" className="bg-secondary hover:bg-secondary/90 text-white text-lg px-8 gap-2" asChild>
+              <a href="#simulateur"><Calculator className="w-5 h-5" /> Simuler ma prime</a>
+            </Button>
+            <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10 text-lg px-8 gap-2" asChild>
+              <a href="#contact"><ArrowRight className="w-5 h-5" /> Nous contacter</a>
+            </Button>
+          </motion.div>
+
+          {/* Stats */}
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.8 }} className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {stats.map((stat, i) => (
+              <div key={i} className="text-center bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                <p className="text-2xl md:text-3xl font-bold text-white font-display">{stat.value}</p>
+                <p className="text-white/70 text-sm mt-1">{stat.label}</p>
+              </div>
+            ))}
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+}
