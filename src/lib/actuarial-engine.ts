@@ -161,7 +161,7 @@ export interface SimulationResult {
   pac: number;
   primeAnnuelle: number;
   eligibilityErrors: string[];
-  capitaux: typeof OPTIONS_CAPITALS.A;
+  capitaux: { principal: number; conjoint: number; enfant: number; ascendant: number };
 }
 
 function getAge(dob: string, quoteDate: string): number {
