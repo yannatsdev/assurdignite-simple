@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, Calculator, Shield, Heart } from 'lucide-react';
+import { ArrowRight, Calculator, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import heroImg from '@/assets/hero-family.jpg';
 
@@ -13,7 +13,6 @@ const stats = [
 export function HeroSection() {
   return (
     <section id="accueil" className="relative min-h-screen flex items-center overflow-hidden">
-      {/* Background */}
       <div className="absolute inset-0">
         <img src={heroImg} alt="Famille africaine heureuse" className="w-full h-full object-cover" width={1920} height={1080} />
         <div className="absolute inset-0 bg-gradient-hero" />
@@ -28,29 +27,28 @@ export function HeroSection() {
             </span>
           </motion.div>
 
-          <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }} className="text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6 font-display">
+          <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }} className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6 font-display">
             Protégez votre famille avec <span className="text-sonam-green">AssurDignité</span>
           </motion.h1>
 
-          <motion.p initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }} className="text-lg md:text-xl text-white/80 mb-8 max-w-2xl font-sans leading-relaxed">
+          <motion.p initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }} className="text-base sm:text-lg md:text-xl text-white/80 mb-8 max-w-2xl font-sans leading-relaxed">
             Une couverture obsèques complète : 70% en prestations nature, 30% en espèces versés en moins de 12 heures. Offrez à vos proches la dignité qu'ils méritent.
           </motion.p>
 
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.6 }} className="flex flex-wrap gap-4 mb-16">
-            <Button size="lg" className="bg-secondary hover:bg-secondary/90 text-white text-lg px-8 gap-2" asChild>
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.6 }} className="flex flex-col sm:flex-row gap-4 mb-16">
+            <Button size="lg" className="bg-secondary hover:bg-secondary/90 text-white text-base sm:text-lg px-8 gap-2" asChild>
               <a href="#simulateur"><Calculator className="w-5 h-5" /> Simuler ma prime</a>
             </Button>
-            <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10 text-lg px-8 gap-2" asChild>
+            <Button size="lg" className="bg-white/20 border-2 border-white text-white hover:bg-white/30 text-base sm:text-lg px-8 gap-2 backdrop-blur-sm" asChild>
               <a href="#contact"><ArrowRight className="w-5 h-5" /> Nous contacter</a>
             </Button>
           </motion.div>
 
-          {/* Stats */}
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.8 }} className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.8 }} className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
             {stats.map((stat, i) => (
-              <div key={i} className="text-center bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                <p className="text-2xl md:text-3xl font-bold text-white font-display">{stat.value}</p>
-                <p className="text-white/70 text-sm mt-1">{stat.label}</p>
+              <div key={i} className="text-center bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4">
+                <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white font-display">{stat.value}</p>
+                <p className="text-white/70 text-xs sm:text-sm mt-1">{stat.label}</p>
               </div>
             ))}
           </motion.div>
