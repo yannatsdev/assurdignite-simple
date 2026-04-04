@@ -14,16 +14,305 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      assures_complementaires: {
+        Row: {
+          contract_id: string
+          dob: string | null
+          id: string
+          lien_parente: string | null
+          nom: string
+          prestation_nature: string | null
+          type_assure: string | null
+        }
+        Insert: {
+          contract_id: string
+          dob?: string | null
+          id?: string
+          lien_parente?: string | null
+          nom: string
+          prestation_nature?: string | null
+          type_assure?: string | null
+        }
+        Update: {
+          contract_id?: string
+          dob?: string | null
+          id?: string
+          lien_parente?: string | null
+          nom?: string
+          prestation_nature?: string | null
+          type_assure?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assures_complementaires_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      beneficiaires: {
+        Row: {
+          contract_id: string | null
+          created_at: string | null
+          id: string
+          lien_parente: string | null
+          nom: string
+          telephone: string | null
+          user_id: string
+        }
+        Insert: {
+          contract_id?: string | null
+          created_at?: string | null
+          id?: string
+          lien_parente?: string | null
+          nom: string
+          telephone?: string | null
+          user_id: string
+        }
+        Update: {
+          contract_id?: string | null
+          created_at?: string | null
+          id?: string
+          lien_parente?: string | null
+          nom?: string
+          telephone?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beneficiaires_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contracts: {
+        Row: {
+          capital_total: number
+          conjoint_dob: string | null
+          conjoint_name: string | null
+          created_at: string | null
+          date_effet: string
+          date_expiration: string
+          formule: string
+          id: string
+          nb_ascendants: number | null
+          nb_enfants: number | null
+          police_number: string
+          prime_annuelle: number
+          principal_dob: string | null
+          principal_name: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          capital_total: number
+          conjoint_dob?: string | null
+          conjoint_name?: string | null
+          created_at?: string | null
+          date_effet: string
+          date_expiration: string
+          formule: string
+          id?: string
+          nb_ascendants?: number | null
+          nb_enfants?: number | null
+          police_number: string
+          prime_annuelle: number
+          principal_dob?: string | null
+          principal_name?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          capital_total?: number
+          conjoint_dob?: string | null
+          conjoint_name?: string | null
+          created_at?: string | null
+          date_effet?: string
+          date_expiration?: string
+          formule?: string
+          id?: string
+          nb_ascendants?: number | null
+          nb_enfants?: number | null
+          police_number?: string
+          prime_annuelle?: number
+          principal_dob?: string | null
+          principal_name?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      paiements: {
+        Row: {
+          contract_id: string | null
+          date_paiement: string | null
+          id: string
+          methode: string | null
+          montant: number
+          reference: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          contract_id?: string | null
+          date_paiement?: string | null
+          id?: string
+          methode?: string | null
+          montant: number
+          reference?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          contract_id?: string | null
+          date_paiement?: string | null
+          id?: string
+          methode?: string | null
+          montant?: number
+          reference?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paiements_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sinistres: {
+        Row: {
+          beneficiaire_nom: string | null
+          circonstances: string | null
+          contract_id: string | null
+          created_at: string | null
+          date_deces: string | null
+          documents_urls: string[] | null
+          id: string
+          lieu_deces: string | null
+          methode_paiement: string | null
+          nom_decede: string
+          numero_paiement: string | null
+          reference: string
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          beneficiaire_nom?: string | null
+          circonstances?: string | null
+          contract_id?: string | null
+          created_at?: string | null
+          date_deces?: string | null
+          documents_urls?: string[] | null
+          id?: string
+          lieu_deces?: string | null
+          methode_paiement?: string | null
+          nom_decede: string
+          numero_paiement?: string | null
+          reference: string
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          beneficiaire_nom?: string | null
+          circonstances?: string | null
+          contract_id?: string | null
+          created_at?: string | null
+          date_deces?: string | null
+          documents_urls?: string[] | null
+          id?: string
+          lieu_deces?: string | null
+          methode_paiement?: string | null
+          nom_decede?: string
+          numero_paiement?: string | null
+          reference?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sinistres_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "client"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +439,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "client"],
+    },
   },
 } as const

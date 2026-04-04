@@ -3,6 +3,8 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/Login";
@@ -29,40 +31,40 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/admin/login" element={<AdminLoginPage />} />
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/admin/login" element={<AdminLoginPage />} />
 
-          {/* Client Portal */}
-          <Route path="/client" element={<ClientLayout />}>
-            <Route index element={<ClientDashboard />} />
-            <Route path="souscrire" element={<SouscrirePage />} />
-            <Route path="contrats" element={<ContratsPage />} />
-            <Route path="paiements" element={<PaiementsPage />} />
-            <Route path="beneficiaires" element={<BeneficiairesPage />} />
-            <Route path="sinistre" element={<SinistrePage />} />
-            <Route path="assistance" element={<AssistancePage />} />
-            <Route path="documents" element={<DocumentsPage />} />
-            <Route path="profil" element={<ProfilPage />} />
-          </Route>
+            <Route path="/client" element={<ProtectedRoute requiredRole="client"><ClientLayout /></ProtectedRoute>}>
+              <Route index element={<ClientDashboard />} />
+              <Route path="souscrire" element={<SouscrirePage />} />
+              <Route path="contrats" element={<ContratsPage />} />
+              <Route path="paiements" element={<PaiementsPage />} />
+              <Route path="beneficiaires" element={<BeneficiairesPage />} />
+              <Route path="sinistre" element={<SinistrePage />} />
+              <Route path="assistance" element={<AssistancePage />} />
+              <Route path="documents" element={<DocumentsPage />} />
+              <Route path="profil" element={<ProfilPage />} />
+            </Route>
 
-          {/* Admin Portal */}
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="parametrage" element={<AdminPlaceholder title="Paramétrage Produit" />} />
-            <Route path="contrats" element={<AdminPlaceholder title="Gestion des Contrats" />} />
-            <Route path="finances" element={<AdminPlaceholder title="Encaissements & Finances" />} />
-            <Route path="sinistres" element={<AdminPlaceholder title="Gestion des Sinistres" />} />
-            <Route path="fraude" element={<AdminPlaceholder title="Anti-fraude & Conformité" />} />
-            <Route path="reporting" element={<AdminPlaceholder title="Reporting & Statistiques" />} />
-            <Route path="utilisateurs" element={<AdminPlaceholder title="Utilisateurs & Rôles" />} />
-            <Route path="communication" element={<AdminPlaceholder title="Contenus & Communication" />} />
-            <Route path="outils" element={<AdminPlaceholder title="Outils Avancés" />} />
-          </Route>
+            <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminLayout /></ProtectedRoute>}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="parametrage" element={<AdminPlaceholder title="Paramétrage Produit" />} />
+              <Route path="contrats" element={<AdminPlaceholder title="Gestion des Contrats" />} />
+              <Route path="finances" element={<AdminPlaceholder title="Encaissements & Finances" />} />
+              <Route path="sinistres" element={<AdminPlaceholder title="Gestion des Sinistres" />} />
+              <Route path="fraude" element={<AdminPlaceholder title="Anti-fraude & Conformité" />} />
+              <Route path="reporting" element={<AdminPlaceholder title="Reporting & Statistiques" />} />
+              <Route path="utilisateurs" element={<AdminPlaceholder title="Utilisateurs & Rôles" />} />
+              <Route path="communication" element={<AdminPlaceholder title="Contenus & Communication" />} />
+              <Route path="outils" element={<AdminPlaceholder title="Outils Avancés" />} />
+            </Route>
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

@@ -1,13 +1,15 @@
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { ClientSidebar } from '@/components/client/ClientSidebar';
 import { Bell, Search, Moon, Sun, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { ChatBot } from '@/components/ChatBot';
 
 export default function ClientLayout() {
   const [dark, setDark] = useState(false);
-  const navigate = useNavigate();
+  const { signOut, user } = useAuth();
 
   const toggleDark = () => {
     setDark(!dark);
@@ -19,7 +21,7 @@ export default function ClientLayout() {
       <div className="min-h-screen flex w-full">
         <ClientSidebar />
         <div className="flex-1 flex flex-col">
-          <header className="h-16 flex items-center justify-between border-b border-border px-4 bg-card">
+          <header className="h-14 flex items-center justify-between border-b border-border px-4 bg-card">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
               <div className="hidden md:flex items-center gap-2 bg-muted rounded-lg px-3 py-1.5 ml-4">
@@ -28,16 +30,18 @@ export default function ClientLayout() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground hidden sm:inline">{user?.email}</span>
               <Button variant="ghost" size="icon" onClick={toggleDark}>{dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}</Button>
               <Button variant="ghost" size="icon" className="relative"><Bell className="w-4 h-4" /><span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" /></Button>
-              <Button variant="ghost" size="icon" onClick={() => navigate('/')}><LogOut className="w-4 h-4" /></Button>
+              <Button variant="ghost" size="sm" onClick={signOut} className="gap-1"><LogOut className="w-4 h-4" /><span className="hidden sm:inline">Déconnexion</span></Button>
             </div>
           </header>
-          <main className="flex-1 p-6 overflow-auto bg-muted/30">
+          <main className="flex-1 p-4 sm:p-6 overflow-auto bg-muted/30">
             <Outlet />
           </main>
         </div>
       </div>
+      <ChatBot />
     </SidebarProvider>
   );
 }
