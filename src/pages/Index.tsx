@@ -3,6 +3,8 @@ import { HeroSection } from '@/components/landing/HeroSection';
 import { FormulesSection } from '@/components/landing/FormulesSection';
 import { SimulateurSection } from '@/components/landing/SimulateurSection';
 import { AvantagesSection } from '@/components/landing/AvantagesSection';
+import { FAQSection } from '@/components/landing/FAQSection';
+import { ConditionsSection } from '@/components/landing/ConditionsSection';
 import { ContactSection } from '@/components/landing/ContactSection';
 import { Footer } from '@/components/landing/Footer';
 import { ChatBot } from '@/components/ChatBot';
@@ -15,6 +17,8 @@ const Index = () => {
       <FormulesSection />
       <SimulateurSection />
       <AvantagesSection />
+      <FAQSection />
+      <ConditionsSection />
       <ContactSection />
       <Footer />
       <ChatBot />
