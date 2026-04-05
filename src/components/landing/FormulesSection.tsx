@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Check, Star } from 'lucide-react';
+import { Check, Star, Crown, Shield, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCFA } from '@/lib/actuarial-engine';
@@ -10,6 +10,7 @@ const formules = [
     name: 'Dignité Simple',
     capital: 1500000,
     color: 'border-sonam-blue',
+    icon: Shield,
     features: ['Capital principal : 1 500 000 FCFA', 'Capital conjoint : 1 500 000 FCFA', 'Capital enfant : 500 000 FCFA', 'Capital ascendant : 1 050 000 FCFA'],
   },
   {
@@ -17,7 +18,7 @@ const formules = [
     name: 'Serein',
     capital: 2000000,
     color: 'border-sonam-green',
-    popular: true,
+    icon: Heart,
     features: ['Capital principal : 2 000 000 FCFA', 'Capital conjoint : 2 000 000 FCFA', 'Capital enfant : 500 000 FCFA', 'Capital ascendant : 1 400 000 FCFA'],
   },
   {
@@ -25,6 +26,7 @@ const formules = [
     name: 'Prestige',
     capital: 3000000,
     color: 'border-primary',
+    icon: Star,
     features: ['Capital principal : 3 000 000 FCFA', 'Capital conjoint : 3 000 000 FCFA', 'Capital enfant : 500 000 FCFA', 'Capital ascendant : 2 100 000 FCFA'],
   },
   {
@@ -32,6 +34,8 @@ const formules = [
     name: 'Excellence',
     capital: 5000000,
     color: 'border-sonam-gold',
+    icon: Crown,
+    popular: true,
     features: ['Capital principal : 5 000 000 FCFA', 'Capital conjoint : 5 000 000 FCFA', 'Capital enfant : 500 000 FCFA', 'Capital ascendant : 3 500 000 FCFA'],
   },
 ];
@@ -48,7 +52,8 @@ export function FormulesSection() {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {formules.map((f, i) => (
-            <motion.div key={f.key} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
+            <motion.div key={f.key} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+              whileHover={{ y: -8 }} className="transition-all duration-300">
               <Card className={`relative h-full border-2 ${f.color} hover:shadow-xl transition-shadow ${f.popular ? 'ring-2 ring-secondary' : ''}`}>
                 {f.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-secondary text-white text-xs font-semibold px-4 py-1 rounded-full flex items-center gap-1">
@@ -56,6 +61,9 @@ export function FormulesSection() {
                   </div>
                 )}
                 <CardHeader className="text-center pb-4">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
+                    <f.icon className="w-6 h-6 text-primary" />
+                  </div>
                   <p className="text-sm font-semibold text-muted-foreground">Formule {f.key}</p>
                   <CardTitle className="text-xl font-display">{f.name}</CardTitle>
                   <p className="text-2xl font-bold text-primary mt-2">{formatCFA(f.capital)}</p>

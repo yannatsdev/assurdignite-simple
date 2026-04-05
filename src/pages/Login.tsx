@@ -29,7 +29,8 @@ export default function LoginPage() {
       if (isSignUp) {
         const { error } = await signUp(email, password, fullName);
         if (error) throw error;
-        toast({ title: 'Inscription réussie', description: 'Vérifiez votre email pour confirmer votre compte.' });
+        toast({ title: 'Inscription réussie', description: 'Votre compte a été créé. Vous pouvez maintenant vous connecter.' });
+        setIsSignUp(false);
       } else {
         const { error } = await signIn(email, password);
         if (error) throw error;
@@ -43,20 +44,20 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left: Image */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        <img src={loginImg} alt="" className="w-full h-full object-cover" />
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Image — visible on all sizes */}
+      <div className="relative overflow-hidden lg:w-1/2 h-48 sm:h-56 lg:h-auto">
+        <img src={loginImg} alt="Famille africaine" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-primary/40" />
-        <div className="absolute inset-0 flex flex-col justify-end p-12 text-white">
+        <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-8 lg:p-12 text-white">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-            <h2 className="text-4xl font-bold font-display mb-4">Bienvenue sur votre Espace Client</h2>
-            <p className="text-white/80 text-lg max-w-md">Gérez vos contrats, suivez vos paiements et déclarez vos sinistres en toute simplicité.</p>
+            <h2 className="text-xl sm:text-2xl lg:text-4xl font-bold font-display mb-2 lg:mb-4">Bienvenue sur votre Espace Client</h2>
+            <p className="text-white/80 text-sm lg:text-lg max-w-md hidden sm:block">Gérez vos contrats, suivez vos paiements et déclarez vos sinistres en toute simplicité.</p>
           </motion.div>
         </div>
       </div>
 
-      {/* Right: Form */}
+      {/* Form */}
       <div className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-background">
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="w-full max-w-md space-y-8">
           <div className="flex items-center gap-3">
@@ -107,6 +108,8 @@ export default function LoginPage() {
             </button>
             <p className="text-xs text-muted-foreground">
               <Link to="/admin/login" className="hover:underline">Accès administrateur</Link>
+              {' • '}
+              <Link to="/" className="hover:underline">Retour au site</Link>
             </p>
           </div>
         </motion.div>

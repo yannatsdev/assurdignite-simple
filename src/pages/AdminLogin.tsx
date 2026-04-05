@@ -43,21 +43,24 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        <img src={loginImg} alt="" className="w-full h-full object-cover" />
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Image */}
+      <div className="relative overflow-hidden lg:w-1/2 h-48 sm:h-56 lg:h-auto">
+        <img src={loginImg} alt="Business africain" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#1B3A6B]/90 to-[#1B3A6B]/50" />
-        <div className="absolute inset-0 flex flex-col justify-end p-12 text-white">
+        <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-8 lg:p-12 text-white">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-            <div className="flex items-center gap-2 mb-4">
-              <Shield className="w-8 h-8" />
-              <span className="text-lg font-medium">Back-office SONAM VIE</span>
+            <div className="flex items-center gap-2 mb-2 lg:mb-4">
+              <Shield className="w-6 lg:w-8 h-6 lg:h-8" />
+              <span className="text-sm lg:text-lg font-medium">Back-office SONAM VIE</span>
             </div>
-            <h2 className="text-4xl font-bold font-display mb-4">Espace Administration</h2>
-            <p className="text-white/80 text-lg max-w-md">Gérez les contrats, les sinistres et le portefeuille AssurDignité.</p>
+            <h2 className="text-xl sm:text-2xl lg:text-4xl font-bold font-display mb-2 lg:mb-4">Espace Administration</h2>
+            <p className="text-white/80 text-sm lg:text-lg max-w-md hidden sm:block">Gérez les contrats, les sinistres et le portefeuille AssurDignité.</p>
           </motion.div>
         </div>
       </div>
+
+      {/* Form */}
       <div className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-background">
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="w-full max-w-md space-y-8">
           <div className="flex items-center gap-3">
@@ -93,6 +96,8 @@ export default function AdminLoginPage() {
           </form>
           <p className="text-center text-xs text-muted-foreground">
             <a href="/login" className="hover:underline">Retour à l'espace client</a>
+            {' • '}
+            <a href="/" className="hover:underline">Retour au site</a>
           </p>
         </motion.div>
       </div>
