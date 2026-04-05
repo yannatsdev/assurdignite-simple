@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Menu, X, Shield, Phone, ChevronDown } from 'lucide-react';
+import { Menu, X, Shield, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import logoSonam from '@/assets/logo-sonamvie.png';
 import logoAssurDignite from '@/assets/logo-assurdignite.png';
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { label: 'Nos Formules', href: '#formules' },
   { label: 'Simulateur', href: '#simulateur' },
   { label: 'Avantages', href: '#avantages' },
+  { label: 'FAQ', href: '#faq' },
   { label: 'Contact', href: '#contact' },
 ];
 
@@ -28,14 +29,12 @@ export function Header() {
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-background/95 backdrop-blur-md shadow-lg border-b border-border' : 'bg-transparent'}`}>
       <div className="container mx-auto px-4 flex items-center justify-between h-20">
-        {/* Logos */}
         <div className="flex items-center gap-3">
           <img src={logoSonam} alt="SONAM VIE" className="h-12 w-auto" />
           <div className="w-px h-8 bg-border" />
           <img src={logoAssurDignite} alt="AssurDignité" className="h-10 w-auto" />
         </div>
 
-        {/* Desktop Nav */}
         <nav className="hidden lg:flex items-center gap-8">
           {NAV_ITEMS.map(item => (
             <a key={item.href} href={item.href} className={`text-sm font-medium transition-colors hover:text-primary ${scrolled ? 'text-foreground' : 'text-white'}`}>
@@ -44,9 +43,9 @@ export function Header() {
           ))}
         </nav>
 
-        {/* CTA */}
         <div className="hidden lg:flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={() => navigate('/login')} className={scrolled ? '' : 'border-white/30 text-white hover:bg-white/10'}>
+          <Button variant={scrolled ? 'outline' : 'ghost'} size="sm" onClick={() => navigate('/login')}
+            className={scrolled ? 'border-primary text-primary hover:bg-primary/10' : 'border-white text-white hover:bg-white/10 border'}>
             Espace Client
           </Button>
           <Button size="sm" onClick={() => navigate('/admin/login')} className="bg-secondary hover:bg-secondary/90">
@@ -54,13 +53,11 @@ export function Header() {
           </Button>
         </div>
 
-        {/* Mobile toggle */}
         <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden">
           {mobileOpen ? <X className={`w-6 h-6 ${scrolled ? 'text-foreground' : 'text-white'}`} /> : <Menu className={`w-6 h-6 ${scrolled ? 'text-foreground' : 'text-white'}`} />}
         </button>
       </div>
 
-      {/* Mobile menu */}
       {mobileOpen && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="lg:hidden bg-background border-b border-border p-4 space-y-3">
           {NAV_ITEMS.map(item => (
