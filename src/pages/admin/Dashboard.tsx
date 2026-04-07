@@ -27,6 +27,15 @@ const channelData = [
   { canal: 'MTN', montant: 18000000 }, { canal: 'Moov', montant: 12000000 }, { canal: 'Virement', montant: 21500000 },
 ];
 
+const KPI_COLORS = [
+  'from-primary/15 to-primary/5',
+  'from-secondary/15 to-secondary/5',
+  'from-sonam-green/15 to-sonam-green/5',
+  'from-sonam-gold/15 to-sonam-gold/5',
+  'from-primary/10 to-accent/30',
+  'from-secondary/10 to-accent/30',
+];
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState({ contracts: 0, primes: 0, sinistres: 0 });
 
@@ -61,7 +70,7 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {kpis.map((kpi, i) => (
-          <Card key={i} className="hover:shadow-lg transition-all duration-300">
+          <Card key={i} className={`hover:shadow-lg transition-all duration-300 bg-gradient-to-br ${KPI_COLORS[i]} border-0`}>
             <CardContent className="pt-6">
               <div className="flex justify-between items-start">
                 <div>
@@ -69,7 +78,9 @@ export default function AdminDashboard() {
                   <p className="text-lg sm:text-xl font-bold mt-1 font-display">{kpi.value}</p>
                   <Badge variant="outline" className="mt-2 text-xs">{kpi.change}</Badge>
                 </div>
-                <kpi.icon className={`w-7 h-7 ${kpi.color} opacity-70`} />
+                <div className={`w-12 h-12 rounded-xl bg-background/80 flex items-center justify-center shadow-sm`}>
+                  <kpi.icon className={`w-6 h-6 ${kpi.color}`} />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -77,7 +88,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="shadow-md">
           <CardHeader><CardTitle className="font-display text-sm">Évolution du portefeuille</CardTitle></CardHeader>
           <CardContent className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -92,7 +103,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-md">
           <CardHeader><CardTitle className="font-display text-sm">Répartition par formule</CardTitle></CardHeader>
           <CardContent className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -107,7 +118,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-md">
           <CardHeader><CardTitle className="font-display text-sm">Sinistralité par tranche d'âge</CardTitle></CardHeader>
           <CardContent className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -122,7 +133,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-md">
           <CardHeader><CardTitle className="font-display text-sm">Performance par canal de paiement</CardTitle></CardHeader>
           <CardContent className="h-72">
             <ResponsiveContainer width="100%" height="100%">
