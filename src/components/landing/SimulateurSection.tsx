@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calculator, Plus, Minus, AlertCircle, ChevronDown, ChevronUp, TrendingUp, Users, UserPlus, Shield } from 'lucide-react';
+import { Calculator, Plus, Minus, AlertCircle, ChevronDown, ChevronUp, TrendingUp, Users, UserPlus, Shield, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,12 +9,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { simulatePrime, formatCFA, type OptionKey, type SimulationResult } from '@/lib/actuarial-engine';
+import { simulatePrime, formatCFA, OPTIONS_CAPITALS, type OptionKey, type SimulationResult } from '@/lib/actuarial-engine';
 
 const formuleNames: Record<string, string> = { A: 'Dignité Simple', B: 'Serein', C: 'Prestige', D: 'Excellence' };
+const formuleDescs: Record<string, string> = {
+  A: 'Couverture essentielle à moindre coût',
+  B: 'Protection élargie et capital confortable',
+  C: 'Couverture premium complète et digne',
+  D: 'Formule complète avec rapatriement, idéale pour la diaspora',
+};
 
 export function SimulateurSection() {
-  const [option, setOption] = useState<OptionKey>('B');
+  const [option, setOption] = useState<OptionKey>('D');
   const [quoteDate, setQuoteDate] = useState(new Date().toISOString().slice(0, 10));
   const [principalDob, setPrincipalDob] = useState('');
   const [conjointIncluded, setConjointIncluded] = useState(false);
@@ -23,20 +29,14 @@ export function SimulateurSection() {
   const [ascendants, setAscendants] = useState<{ dob: string; included: boolean; label: string }[]>([]);
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [showFormules, setShowFormules] = useState(false);
 
   const addEnfant = () => { if (enfants.length < 4) setEnfants([...enfants, { dob: '', included: true }]); };
   const addAscendant = () => { if (ascendants.length < 2) setAscendants([...ascendants, { dob: '', included: true, label: ascendants.length === 0 ? 'Père/Mère' : 'Oncle/Tante' }]); };
 
   const handleSimulate = () => {
     if (!principalDob) return;
-    const res = simulatePrime({
-      quoteDate,
-      option,
-      principal: { dob: principalDob },
-      conjoint: conjointIncluded ? { dob: conjointDob, included: true } : undefined,
-      enfants,
-      ascendants,
-    });
+    const res = simulatePrime({ quoteDate, option, principal: { dob: principalDob }, conjoint: conjointIncluded ? { dob: conjointDob, included: true } : undefined, enfants, ascendants });
     setResult(res);
   };
 
@@ -59,6 +59,44 @@ export function SimulateurSection() {
           <p className="text-muted-foreground mt-4 max-w-xl mx-auto">Moteur actuariel CIMA H intégré. Résultats instantanés et détaillés.</p>
         </motion.div>
 
+        {/* Formule info accordion */}
+        <div className="max-w-6xl mx-auto mb-8">
+          <Button variant="outline" className="w-full gap-2 justify-between" onClick={() => setShowFormules(!showFormules)}>
+            <span className="flex items-center gap-2"><Info className="w-4 h-4 text-primary" /> Découvrir les 4 formules AssurDignité</span>
+            {showFormules ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </Button>
+          <AnimatePresence>
+            {showFormules && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                  {(['A','B','C','D'] as OptionKey[]).map(k => {
+                    const cap = OPTIONS_CAPITALS[k];
+                    return (
+                      <Card key={k} className={`${k === 'D' ? 'border-primary border-2 shadow-lg' : ''}`}>
+                        <CardContent className="pt-5 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Badge variant={k === 'D' ? 'default' : 'outline'}>Formule {k}</Badge>
+                            {k === 'D' && <Badge className="bg-secondary text-xs">⭐ Populaire</Badge>}
+                          </div>
+                          <p className="font-bold font-display">{formuleNames[k]}</p>
+                          <p className="text-xs text-muted-foreground">{formuleDescs[k]}</p>
+                          <div className="space-y-1 text-xs pt-2 border-t">
+                            <div className="flex justify-between"><span>Principal</span><span className="font-semibold">{formatCFA(cap.principal)}</span></div>
+                            <div className="flex justify-between"><span>Conjoint</span><span className="font-semibold">{formatCFA(cap.conjoint)}</span></div>
+                            <div className="flex justify-between"><span>Enfant</span><span className="font-semibold">{formatCFA(cap.enfant)}</span></div>
+                            <div className="flex justify-between"><span>Ascendant</span><span className="font-semibold">{formatCFA(cap.ascendant)}</span></div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground text-center mt-3">Chaque formule inclut 70% de prestations en nature (cercueil, conservation, transport, inhumation) et 30% en capital espèces versé au(x) bénéficiaire(s).</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
           <Card className="border-2 shadow-xl">
             <CardHeader>
@@ -72,10 +110,9 @@ export function SimulateurSection() {
                   <Select value={option} onValueChange={v => setOption(v as OptionKey)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="A">A – Dignité Simple</SelectItem>
-                      <SelectItem value="B">B – Serein</SelectItem>
-                      <SelectItem value="C">C – Prestige</SelectItem>
-                      <SelectItem value="D">D – Excellence</SelectItem>
+                      {(['A','B','C','D'] as OptionKey[]).map(k => (
+                        <SelectItem key={k} value={k}>{k} – {formuleNames[k]} {k === 'D' ? '⭐' : ''}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
