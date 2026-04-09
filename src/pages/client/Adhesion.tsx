@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, ArrowRight, Check, Calculator, Users, FileText, Heart, Shield, CreditCard, PenTool, Download, Plus, Minus, AlertCircle, Building2, Info } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Calculator, Users, FileText, Heart, Shield, CreditCard, PenTool, Download, Plus, Minus, AlertCircle, Building2, Info, Upload, X } from 'lucide-react';
 import { simulatePrime, formatCFA, OPTIONS_CAPITALS, type OptionKey, type SimulationResult } from '@/lib/actuarial-engine';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -82,6 +82,8 @@ export default function AdhesionPage() {
 
   // Step 2: KYC
   const [kyc, setKyc] = useState({ nom: '', prenom: '', dob: '', email: '', phone: '', adresse: '', cni: '' });
+  const [kycFiles, setKycFiles] = useState<{ cni?: string; photo?: string; domicile?: string; cniConjoint?: string }>({});
+  const [uploadingFile, setUploadingFile] = useState<string | null>(null);
 
   // Step 3: Conjoint
   const [hasConjoint, setHasConjoint] = useState(false);
@@ -137,6 +139,20 @@ export default function AdhesionPage() {
   const [contractId, setContractId] = useState('');
 
   const quoteDate = new Date().toISOString().slice(0, 10);
+
+  const handleKycUpload = async (file: File, type: string) => {
+    if (!user) return;
+    if (file.size > 5 * 1024 * 1024) { toast({ title: 'Fichier trop volumineux', description: 'Max 5 Mo', variant: 'destructive' }); return; }
+    const allowed = ['image/png', 'image/jpeg', 'application/pdf'];
+    if (!allowed.includes(file.type)) { toast({ title: 'Type non supporté', description: 'PNG, JPG ou PDF uniquement', variant: 'destructive' }); return; }
+    setUploadingFile(type);
+    const ext = file.name.split('.').pop();
+    const path = `${user.id}/${type}_${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('kyc-documents').upload(path, file);
+    if (error) { toast({ title: 'Erreur upload', description: error.message, variant: 'destructive' }); }
+    else { setKycFiles(prev => ({ ...prev, [type]: path })); toast({ title: 'Document uploadé ✓' }); }
+    setUploadingFile(null);
+  };
 
   const handleSimulate = () => {
     if (!simPrincipalDob) return;
@@ -221,7 +237,8 @@ export default function AdhesionPage() {
       conjoint_dob: hasConjoint ? conjoint.dob : null,
       nb_enfants: enfants.length, nb_ascendants: ascendants.length,
       capital_total: simResult.capitaux.principal,
-    }).select('id').single();
+      kyc_documents: kycFiles,
+    } as any).select('id').single();
 
     if (error) { toast({ title: 'Erreur', description: error.message, variant: 'destructive' }); return; }
     setContractId(data.id);
@@ -498,6 +515,40 @@ export default function AdhesionPage() {
                     <div><Label>N° CNI / Passeport *</Label><Input value={kyc.cni} onChange={e => setKyc({ ...kyc, cni: e.target.value })} /></div>
                   </div>
                   <div><Label>Adresse complète</Label><Input value={kyc.adresse} onChange={e => setKyc({ ...kyc, adresse: e.target.value })} /></div>
+
+                  {/* KYC Document Upload */}
+                  <div className="border-t pt-4 mt-4">
+                    <h4 className="font-semibold font-display mb-3 flex items-center gap-2"><Upload className="w-4 h-4" /> Documents justificatifs</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {[
+                        { key: 'cni', label: 'Pièce d\'identité (CNI/Passeport) *', accept: 'image/*,.pdf' },
+                        { key: 'photo', label: 'Photo d\'identité *', accept: 'image/*' },
+                        { key: 'domicile', label: 'Justificatif de domicile', accept: 'image/*,.pdf' },
+                      ].map(doc => (
+                        <div key={doc.key} className="space-y-2">
+                          <Label className="text-sm">{doc.label}</Label>
+                          <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${kycFiles[doc.key as keyof typeof kycFiles] ? 'border-sonam-green bg-sonam-green/5' : 'border-border hover:border-primary/50'}`}>
+                            {kycFiles[doc.key as keyof typeof kycFiles] ? (
+                              <div className="flex items-center justify-center gap-2">
+                                <Check className="w-4 h-4 text-sonam-green" />
+                                <span className="text-sm text-sonam-green font-medium">Uploadé</span>
+                                <button onClick={() => setKycFiles(prev => { const n = { ...prev }; delete n[doc.key as keyof typeof kycFiles]; return n; })} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button>
+                              </div>
+                            ) : (
+                              <label className="cursor-pointer">
+                                {uploadingFile === doc.key ? (
+                                  <div className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /><span className="text-xs">Upload...</span></div>
+                                ) : (
+                                  <><Upload className="w-6 h-6 mx-auto text-muted-foreground mb-1" /><p className="text-xs text-muted-foreground">Cliquez pour uploader</p><p className="text-xs text-muted-foreground/60">PNG, JPG ou PDF (max 5 Mo)</p></>
+                                )}
+                                <input type="file" accept={doc.accept} className="hidden" onChange={e => e.target.files?.[0] && handleKycUpload(e.target.files[0], doc.key)} />
+                              </label>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -509,10 +560,25 @@ export default function AdhesionPage() {
                     <Switch checked={hasConjoint} onCheckedChange={setHasConjoint} />
                   </div>
                   {hasConjoint && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-accent/50">
-                      <div><Label>Nom</Label><Input value={conjoint.nom} onChange={e => setConjoint({ ...conjoint, nom: e.target.value })} /></div>
-                      <div><Label>Prénom</Label><Input value={conjoint.prenom} onChange={e => setConjoint({ ...conjoint, prenom: e.target.value })} /></div>
-                      <div><Label>Date de naissance</Label><Input type="date" value={conjoint.dob} onChange={e => setConjoint({ ...conjoint, dob: e.target.value })} /></div>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-accent/50">
+                        <div><Label>Nom</Label><Input value={conjoint.nom} onChange={e => setConjoint({ ...conjoint, nom: e.target.value })} /></div>
+                        <div><Label>Prénom</Label><Input value={conjoint.prenom} onChange={e => setConjoint({ ...conjoint, prenom: e.target.value })} /></div>
+                        <div><Label>Date de naissance</Label><Input type="date" value={conjoint.dob} onChange={e => setConjoint({ ...conjoint, dob: e.target.value })} /></div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm">Pièce d'identité du conjoint</Label>
+                        <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${kycFiles.cniConjoint ? 'border-sonam-green bg-sonam-green/5' : 'border-border hover:border-primary/50'}`}>
+                          {kycFiles.cniConjoint ? (
+                            <div className="flex items-center justify-center gap-2"><Check className="w-4 h-4 text-sonam-green" /><span className="text-sm text-sonam-green font-medium">Uploadé</span><button onClick={() => setKycFiles(prev => { const n = { ...prev }; delete n.cniConjoint; return n; })} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button></div>
+                          ) : (
+                            <label className="cursor-pointer">
+                              {uploadingFile === 'cniConjoint' ? <div className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /><span className="text-xs">Upload...</span></div> : <><Upload className="w-6 h-6 mx-auto text-muted-foreground mb-1" /><p className="text-xs text-muted-foreground">Cliquez pour uploader (PNG, JPG, PDF)</p></>}
+                              <input type="file" accept="image/*,.pdf" className="hidden" onChange={e => e.target.files?.[0] && handleKycUpload(e.target.files[0], 'cniConjoint')} />
+                            </label>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>

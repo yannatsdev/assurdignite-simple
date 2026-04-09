@@ -100,6 +100,7 @@ export type Database = {
           date_expiration: string
           formule: string
           id: string
+          kyc_documents: Json | null
           nb_ascendants: number | null
           nb_enfants: number | null
           police_number: string
@@ -119,6 +120,7 @@ export type Database = {
           date_expiration: string
           formule: string
           id?: string
+          kyc_documents?: Json | null
           nb_ascendants?: number | null
           nb_enfants?: number | null
           police_number: string
@@ -138,6 +140,7 @@ export type Database = {
           date_expiration?: string
           formule?: string
           id?: string
+          kyc_documents?: Json | null
           nb_ascendants?: number | null
           nb_enfants?: number | null
           police_number?: string

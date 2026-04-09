@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, Shield, ArrowRight } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Shield, ArrowRight, User, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,8 +13,11 @@ import logoAssurDignite from '@/assets/logo-assurdignite.png';
 import loginImg from '@/assets/login-admin.jpg';
 
 export default function AdminLoginPage() {
+  const [isSignup, setIsSignup] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [accessCode, setAccessCode] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -42,9 +45,27 @@ export default function AdminLoginPage() {
     }
   };
 
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const resp = await supabase.functions.invoke('admin-signup', {
+        body: { email, password, fullName, accessCode },
+      });
+      if (resp.error) throw new Error(resp.error.message || 'Erreur lors de la création');
+      const data = resp.data as any;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: 'Compte admin créé ✓', description: 'Vous pouvez maintenant vous connecter.' });
+      setIsSignup(false);
+    } catch (err: any) {
+      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
-      {/* Image */}
       <div className="relative overflow-hidden lg:w-1/2 h-48 sm:h-56 lg:h-auto">
         <img src={loginImg} alt="Business africain" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#1B3A6B]/90 to-[#1B3A6B]/50" />
@@ -60,7 +81,6 @@ export default function AdminLoginPage() {
         </div>
       </div>
 
-      {/* Form */}
       <div className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-background">
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="w-full max-w-md space-y-8">
           <div className="flex items-center gap-3">
@@ -68,10 +88,29 @@ export default function AdminLoginPage() {
             <img src={logoAssurDignite} alt="AssurDignité" className="h-8" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold font-display">Connexion Admin</h1>
-            <p className="text-muted-foreground mt-2">Accès réservé aux gestionnaires SONAM VIE</p>
+            <h1 className="text-3xl font-bold font-display">{isSignup ? 'Créer un compte Admin' : 'Connexion Admin'}</h1>
+            <p className="text-muted-foreground mt-2">{isSignup ? 'Entrez le code d\'accès fourni par SONAM VIE' : 'Accès réservé aux gestionnaires SONAM VIE'}</p>
           </div>
-          <form onSubmit={handleLogin} className="space-y-5">
+
+          <form onSubmit={isSignup ? handleSignup : handleLogin} className="space-y-5">
+            {isSignup && (
+              <>
+                <div className="space-y-2">
+                  <Label>Nom complet</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                    <Input placeholder="Jean Dupont" className="pl-10" value={fullName} onChange={e => setFullName(e.target.value)} required />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Code d'accès admin</Label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                    <Input type="password" placeholder="Code fourni par SONAM VIE" className="pl-10" value={accessCode} onChange={e => setAccessCode(e.target.value)} required />
+                  </div>
+                </div>
+              </>
+            )}
             <div className="space-y-2">
               <Label>Email professionnel</Label>
               <div className="relative">
@@ -90,15 +129,21 @@ export default function AdminLoginPage() {
               </div>
             </div>
             <Button type="submit" className="w-full gap-2" size="lg" disabled={isLoading}>
-              {isLoading ? 'Vérification...' : 'Accéder au back-office'}
+              {isLoading ? 'Vérification...' : isSignup ? 'Créer le compte' : 'Accéder au back-office'}
               <ArrowRight className="w-4 h-4" />
             </Button>
           </form>
-          <p className="text-center text-xs text-muted-foreground">
-            <a href="/login" className="hover:underline">Retour à l'espace client</a>
-            {' • '}
-            <a href="/" className="hover:underline">Retour au site</a>
-          </p>
+
+          <div className="text-center space-y-2">
+            <button onClick={() => setIsSignup(!isSignup)} className="text-sm text-primary hover:underline">
+              {isSignup ? '← Retour à la connexion' : 'Créer un compte administrateur'}
+            </button>
+            <p className="text-xs text-muted-foreground">
+              <a href="/login" className="hover:underline">Retour à l'espace client</a>
+              {' • '}
+              <a href="/" className="hover:underline">Retour au site</a>
+            </p>
+          </div>
         </motion.div>
       </div>
     </div>
