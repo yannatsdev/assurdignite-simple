@@ -237,7 +237,8 @@ export default function AdhesionPage() {
       conjoint_dob: hasConjoint ? conjoint.dob : null,
       nb_enfants: enfants.length, nb_ascendants: ascendants.length,
       capital_total: simResult.capitaux.principal,
-    }).select('id').single();
+      kyc_documents: kycFiles,
+    } as any).select('id').single();
 
     if (error) { toast({ title: 'Erreur', description: error.message, variant: 'destructive' }); return; }
     setContractId(data.id);
