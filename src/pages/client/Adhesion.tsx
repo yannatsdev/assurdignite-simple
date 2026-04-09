@@ -515,6 +515,40 @@ export default function AdhesionPage() {
                     <div><Label>N° CNI / Passeport *</Label><Input value={kyc.cni} onChange={e => setKyc({ ...kyc, cni: e.target.value })} /></div>
                   </div>
                   <div><Label>Adresse complète</Label><Input value={kyc.adresse} onChange={e => setKyc({ ...kyc, adresse: e.target.value })} /></div>
+
+                  {/* KYC Document Upload */}
+                  <div className="border-t pt-4 mt-4">
+                    <h4 className="font-semibold font-display mb-3 flex items-center gap-2"><Upload className="w-4 h-4" /> Documents justificatifs</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {[
+                        { key: 'cni', label: 'Pièce d\'identité (CNI/Passeport) *', accept: 'image/*,.pdf' },
+                        { key: 'photo', label: 'Photo d\'identité *', accept: 'image/*' },
+                        { key: 'domicile', label: 'Justificatif de domicile', accept: 'image/*,.pdf' },
+                      ].map(doc => (
+                        <div key={doc.key} className="space-y-2">
+                          <Label className="text-sm">{doc.label}</Label>
+                          <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${kycFiles[doc.key as keyof typeof kycFiles] ? 'border-sonam-green bg-sonam-green/5' : 'border-border hover:border-primary/50'}`}>
+                            {kycFiles[doc.key as keyof typeof kycFiles] ? (
+                              <div className="flex items-center justify-center gap-2">
+                                <Check className="w-4 h-4 text-sonam-green" />
+                                <span className="text-sm text-sonam-green font-medium">Uploadé</span>
+                                <button onClick={() => setKycFiles(prev => { const n = { ...prev }; delete n[doc.key as keyof typeof kycFiles]; return n; })} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button>
+                              </div>
+                            ) : (
+                              <label className="cursor-pointer">
+                                {uploadingFile === doc.key ? (
+                                  <div className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /><span className="text-xs">Upload...</span></div>
+                                ) : (
+                                  <><Upload className="w-6 h-6 mx-auto text-muted-foreground mb-1" /><p className="text-xs text-muted-foreground">Cliquez pour uploader</p><p className="text-xs text-muted-foreground/60">PNG, JPG ou PDF (max 5 Mo)</p></>
+                                )}
+                                <input type="file" accept={doc.accept} className="hidden" onChange={e => e.target.files?.[0] && handleKycUpload(e.target.files[0], doc.key)} />
+                              </label>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
 
