@@ -140,6 +140,20 @@ export default function AdhesionPage() {
 
   const quoteDate = new Date().toISOString().slice(0, 10);
 
+  const handleKycUpload = async (file: File, type: string) => {
+    if (!user) return;
+    if (file.size > 5 * 1024 * 1024) { toast({ title: 'Fichier trop volumineux', description: 'Max 5 Mo', variant: 'destructive' }); return; }
+    const allowed = ['image/png', 'image/jpeg', 'application/pdf'];
+    if (!allowed.includes(file.type)) { toast({ title: 'Type non supporté', description: 'PNG, JPG ou PDF uniquement', variant: 'destructive' }); return; }
+    setUploadingFile(type);
+    const ext = file.name.split('.').pop();
+    const path = `${user.id}/${type}_${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('kyc-documents').upload(path, file);
+    if (error) { toast({ title: 'Erreur upload', description: error.message, variant: 'destructive' }); }
+    else { setKycFiles(prev => ({ ...prev, [type]: path })); toast({ title: 'Document uploadé ✓' }); }
+    setUploadingFile(null);
+  };
+
   const handleSimulate = () => {
     if (!simPrincipalDob) return;
     const res = simulatePrime({
