@@ -69,7 +69,7 @@ export function HeroSection() {
 
           <motion.p initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }}
             className="text-base sm:text-lg md:text-xl text-white/80 mb-8 max-w-2xl font-sans leading-relaxed">
-            Une couverture obsèques complète : 70% en prestations nature, 30% en espèces versés en moins de 12 heures. Offrez à vos proches la dignité qu'ils méritent.
+            Choisissez votre niveau de protection. Chaque formule offre une répartition de 70 % en prestations en nature (Enlèvement, traitement et conservation du corps, Levée de corps, Allocation cercueil et transfert du corps au lieu d'inhumation) et 30 % en capital espèces, avec un paiement en moins de 12 heures.
           </motion.p>
 
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.6 }} className="flex flex-col sm:flex-row gap-4 mb-16">

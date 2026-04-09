@@ -258,5 +258,5 @@ export function simulatePrime(input: SimulationInput): SimulationResult {
 }
 
 export function formatCFA(amount: number): string {
-  return new Intl.NumberFormat('fr-FR').format(amount) + ' FCFA';
+  return Math.round(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' FCFA';
 }
