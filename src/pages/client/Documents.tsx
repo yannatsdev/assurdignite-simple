@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCFA } from '@/lib/actuarial-engine';
 import jsPDF from 'jspdf';
+import { SONAM_LOGO_B64, ASSURDIGNITE_LOGO_B64 } from '@/lib/pdf-logos';
 
 const SONAM_INFO = {
   name: 'SONAM VIE S.A.',
@@ -20,19 +21,23 @@ const FORMULE_NAMES: Record<string, string> = { A: 'Dignité Simple', B: 'Serein
 function addPDFHeader(doc: jsPDF) {
   // Purple header bar
   doc.setFillColor(74, 14, 120);
-  doc.rect(0, 0, 210, 28, 'F');
+  doc.rect(0, 0, 210, 32, 'F');
+  
+  // Logos
+  try {
+    doc.addImage(SONAM_LOGO_B64, 'PNG', 10, 4, 28, 24);
+  } catch {}
+  try {
+    doc.addImage(ASSURDIGNITE_LOGO_B64, 'PNG', 42, 8, 20, 16);
+  } catch {}
+
+  // Right side info
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text('SONAM VIE', 15, 14);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text('AssurDignité', 15, 22);
-  // Right side
   doc.setFontSize(8);
-  doc.text(SONAM_INFO.tel, 195, 10, { align: 'right' });
-  doc.text(SONAM_INFO.email, 195, 16, { align: 'right' });
-  doc.text(SONAM_INFO.address, 195, 22, { align: 'right' });
+  doc.setFont('helvetica', 'normal');
+  doc.text(SONAM_INFO.tel, 195, 12, { align: 'right' });
+  doc.text(SONAM_INFO.email, 195, 18, { align: 'right' });
+  doc.text(SONAM_INFO.address, 195, 24, { align: 'right' });
   doc.setTextColor(0, 0, 0);
 }
 
@@ -78,7 +83,7 @@ export default function DocumentsPage() {
     if (!contract) return;
     const doc = new jsPDF();
     addPDFHeader(doc);
-    let y = 38;
+    let y = 42;
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(74, 14, 120);
@@ -126,7 +131,7 @@ export default function DocumentsPage() {
   const generateCG = () => {
     const doc = new jsPDF();
     addPDFHeader(doc);
-    let y = 38;
+    let y = 42;
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(74, 14, 120);
@@ -151,7 +156,7 @@ export default function DocumentsPage() {
         addPDFFooter(doc, doc.getNumberOfPages());
         doc.addPage();
         addPDFHeader(doc);
-        y = 38;
+        y = 42;
       }
       doc.text(split, 20, y);
       y += split.length * 5 + 4;
@@ -164,7 +169,7 @@ export default function DocumentsPage() {
     if (!contract) return;
     const doc = new jsPDF();
     addPDFHeader(doc);
-    let y = 38;
+    let y = 42;
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(74, 14, 120);
@@ -176,7 +181,7 @@ export default function DocumentsPage() {
     const items = [
       ['N° Police', contract.police_number],
       ['Formule choisie', `${contract.formule} – ${FORMULE_NAMES[contract.formule] || contract.formule}`],
-      ['Capital garanti (principal)', formatCFA(contract.capital_total)],
+      ['Capital garanti', formatCFA(contract.capital_total)],
       ['Prime annuelle', formatCFA(contract.prime_annuelle)],
       ['Date d\'effet', contract.date_effet],
       ['Date d\'expiration', contract.date_expiration],
@@ -205,7 +210,7 @@ export default function DocumentsPage() {
     if (!contract || !paiement) return;
     const doc = new jsPDF();
     addPDFHeader(doc);
-    let y = 38;
+    let y = 42;
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(74, 14, 120);
@@ -241,7 +246,7 @@ export default function DocumentsPage() {
     if (!contract) return;
     const doc = new jsPDF();
     addPDFHeader(doc);
-    let y = 45;
+    let y = 48;
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(74, 14, 120);
@@ -292,8 +297,8 @@ export default function DocumentsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold font-display">Documents</h1>
+    <div className="space-y-6 max-w-3xl mx-auto">
+      <h1 className="text-2xl sm:text-3xl font-bold font-display">Documents</h1>
       {!contract && (
         <div className="p-4 rounded-xl bg-accent/50 text-sm text-muted-foreground">
           Aucun contrat actif trouvé. Souscrivez à AssurDignité pour accéder à vos documents.
@@ -304,9 +309,9 @@ export default function DocumentsPage() {
           const disabled = (doc.needsContract && !contract) || ((doc as any).needsPaiement && !paiement);
           return (
             <Card key={i} className="hover:shadow-md transition-shadow">
-              <CardContent className="pt-4 flex items-center justify-between">
+              <CardContent className="pt-4 pb-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                     <doc.icon className="w-5 h-5 text-primary" />
                   </div>
                   <div>
