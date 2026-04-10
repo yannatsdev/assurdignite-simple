@@ -1,113 +1,120 @@
 
 
-# Plan — Documents téléchargeables, Adhésion enrichie, Groupe complet, Design amélioré
+# Plan — Fix admin login, redirect bug, PDF logos, UI redesign
 
-## Résumé
-Rendre les documents téléchargeables avec branding SONAM/AssurDignité, enrichir le formulaire d'adhésion (simulation détaillée, explications formules, formulaire groupe complet), améliorer le paiement/signature, corriger le formatage des nombres, et améliorer le design global.
+## Diagnostic
 
----
+### 1. Admin login "Database error querying schema"
+The test admin user `admin@sonamvie.ci` was inserted via SQL migration with a fake UUID (`00000000-...0001`). This is not a real auth user — Supabase auth cannot authenticate it. **Fix**: Delete the fake user entry and create a real admin via the `admin-signup` edge function, or let the user sign up via the admin signup form with code `SONAM2026`.
 
-## 1. Documents téléchargeables avec branding (Documents.tsx)
+### 2. Redirect to landing page after login
+**Race condition** in `AuthContext.tsx`: `setLoading(false)` (line 42) fires immediately in `onAuthStateChange`, but `fetchRole` is called via `setTimeout` and hasn't completed yet. So `ProtectedRoute` sees `role === null`, and since `null !== 'client'`, it redirects to `/`.
 
-Refondre `src/pages/client/Documents.tsx` pour générer des PDF brandés à la volée via `jspdf` :
-- **Police d'assurance** : PDF avec logos SONAM + AssurDignité, données du contrat actif (police_number, formule, capital, prime, dates, assuré principal, bénéficiaires)
-- **Conditions Générales** : PDF avec le texte CG complet et logos
-- **Conditions Particulières** : PDF avec détails spécifiques au contrat
-- **Reçu de paiement** : PDF avec détails du dernier paiement
-- **Attestation d'assurance** : PDF attestation avec numéro de police et validité
+**Fix**: Don't set `loading = false` until the role is fetched. Add a `roleLoading` state or await `fetchRole` before setting loading to false.
 
-Chaque PDF inclut : header avec les 2 logos, infos SONAM (tél, email, adresse), pied de page légal. Les boutons "Télécharger" déclenchent la génération.
+### 3. PDF logos not visible
+`addPDFHeader()` in `Documents.tsx` uses text ("SONAM VIE") instead of actual logo images. jsPDF needs base64-encoded images.
 
-Fetch des données réelles depuis Supabase (contrat actif + paiements) pour alimenter les PDFs.
+**Fix**: Convert `logo-sonamvie.png` and `logo-assurdignite.png` to base64 strings and use `doc.addImage()`.
 
-## 2. Simulation détaillée (Étape 1 Adhésion)
-
-Dans `Adhesion.tsx` step 0 :
-- Ajouter un bloc explicatif des 4 formules avec tableau comparatif (capital principal/conjoint/enfant/ascendant pour chaque formule)
-- Inclure conjoint, enfants, ascendants dans la simulation (pas seulement DOB principal)
-- Afficher résultat détaillé : ventilation par personne, graphique PieChart 70/30, total formaté
-- Ajouter note explicative sur le calcul actuariel CIMA H
-
-## 3. Explications formules (Étape 2)
-
-Dans step 1 (Choix Formule) :
-- Ajouter description détaillée sous chaque carte : ce qui est inclus (nature 70% : cercueil, conservation, transport, inhumation + espèces 30%)
-- Afficher capital par catégorie (principal, conjoint, enfant, ascendant)
-- Badge "Populaire" sur Formule D
-
-## 4. Formulaire Groupe (Étape 10)
-
-Remplacer le step 9 (Groupe) simple par le formulaire complet fourni :
-- **Section A** : Identification souscripteur (raison sociale, forme juridique, RCCM, secteur, adresse, effectif)
-- **Section B** : Personnes habilitées (représentant légal + responsable RH)
-- **Section C** : Modalités contrat (type adhésion, périmètre, date effet, durée)
-- **Section D** : Formules/garanties/tarifs (formules cochées, capitaux, options, périodicité, mode paiement, qui paie)
-- **Section E** : Récapitulatif financier (primes par formule)
-- **Section F** : Déclarations et engagements (checkboxes)
-- **Annexe** : Table éditable pour liste du personnel/membres (nom, DOB, sexe, téléphone, matricule, statut, formule, capital, prime, bénéficiaires)
-
-Toggle "Souscription individuelle / groupe" pour afficher le formulaire approprié.
-
-## 5. Paiement → transition auto (Étape 12)
-
-Dans step 11 (Paiement) : quand `handlePay()` réussit, auto-avancer à l'étape suivante après 1.5s avec toast de confirmation.
-
-## 6. Signature améliorée (Étape 14)
-
-- Ajouter un canvas de signature manuscrite (dessiner avec le doigt/souris) en plus de l'OTP
-- Bouton "Effacer" pour recommencer la signature
-
-## 7. Reçu PDF amélioré
-
-Refondre `generatePDF()` :
-- Header avec les 2 logos (SONAM VIE + AssurDignité) — utiliser les images encodées en base64
-- Titre "REÇU DE SOUSCRIPTION — ASSURDIGNITÉ"
-- Infos SONAM : adresse, tél, email
-- Tableau structuré avec toutes les infos du contrat
-- Formatage correct des nombres (pas de `/`, juste `1 500 000 FCFA`)
-- Pied de page avec mentions légales
-
-## 8. Formatage des nombres
-
-Corriger `formatCFA()` dans `actuarial-engine.ts` pour s'assurer que le formatage utilise uniquement des espaces comme séparateur de milliers, pas de `/`. Vérifier partout dans l'app.
-
-## 9. Note explicative dans le simulateur landing page
-
-Dans `SimulateurSection.tsx` : ajouter un bloc info/accordion expliquant les 4 formules avec leurs capitaux avant le formulaire.
-
-## 10. Design amélioré espace client & admin
-
-**Client** :
-- Cards avec gradient subtil et hover effects
-- Meilleur espacement et typographie
-- Loading skeletons au lieu de spinners simples
-- Dashboard : ajouter date d'expiration du contrat, barre de progression fidélité
-
-**Admin** :
-- Cards KPI avec icônes colorées et gradient backgrounds
-- Meilleur responsive des graphiques
-- Tables avec alternating row colors
+### 4. UI redesign (based on uploaded screenshots)
+The uploaded images show a modern insurance app with:
+- Purple gradient hero cards for active policy
+- Circular avatar with profile completion %
+- Quick action grid with rounded icons
+- Clean card-based layout with subtle gradients
+- Landing page with testimonials, stats counters, trusted brands, insurance categories
 
 ---
 
-## Fichiers impactés
+## Implementation
 
-| Fichier | Action |
-|---------|--------|
-| `src/pages/client/Documents.tsx` | Refonte complète — génération PDF brandés |
-| `src/pages/client/Adhesion.tsx` | Enrichir steps 0, 1, 9, 11, 13 + formulaire groupe |
-| `src/components/landing/SimulateurSection.tsx` | Ajouter note explicative formules |
-| `src/lib/actuarial-engine.ts` | Vérifier formatCFA |
-| `src/pages/client/Dashboard.tsx` | Améliorer design |
-| `src/pages/admin/Dashboard.tsx` | Améliorer design |
+### Phase 1 — Critical fixes
 
-## Ordre d'exécution
+**AuthContext.tsx**: Fix race condition
+- Track `roleLoading` separately
+- `fetchRole` sets `roleLoading = false` when done
+- `loading` stays true until both session AND role are resolved
 
-1. Formatage nombres (actuarial-engine)
-2. Documents téléchargeables avec branding
-3. Adhésion : simulation détaillée + explications formules
-4. Adhésion : formulaire groupe complet
-5. Adhésion : paiement transition + signature canvas + reçu PDF amélioré
-6. Simulateur landing page : note formules
-7. Design improvements client & admin
+**ProtectedRoute.tsx**: Wait for role to be loaded before redirecting
+
+**Migration**: Remove fake admin user (UUID `00000000-...0001`) from `user_roles` and `profiles` tables. The user can create a real admin via signup form with code `SONAM2026`.
+
+### Phase 2 — PDF logos
+
+**Documents.tsx + Adhesion.tsx**: 
+- Convert `logo-sonamvie.png` and `logo-assurdignite.png` to base64 at build time by importing them and drawing to a canvas, OR embed hardcoded base64 strings
+- Update `addPDFHeader()` to use `doc.addImage(base64Logo, 'PNG', x, y, w, h)` for both logos
+
+### Phase 3 — Client dashboard redesign (inspired by screenshot 1)
+
+**Dashboard.tsx** — Modern insurance app style:
+- Avatar circle with user initials + profile completion percentage ring
+- Greeting: "Bonjour, [name]!" with "Complétez votre profil" subtitle
+- Hero policy card with purple gradient, policy number, validity date, "Renouveler" button
+- Quick Actions grid: 4 circular icon buttons (Sinistre, Documents, Bénéficiaires, Simuler) with colored backgrounds
+- "Chat with expert" card linking to assistance
+- Recent payments with cleaner card layout
+- Bonus fidélité progress bar
+
+### Phase 4 — Admin dashboard redesign
+
+- Cleaner KPI cards with icon circles
+- Better chart responsiveness
+- Summary cards with action buttons
+
+### Phase 5 — Landing page redesign (inspired by screenshot 2)
+
+**HeroSection.tsx**: Keep existing content, improve layout
+**Index.tsx**: Add new sections:
+- "About Company" stats section (1200+ projects, 400 workers, 17K customers style)
+- Testimonials section with client quotes
+- "Trusted Brands" partner logo strip
+- Insurance categories grid
+- "Quality Service Provider" features section
+
+**Footer.tsx**: Improve layout with newsletter signup
+
+### Phase 6 — Responsiveness improvements
+
+- Client layout: collapsible sidebar on mobile, bottom nav option
+- Admin layout: responsive charts, stacked KPIs on mobile
+- Login pages: better mobile image sizing
+- All cards: proper padding and gaps on small screens
+
+### Phase 7 — Innovative features
+
+- Profile completion progress indicator
+- Onboarding stepper for new users (welcome modal → complete profile → subscribe)
+- Notification bell with dropdown
+- Quick search across client portal
+
+---
+
+## Files impacted
+
+| File | Action |
+|------|--------|
+| `src/contexts/AuthContext.tsx` | Fix race condition — role loading |
+| `src/components/ProtectedRoute.tsx` | Wait for role before redirect |
+| `src/pages/client/Dashboard.tsx` | Full redesign — modern insurance app |
+| `src/pages/admin/Dashboard.tsx` | Improved KPI cards + charts |
+| `src/pages/client/Documents.tsx` | Base64 logos in PDFs |
+| `src/pages/client/Adhesion.tsx` | Base64 logos in receipt PDF |
+| `src/components/landing/HeroSection.tsx` | Layout improvements |
+| `src/pages/Index.tsx` | Add testimonials, stats, partners sections |
+| `src/layouts/ClientLayout.tsx` | Responsive improvements |
+| `src/layouts/AdminLayout.tsx` | Responsive improvements |
+| `src/components/client/ClientSidebar.tsx` | Mobile bottom nav |
+| Migration SQL | Remove fake admin user |
+
+## Execution order
+
+1. Fix AuthContext race condition + ProtectedRoute
+2. Remove fake admin user (migration)
+3. Base64 logos in PDFs
+4. Client dashboard redesign
+5. Admin dashboard improvements
+6. Landing page new sections
+7. Responsiveness + onboarding features
 
