@@ -258,23 +258,21 @@ export default function AdhesionPage() {
     toast({ title: 'Contrat signé !', description: `Votre contrat ${policeNumber} a été créé avec succès.` });
   };
 
-  const generatePDF = () => {
+  const generatePDF = async () => {
     if (!simResult) return;
+    const { SONAM_LOGO_B64, ASSURDIGNITE_LOGO_B64 } = await import('@/lib/pdf-logos');
     const doc = new jsPDF();
     // Header
     doc.setFillColor(74, 14, 120);
-    doc.rect(0, 0, 210, 28, 'F');
+    doc.rect(0, 0, 210, 32, 'F');
+    try { doc.addImage(SONAM_LOGO_B64, 'PNG', 10, 4, 28, 24); } catch {}
+    try { doc.addImage(ASSURDIGNITE_LOGO_B64, 'PNG', 42, 8, 20, 16); } catch {}
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('SONAM VIE', 15, 14);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('AssurDignité', 15, 22);
     doc.setFontSize(8);
-    doc.text('27 20 31 71 82 / 05 95 45 21 65', 195, 10, { align: 'right' });
-    doc.text('servicecommercialsonamvie@sonam.ci', 195, 16, { align: 'right' });
-    doc.text('Immeuble SONAM, Plateau, Abidjan', 195, 22, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.text('27 20 31 71 82 / 05 95 45 21 65', 195, 12, { align: 'right' });
+    doc.text('servicecommercialsonamvie@sonam.ci', 195, 18, { align: 'right' });
+    doc.text('Immeuble SONAM, Plateau, Abidjan', 195, 24, { align: 'right' });
 
     doc.setTextColor(74, 14, 120);
     doc.setFontSize(14);
