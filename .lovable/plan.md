@@ -1,93 +1,98 @@
 
 
-# Plan — Fix admin login, redirect bug, PDF logos, UI redesign
+# Plan — Questionnaire médical, KYC caméra, Signature fix, Documents dates, Profil avatar, Admin fix
 
-## Diagnostic
+## 1. Questionnaire médical — Oui/Non + texte libre (Step 8)
 
-### 1. Admin login "Database error querying schema"
-The test admin user `admin@sonamvie.ci` was inserted via SQL migration with a fake UUID (`00000000-...0001`). This is not a real auth user — Supabase auth cannot authenticate it. **Fix**: Delete the fake user entry and create a real admin via the `admin-signup` edge function, or let the user sign up via the admin signup form with code `SONAM2026`.
+**File**: `src/pages/client/Adhesion.tsx` lines 688-703
 
-### 2. Redirect to landing page after login
-**Race condition** in `AuthContext.tsx`: `setLoading(false)` (line 42) fires immediately in `onAuthStateChange`, but `fetchRole` is called via `setTimeout` and hasn't completed yet. So `ProtectedRoute` sees `role === null`, and since `null !== 'client'`, it redirects to `/`.
+Replace the `Switch` toggle with explicit **Oui / Non** radio-style buttons for each medical question. Add a conditional `Textarea` that appears when "Oui" is selected, allowing the user to provide details.
 
-**Fix**: Don't set `loading = false` until the role is fetched. Add a `roleLoading` state or await `fetchRole` before setting loading to false.
+- Change `medicalAnswers` from `boolean[]` to `{ answer: boolean; details: string }[]`
+- Each question shows two buttons: "Oui" (green) / "Non" (gray)
+- When "Oui" is clicked, a `Textarea` slides in below: "Veuillez préciser..."
 
-### 3. PDF logos not visible
-`addPDFHeader()` in `Documents.tsx` uses text ("SONAM VIE") instead of actual logo images. jsPDF needs base64-encoded images.
+## 2. Step 0 — Remove formule comparison table
 
-**Fix**: Convert `logo-sonamvie.png` and `logo-assurdignite.png` to base64 strings and use `doc.addImage()`.
+**File**: `src/pages/client/Adhesion.tsx` lines 360-390
 
-### 4. UI redesign (based on uploaded screenshots)
-The uploaded images show a modern insurance app with:
-- Purple gradient hero cards for active policy
-- Circular avatar with profile completion %
-- Quick action grid with rounded icons
-- Clean card-based layout with subtle gradients
-- Landing page with testimonials, stats counters, trusted brands, insurance categories
+Delete the entire `<div className="p-4 rounded-xl bg-accent/50 border">` block containing the comparison table. Keep the simulation form below.
 
----
+## 3. Step 2 (KYC) — Replace "Photo d'identité" with camera selfie
 
-## Implementation
+**File**: `src/pages/client/Adhesion.tsx` lines 521-547
 
-### Phase 1 — Critical fixes
+For the `photo` document field, replace the file upload with a camera capture button:
+- Use `navigator.mediaDevices.getUserMedia({ video: true })` to access camera
+- Show live video preview in a `<video>` element
+- "Prendre la photo" button captures a frame to `<canvas>`, converts to Blob, uploads to storage
+- Fallback: keep file upload option if camera unavailable
 
-**AuthContext.tsx**: Fix race condition
-- Track `roleLoading` separately
-- `fetchRole` sets `roleLoading = false` when done
-- `loading` stays true until both session AND role are resolved
+## 4. Step 3 (Conjoint) — Add CNI + camera selfie
 
-**ProtectedRoute.tsx**: Wait for role to be loaded before redirecting
+**File**: `src/pages/client/Adhesion.tsx` lines 553-582
 
-**Migration**: Remove fake admin user (UUID `00000000-...0001`) from `user_roles` and `profiles` tables. The user can create a real admin via signup form with code `SONAM2026`.
+When conjoint is enabled, add:
+- **Pièce d'identité (CNI/Passeport)** — file upload (already exists as `cniConjoint`)
+- **Photo** — camera selfie capture (same component as Step 2), stored as `photoConjoint`
 
-### Phase 2 — PDF logos
+## 5. Step 13 (Signature) — Fix canvas scaling + remove OTP
 
-**Documents.tsx + Adhesion.tsx**: 
-- Convert `logo-sonamvie.png` and `logo-assurdignite.png` to base64 at build time by importing them and drawing to a canvas, OR embed hardcoded base64 strings
-- Update `addPDFHeader()` to use `doc.addImage(base64Logo, 'PNG', x, y, w, h)` for both logos
+**File**: `src/pages/client/Adhesion.tsx`
 
-### Phase 3 — Client dashboard redesign (inspired by screenshot 1)
+**Signature fix**: The canvas has `width={500} height={150}` but CSS makes it `w-full h-36`. The coordinate mapping is wrong because `getBoundingClientRect()` returns CSS size while canvas uses pixel size. Fix by scaling coordinates:
+```
+const scaleX = canvas.width / rect.width;
+const scaleY = canvas.height / rect.height;
+const x = (clientX - rect.left) * scaleX;
+const y = (clientY - rect.top) * scaleY;
+```
 
-**Dashboard.tsx** — Modern insurance app style:
-- Avatar circle with user initials + profile completion percentage ring
-- Greeting: "Bonjour, [name]!" with "Complétez votre profil" subtitle
-- Hero policy card with purple gradient, policy number, validity date, "Renouveler" button
-- Quick Actions grid: 4 circular icon buttons (Sinistre, Documents, Bénéficiaires, Simuler) with colored backgrounds
-- "Chat with expert" card linking to assistance
-- Recent payments with cleaner card layout
-- Bonus fidélité progress bar
+**Remove OTP**: Delete the OTP input field and change the sign button condition from `otp.length < 4 || !hasSignature` to just `!hasSignature`.
 
-### Phase 4 — Admin dashboard redesign
+## 6. Documents — French date format (dd/MM/yyyy)
 
-- Cleaner KPI cards with icon circles
-- Better chart responsiveness
-- Summary cards with action buttons
+**File**: `src/pages/client/Documents.tsx`
 
-### Phase 5 — Landing page redesign (inspired by screenshot 2)
+In all PDF generation functions, replace ISO dates (`2026-01-21`) with French format using:
+```typescript
+new Date(dateStr).toLocaleDateString('fr-FR') // → "21/01/2026"
+```
 
-**HeroSection.tsx**: Keep existing content, improve layout
-**Index.tsx**: Add new sections:
-- "About Company" stats section (1200+ projects, 400 workers, 17K customers style)
-- Testimonials section with client quotes
-- "Trusted Brands" partner logo strip
-- Insurance categories grid
-- "Quality Service Provider" features section
+Apply to: police, CG, CP, attestation, reçu de paiement.
 
-**Footer.tsx**: Improve layout with newsletter signup
+## 7. Profil — Avatar image upload
 
-### Phase 6 — Responsiveness improvements
+**File**: `src/pages/client/Profil.tsx`
 
-- Client layout: collapsible sidebar on mobile, bottom nav option
-- Admin layout: responsive charts, stacked KPIs on mobile
-- Login pages: better mobile image sizing
-- All cards: proper padding and gaps on small screens
+Add an avatar section at the top of the profile card:
+- Circular avatar showing initials or uploaded image
+- "Changer la photo" button triggers file input
+- Upload to `kyc-documents/{userId}/avatar_{timestamp}.ext`
+- Save URL in a new `avatar_url` column on `profiles` table
+- Display the avatar in Dashboard and sidebar
 
-### Phase 7 — Innovative features
+**Migration**: `ALTER TABLE public.profiles ADD COLUMN avatar_url text;`
 
-- Profile completion progress indicator
-- Onboarding stepper for new users (welcome modal → complete profile → subscribe)
-- Notification bell with dropdown
-- Quick search across client portal
+## 8. Admin login fix — Demo account
+
+The admin account `testadmin@sonamvie.ci` / `Admin2026!` was just created successfully via the edge function. The original `admin@sonamvie.ci` never existed as a real auth user.
+
+**Fix**: Update the login page hint text to show the correct demo credentials: `testadmin@sonamvie.ci` / `Admin2026!`.
+
+The "edge function returned non-2xx code" error was from the chat-ai function. Need to check and fix `supabase/functions/chat-ai/index.ts` — likely missing the Lovable AI gateway URL or API key configuration.
+
+## 9. Landing page — African family images
+
+**File**: `src/components/landing/AvantagesSection.tsx`
+
+Replace the current `familyImg` import with new African family stock images. Since we can't embed real stock photos, use Unsplash free images via URL or generate placeholder images with African family themes. Add 2-3 images throughout the advantages section.
+
+## 10. Chat-AI edge function fix
+
+**File**: `supabase/functions/chat-ai/index.ts`
+
+Check and fix the Lovable AI gateway call. Ensure it uses the correct endpoint and handles errors gracefully instead of returning non-2xx.
 
 ---
 
@@ -95,26 +100,24 @@ The uploaded images show a modern insurance app with:
 
 | File | Action |
 |------|--------|
-| `src/contexts/AuthContext.tsx` | Fix race condition — role loading |
-| `src/components/ProtectedRoute.tsx` | Wait for role before redirect |
-| `src/pages/client/Dashboard.tsx` | Full redesign — modern insurance app |
-| `src/pages/admin/Dashboard.tsx` | Improved KPI cards + charts |
-| `src/pages/client/Documents.tsx` | Base64 logos in PDFs |
-| `src/pages/client/Adhesion.tsx` | Base64 logos in receipt PDF |
-| `src/components/landing/HeroSection.tsx` | Layout improvements |
-| `src/pages/Index.tsx` | Add testimonials, stats, partners sections |
-| `src/layouts/ClientLayout.tsx` | Responsive improvements |
-| `src/layouts/AdminLayout.tsx` | Responsive improvements |
-| `src/components/client/ClientSidebar.tsx` | Mobile bottom nav |
-| Migration SQL | Remove fake admin user |
+| `src/pages/client/Adhesion.tsx` | Remove comparison table (step 0), camera selfie (steps 2 & 3), medical Oui/Non + textarea (step 8), fix signature canvas scaling, remove OTP (step 13) |
+| `src/pages/client/Documents.tsx` | French date format in all PDFs |
+| `src/pages/client/Profil.tsx` | Avatar upload + display |
+| `src/pages/AdminLogin.tsx` | Update demo credentials hint |
+| `src/components/landing/AvantagesSection.tsx` | Replace/add African images |
+| `supabase/functions/chat-ai/index.ts` | Fix non-2xx error |
+| Migration SQL | Add `avatar_url` to profiles |
 
 ## Execution order
 
-1. Fix AuthContext race condition + ProtectedRoute
-2. Remove fake admin user (migration)
-3. Base64 logos in PDFs
-4. Client dashboard redesign
-5. Admin dashboard improvements
-6. Landing page new sections
-7. Responsiveness + onboarding features
+1. Fix signature canvas scaling + remove OTP
+2. Medical questionnaire Oui/Non + textarea
+3. Remove comparison table from step 0
+4. Camera selfie for steps 2 & 3
+5. Conjoint CNI + photo in step 3
+6. French date format in Documents PDFs
+7. Profil avatar upload (migration + UI)
+8. Admin login demo credentials
+9. Chat-AI edge function fix
+10. Landing page images
 
