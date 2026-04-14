@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, ArrowRight, Check, Calculator, Users, FileText, Heart, Shield, CreditCard, PenTool, Download, Plus, Minus, AlertCircle, Building2, Info, Upload, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Calculator, Users, FileText, Heart, Shield, CreditCard, PenTool, Download, Plus, Minus, AlertCircle, Building2, Upload, X, Camera } from 'lucide-react';
 import { simulatePrime, formatCFA, OPTIONS_CAPITALS, type OptionKey, type SimulationResult } from '@/lib/actuarial-engine';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -63,6 +63,107 @@ const FORMULE_DETAILS: Record<string, { name: string; desc: string; nature: stri
   D: { name: 'Excellence', desc: 'La formule la plus complète. Rapatriement inclus, idéale pour la diaspora.', nature: ['Cercueil haut de gamme', 'Embaumement + soins de présentation', 'Rapatriement national/international', 'Cérémonie d\'exception'] },
 };
 
+// Camera selfie component
+function CameraSelfie({ onCapture, existingFile, onRemove, uploading }: {
+  onCapture: (blob: Blob) => void;
+  existingFile?: string;
+  onRemove: () => void;
+  uploading: boolean;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [streaming, setStreaming] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [cameraError, setCameraError] = useState(false);
+
+  const startCamera = async () => {
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
+      if (videoRef.current) {
+        videoRef.current.srcObject = s;
+        videoRef.current.play();
+      }
+      setStream(s);
+      setStreaming(true);
+      setCameraError(false);
+    } catch {
+      setCameraError(true);
+    }
+  };
+
+  const stopCamera = () => {
+    stream?.getTracks().forEach(t => t.stop());
+    setStream(null);
+    setStreaming(false);
+  };
+
+  const capture = () => {
+    if (!videoRef.current) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    canvas.getContext('2d')?.drawImage(videoRef.current, 0, 0);
+    canvas.toBlob(blob => {
+      if (blob) onCapture(blob);
+      stopCamera();
+    }, 'image/jpeg', 0.85);
+  };
+
+  useEffect(() => () => { stream?.getTracks().forEach(t => t.stop()); }, [stream]);
+
+  if (existingFile) {
+    return (
+      <div className="border-2 border-dashed rounded-xl p-4 text-center border-sonam-green bg-sonam-green/5">
+        <div className="flex items-center justify-center gap-2">
+          <Check className="w-4 h-4 text-sonam-green" />
+          <span className="text-sm text-sonam-green font-medium">Photo capturée</span>
+          <button onClick={onRemove} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button>
+        </div>
+      </div>
+    );
+  }
+
+  if (uploading) {
+    return (
+      <div className="border-2 border-dashed rounded-xl p-4 text-center border-border">
+        <div className="flex items-center justify-center gap-2">
+          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs">Upload...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-2 border-dashed rounded-xl p-4 text-center border-border hover:border-primary/50 transition-colors space-y-3">
+      {streaming ? (
+        <>
+          <video ref={videoRef} className="w-full max-w-xs mx-auto rounded-lg" autoPlay playsInline muted />
+          <div className="flex gap-2 justify-center">
+            <Button size="sm" onClick={capture} className="gap-1"><Camera className="w-4 h-4" /> Prendre la photo</Button>
+            <Button size="sm" variant="outline" onClick={stopCamera}>Annuler</Button>
+          </div>
+        </>
+      ) : (
+        <>
+          <Button size="sm" variant="outline" onClick={startCamera} className="gap-1"><Camera className="w-4 h-4" /> Ouvrir la caméra</Button>
+          {cameraError && (
+            <>
+              <p className="text-xs text-destructive">Caméra non disponible</p>
+              <label className="cursor-pointer text-xs text-primary underline">
+                Uploader une photo à la place
+                <input type="file" accept="image/*" capture="user" className="hidden" onChange={e => {
+                  const f = e.target.files?.[0];
+                  if (f) onCapture(f);
+                }} />
+              </label>
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function AdhesionPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -82,7 +183,7 @@ export default function AdhesionPage() {
 
   // Step 2: KYC
   const [kyc, setKyc] = useState({ nom: '', prenom: '', dob: '', email: '', phone: '', adresse: '', cni: '' });
-  const [kycFiles, setKycFiles] = useState<{ cni?: string; photo?: string; domicile?: string; cniConjoint?: string }>({});
+  const [kycFiles, setKycFiles] = useState<{ cni?: string; photo?: string; domicile?: string; cniConjoint?: string; photoConjoint?: string }>({});
   const [uploadingFile, setUploadingFile] = useState<string | null>(null);
 
   // Step 3: Conjoint
@@ -103,8 +204,8 @@ export default function AdhesionPage() {
   const [ayantsDroits, setAyantsDroits] = useState<{ nom: string; numero: string }[]>([]);
   const [enfantsNaitre, setEnfantsNaitre] = useState(0);
 
-  // Step 8: Medical
-  const [medicalAnswers, setMedicalAnswers] = useState<boolean[]>(MEDICAL_QUESTIONS.map(() => false));
+  // Step 8: Medical — Oui/Non + details
+  const [medicalAnswers, setMedicalAnswers] = useState<{ answer: boolean; details: string }[]>(MEDICAL_QUESTIONS.map(() => ({ answer: false, details: '' })));
   const [medicalDeclaration, setMedicalDeclaration] = useState(false);
 
   // Step 9: Groupe
@@ -134,19 +235,17 @@ export default function AdhesionPage() {
   const [cpAccepted, setCpAccepted] = useState(false);
 
   // Step 13: Signature
-  const [otp, setOtp] = useState('');
   const [signed, setSigned] = useState(false);
   const [contractId, setContractId] = useState('');
 
   const quoteDate = new Date().toISOString().slice(0, 10);
 
-  const handleKycUpload = async (file: File, type: string) => {
+  const handleKycUpload = async (file: File | Blob, type: string) => {
     if (!user) return;
-    if (file.size > 5 * 1024 * 1024) { toast({ title: 'Fichier trop volumineux', description: 'Max 5 Mo', variant: 'destructive' }); return; }
-    const allowed = ['image/png', 'image/jpeg', 'application/pdf'];
-    if (!allowed.includes(file.type)) { toast({ title: 'Type non supporté', description: 'PNG, JPG ou PDF uniquement', variant: 'destructive' }); return; }
+    const size = file instanceof File ? file.size : file.size;
+    if (size > 5 * 1024 * 1024) { toast({ title: 'Fichier trop volumineux', description: 'Max 5 Mo', variant: 'destructive' }); return; }
     setUploadingFile(type);
-    const ext = file.name.split('.').pop();
+    const ext = file instanceof File ? file.name.split('.').pop() : 'jpg';
     const path = `${user.id}/${type}_${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from('kyc-documents').upload(path, file);
     if (error) { toast({ title: 'Erreur upload', description: error.message, variant: 'destructive' }); }
@@ -181,16 +280,25 @@ export default function AdhesionPage() {
     setTimeout(() => setStep(s => Math.min(s + 1, STEPS.length - 1)), 1500);
   };
 
-  // Signature canvas
+  // Signature canvas — fixed coordinate scaling
+  const getCanvasCoords = (e: React.MouseEvent | React.TouchEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const clientX = ('touches' in e) ? e.touches[0].clientX : e.clientX;
+    const clientY = ('touches' in e) ? e.touches[0].clientY : e.clientY;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+  };
+
   const startDraw = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     setIsDrawing(true);
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = ('touches' in e) ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
-    const y = ('touches' in e) ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+    const { x, y } = getCanvasCoords(e);
     ctx.beginPath();
     ctx.moveTo(x, y);
   }, []);
@@ -201,9 +309,7 @@ export default function AdhesionPage() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = ('touches' in e) ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
-    const y = ('touches' in e) ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+    const { x, y } = getCanvasCoords(e);
     ctx.strokeStyle = '#4A0E78';
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';
@@ -258,11 +364,14 @@ export default function AdhesionPage() {
     toast({ title: 'Contrat signé !', description: `Votre contrat ${policeNumber} a été créé avec succès.` });
   };
 
+  const formatDateFR = (d: string) => {
+    try { return new Date(d).toLocaleDateString('fr-FR'); } catch { return d; }
+  };
+
   const generatePDF = async () => {
     if (!simResult) return;
     const { SONAM_LOGO_B64, ASSURDIGNITE_LOGO_B64 } = await import('@/lib/pdf-logos');
     const doc = new jsPDF();
-    // Header
     doc.setFillColor(74, 14, 120);
     doc.rect(0, 0, 210, 32, 'F');
     try { doc.addImage(SONAM_LOGO_B64, 'PNG', 10, 4, 28, 24); } catch {}
@@ -291,7 +400,7 @@ export default function AdhesionPage() {
       y += 8;
     };
     addLine('Assuré principal', `${kyc.prenom} ${kyc.nom}`);
-    addLine('Date de naissance', kyc.dob || simPrincipalDob);
+    addLine('Date de naissance', formatDateFR(kyc.dob || simPrincipalDob));
     addLine('Formule', `${formule} – ${FORMULE_DETAILS[formule].name}`);
     addLine('Capital garanti', formatCFA(simResult.capitaux.principal));
     addLine('Prime annuelle', formatCFA(simResult.primeAnnuelle));
@@ -299,9 +408,8 @@ export default function AdhesionPage() {
     addLine('Enfants assurés', String(enfants.length));
     addLine('Ascendants assurés', String(ascendants.length));
     addLine('Mode de paiement', paymentMethod);
-    addLine('Date de souscription', quoteDate);
+    addLine('Date de souscription', formatDateFR(quoteDate));
 
-    // Add signature if available
     if (canvasRef.current && hasSignature) {
       y += 5;
       doc.text('Signature :', 20, y);
@@ -310,7 +418,6 @@ export default function AdhesionPage() {
       y += 35;
     }
 
-    // Footer
     y = Math.max(y + 10, 250);
     doc.setDrawColor(74, 14, 120);
     doc.setLineWidth(0.5);
@@ -354,41 +461,9 @@ export default function AdhesionPage() {
           <Card className="border-2">
             <CardContent className="pt-6 space-y-5">
 
-              {/* Step 0: Simulation */}
+              {/* Step 0: Simulation — NO comparison table */}
               {step === 0 && (
                 <div className="space-y-5">
-                  {/* Formule comparison table */}
-                  <div className="p-4 rounded-xl bg-accent/50 border">
-                    <div className="flex items-center gap-2 mb-3"><Info className="w-4 h-4 text-primary" /><span className="font-semibold text-sm">Comparatif des formules AssurDignité</span></div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs border-collapse">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left py-2 pr-2">Capital</th>
-                            {(['A','B','C','D'] as OptionKey[]).map(k => (
-                              <th key={k} className={`text-center py-2 px-2 ${k === 'D' ? 'bg-primary/10 font-bold' : ''}`}>
-                                {k} – {FORMULE_DETAILS[k].name}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {['principal', 'conjoint', 'enfant', 'ascendant'].map(role => (
-                            <tr key={role} className="border-b border-border/50">
-                              <td className="py-2 pr-2 capitalize font-medium">{role}</td>
-                              {(['A','B','C','D'] as OptionKey[]).map(k => (
-                                <td key={k} className={`text-center py-2 px-2 ${k === 'D' ? 'bg-primary/5' : ''}`}>
-                                  {formatCFA(OPTIONS_CAPITALS[k][role as keyof typeof OPTIONS_CAPITALS.A])}
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">70% prestations en nature (cercueil, conservation, transport, inhumation) + 30% capital espèces au(x) bénéficiaire(s). Calcul basé sur la table actuarielle CIMA H.</p>
-                  </div>
-
                   <p className="text-sm text-muted-foreground">Renseignez les informations pour estimer votre prime annuelle.</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div><Label>Date de naissance de l'assuré principal *</Label><Input type="date" value={simPrincipalDob} onChange={e => setSimPrincipalDob(e.target.value)} /></div>
@@ -404,7 +479,6 @@ export default function AdhesionPage() {
                     </div>
                   </div>
 
-                  {/* Conjoint toggle in simulation */}
                   <div className="flex items-center justify-between p-3 rounded-lg bg-accent/30">
                     <Label className="text-sm">Inclure un(e) conjoint(e)</Label>
                     <Switch checked={hasConjoint} onCheckedChange={setHasConjoint} />
@@ -413,7 +487,6 @@ export default function AdhesionPage() {
                     <div className="pl-4"><Label className="text-xs">Date de naissance conjoint</Label><Input type="date" value={conjoint.dob} onChange={e => setConjoint({...conjoint, dob: e.target.value})} /></div>
                   )}
 
-                  {/* Quick enfant/ascendant add */}
                   <div className="flex items-center justify-between p-3 rounded-lg bg-accent/30">
                     <Label className="text-sm">Enfants ({enfants.length}/4)</Label>
                     <Button size="sm" variant="outline" onClick={() => enfants.length < 4 && setEnfants([...enfants, { nom: '', dob: '', prestation: 'Cercueil' }])}><Plus className="w-3 h-3 mr-1" /> Ajouter</Button>
@@ -448,7 +521,6 @@ export default function AdhesionPage() {
                           <Badge variant="outline" className="bg-secondary/10">{simResult.persons.filter(p => p.eligible).length} assuré(s)</Badge>
                         </div>
                       </div>
-                      {/* Detail per person */}
                       <div className="space-y-1">
                         {simResult.persons.map((p, i) => (
                           <div key={i} className="flex justify-between items-center py-2 px-3 rounded-lg bg-accent/30 text-sm">
@@ -500,7 +572,7 @@ export default function AdhesionPage() {
                 </div>
               )}
 
-              {/* Step 2: KYC */}
+              {/* Step 2: KYC — with camera selfie for photo */}
               {step === 2 && (
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">Informations de l'assuré principal.</p>
@@ -514,43 +586,71 @@ export default function AdhesionPage() {
                   </div>
                   <div><Label>Adresse complète</Label><Input value={kyc.adresse} onChange={e => setKyc({ ...kyc, adresse: e.target.value })} /></div>
 
-                  {/* KYC Document Upload */}
                   <div className="border-t pt-4 mt-4">
                     <h4 className="font-semibold font-display mb-3 flex items-center gap-2"><Upload className="w-4 h-4" /> Documents justificatifs</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {[
-                        { key: 'cni', label: 'Pièce d\'identité (CNI/Passeport) *', accept: 'image/*,.pdf' },
-                        { key: 'photo', label: 'Photo d\'identité *', accept: 'image/*' },
-                        { key: 'domicile', label: 'Justificatif de domicile', accept: 'image/*,.pdf' },
-                      ].map(doc => (
-                        <div key={doc.key} className="space-y-2">
-                          <Label className="text-sm">{doc.label}</Label>
-                          <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${kycFiles[doc.key as keyof typeof kycFiles] ? 'border-sonam-green bg-sonam-green/5' : 'border-border hover:border-primary/50'}`}>
-                            {kycFiles[doc.key as keyof typeof kycFiles] ? (
-                              <div className="flex items-center justify-center gap-2">
-                                <Check className="w-4 h-4 text-sonam-green" />
-                                <span className="text-sm text-sonam-green font-medium">Uploadé</span>
-                                <button onClick={() => setKycFiles(prev => { const n = { ...prev }; delete n[doc.key as keyof typeof kycFiles]; return n; })} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button>
-                              </div>
-                            ) : (
-                              <label className="cursor-pointer">
-                                {uploadingFile === doc.key ? (
-                                  <div className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /><span className="text-xs">Upload...</span></div>
-                                ) : (
-                                  <><Upload className="w-6 h-6 mx-auto text-muted-foreground mb-1" /><p className="text-xs text-muted-foreground">Cliquez pour uploader</p><p className="text-xs text-muted-foreground/60">PNG, JPG ou PDF (max 5 Mo)</p></>
-                                )}
-                                <input type="file" accept={doc.accept} className="hidden" onChange={e => e.target.files?.[0] && handleKycUpload(e.target.files[0], doc.key)} />
-                              </label>
-                            )}
-                          </div>
+                      {/* CNI upload */}
+                      <div className="space-y-2">
+                        <Label className="text-sm">Pièce d'identité (CNI/Passeport) *</Label>
+                        <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${kycFiles.cni ? 'border-sonam-green bg-sonam-green/5' : 'border-border hover:border-primary/50'}`}>
+                          {kycFiles.cni ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <Check className="w-4 h-4 text-sonam-green" />
+                              <span className="text-sm text-sonam-green font-medium">Uploadé</span>
+                              <button onClick={() => setKycFiles(prev => { const n = { ...prev }; delete n.cni; return n; })} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button>
+                            </div>
+                          ) : (
+                            <label className="cursor-pointer">
+                              {uploadingFile === 'cni' ? (
+                                <div className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /><span className="text-xs">Upload...</span></div>
+                              ) : (
+                                <><Upload className="w-6 h-6 mx-auto text-muted-foreground mb-1" /><p className="text-xs text-muted-foreground">Cliquez pour uploader</p><p className="text-xs text-muted-foreground/60">PNG, JPG ou PDF (max 5 Mo)</p></>
+                              )}
+                              <input type="file" accept="image/*,.pdf" className="hidden" onChange={e => e.target.files?.[0] && handleKycUpload(e.target.files[0], 'cni')} />
+                            </label>
+                          )}
                         </div>
-                      ))}
+                      </div>
+
+                      {/* Photo — Camera selfie */}
+                      <div className="space-y-2">
+                        <Label className="text-sm">Prendre une photo (selfie) *</Label>
+                        <CameraSelfie
+                          existingFile={kycFiles.photo}
+                          uploading={uploadingFile === 'photo'}
+                          onCapture={blob => handleKycUpload(blob, 'photo')}
+                          onRemove={() => setKycFiles(prev => { const n = { ...prev }; delete n.photo; return n; })}
+                        />
+                      </div>
+
+                      {/* Domicile upload */}
+                      <div className="space-y-2">
+                        <Label className="text-sm">Justificatif de domicile</Label>
+                        <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${kycFiles.domicile ? 'border-sonam-green bg-sonam-green/5' : 'border-border hover:border-primary/50'}`}>
+                          {kycFiles.domicile ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <Check className="w-4 h-4 text-sonam-green" />
+                              <span className="text-sm text-sonam-green font-medium">Uploadé</span>
+                              <button onClick={() => setKycFiles(prev => { const n = { ...prev }; delete n.domicile; return n; })} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button>
+                            </div>
+                          ) : (
+                            <label className="cursor-pointer">
+                              {uploadingFile === 'domicile' ? (
+                                <div className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /><span className="text-xs">Upload...</span></div>
+                              ) : (
+                                <><Upload className="w-6 h-6 mx-auto text-muted-foreground mb-1" /><p className="text-xs text-muted-foreground">Cliquez pour uploader</p><p className="text-xs text-muted-foreground/60">PNG, JPG ou PDF (max 5 Mo)</p></>
+                              )}
+                              <input type="file" accept="image/*,.pdf" className="hidden" onChange={e => e.target.files?.[0] && handleKycUpload(e.target.files[0], 'domicile')} />
+                            </label>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Step 3: Conjoint */}
+              {/* Step 3: Conjoint — with CNI + camera selfie */}
               {step === 3 && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -564,8 +664,9 @@ export default function AdhesionPage() {
                         <div><Label>Prénom</Label><Input value={conjoint.prenom} onChange={e => setConjoint({ ...conjoint, prenom: e.target.value })} /></div>
                         <div><Label>Date de naissance</Label><Input type="date" value={conjoint.dob} onChange={e => setConjoint({ ...conjoint, dob: e.target.value })} /></div>
                       </div>
+                      {/* Conjoint CNI */}
                       <div className="space-y-2">
-                        <Label className="text-sm">Pièce d'identité du conjoint</Label>
+                        <Label className="text-sm">Pièce d'identité du conjoint (CNI/Passeport) *</Label>
                         <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${kycFiles.cniConjoint ? 'border-sonam-green bg-sonam-green/5' : 'border-border hover:border-primary/50'}`}>
                           {kycFiles.cniConjoint ? (
                             <div className="flex items-center justify-center gap-2"><Check className="w-4 h-4 text-sonam-green" /><span className="text-sm text-sonam-green font-medium">Uploadé</span><button onClick={() => setKycFiles(prev => { const n = { ...prev }; delete n.cniConjoint; return n; })} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button></div>
@@ -576,6 +677,16 @@ export default function AdhesionPage() {
                             </label>
                           )}
                         </div>
+                      </div>
+                      {/* Conjoint Photo selfie */}
+                      <div className="space-y-2">
+                        <Label className="text-sm">Photo du conjoint (selfie) *</Label>
+                        <CameraSelfie
+                          existingFile={kycFiles.photoConjoint}
+                          uploading={uploadingFile === 'photoConjoint'}
+                          onCapture={blob => handleKycUpload(blob, 'photoConjoint')}
+                          onRemove={() => setKycFiles(prev => { const n = { ...prev }; delete n.photoConjoint; return n; })}
+                        />
                       </div>
                     </div>
                   )}
@@ -685,14 +796,37 @@ export default function AdhesionPage() {
                 </div>
               )}
 
-              {/* Step 8: Questionnaire médical */}
+              {/* Step 8: Questionnaire médical — Oui/Non + textarea */}
               {step === 8 && (
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">Répondez honnêtement. Toute fausse déclaration annule le contrat.</p>
                   {MEDICAL_QUESTIONS.map((q, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-accent/30">
-                      <span className="text-sm flex-1 mr-4">{q}</span>
-                      <Switch checked={medicalAnswers[i]} onCheckedChange={v => { const n = [...medicalAnswers]; n[i] = v; setMedicalAnswers(n); }} />
+                    <div key={i} className="p-3 rounded-lg bg-accent/30 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm flex-1 mr-4">{q}</span>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant={medicalAnswers[i].answer ? 'default' : 'outline'}
+                            className={medicalAnswers[i].answer ? 'bg-destructive hover:bg-destructive/90' : ''}
+                            onClick={() => { const n = [...medicalAnswers]; n[i] = { ...n[i], answer: true }; setMedicalAnswers(n); }}>
+                            Oui
+                          </Button>
+                          <Button size="sm" variant={!medicalAnswers[i].answer ? 'default' : 'outline'}
+                            className={!medicalAnswers[i].answer ? 'bg-sonam-green hover:bg-sonam-green/90 text-white' : ''}
+                            onClick={() => { const n = [...medicalAnswers]; n[i] = { answer: false, details: '' }; setMedicalAnswers(n); }}>
+                            Non
+                          </Button>
+                        </div>
+                      </div>
+                      {medicalAnswers[i].answer && (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
+                          <Textarea
+                            placeholder="Veuillez préciser..."
+                            value={medicalAnswers[i].details}
+                            onChange={e => { const n = [...medicalAnswers]; n[i] = { ...n[i], details: e.target.value }; setMedicalAnswers(n); }}
+                            className="mt-2"
+                          />
+                        </motion.div>
+                      )}
                     </div>
                   ))}
                   <div className="flex items-start gap-3 p-4 bg-destructive/5 rounded-xl border border-destructive/20">
@@ -718,7 +852,6 @@ export default function AdhesionPage() {
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      {/* Section A: Identification */}
                       <div className="space-y-3">
                         <h3 className="font-bold text-sm text-primary uppercase tracking-wider">A) Identification du souscripteur</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -731,72 +864,46 @@ export default function AdhesionPage() {
                                 <SelectItem value="Association">Association</SelectItem>
                                 <SelectItem value="Mutuelle">Mutuelle</SelectItem>
                                 <SelectItem value="Coopérative">Coopérative</SelectItem>
-                                <SelectItem value="Autre">Autre</SelectItem>
+                                <SelectItem value="ONG">ONG</SelectItem>
+                                <SelectItem value="Administration">Administration publique</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
                           <div><Label>Raison sociale *</Label><Input value={groupeData.raisonSociale} onChange={e => setGroupeData({...groupeData, raisonSociale: e.target.value})} /></div>
-                          <div>
-                            <Label>Forme juridique</Label>
-                            <Select value={groupeData.formeJuridique} onValueChange={v => setGroupeData({...groupeData, formeJuridique: v})}>
-                              <SelectTrigger><SelectValue placeholder="Choisir..." /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="SARL">SARL</SelectItem><SelectItem value="SA">SA</SelectItem><SelectItem value="EI">EI</SelectItem>
-                                <SelectItem value="Association">Association</SelectItem><SelectItem value="Mutuelle">Mutuelle</SelectItem><SelectItem value="Coopérative">Coopérative</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div><Label>RCCM / N° récépissé</Label><Input value={groupeData.rccm} onChange={e => setGroupeData({...groupeData, rccm: e.target.value})} /></div>
+                          <div><Label>Forme juridique</Label><Input value={groupeData.formeJuridique} onChange={e => setGroupeData({...groupeData, formeJuridique: e.target.value})} placeholder="SA, SARL, SAS..." /></div>
+                          <div><Label>RCCM</Label><Input value={groupeData.rccm} onChange={e => setGroupeData({...groupeData, rccm: e.target.value})} /></div>
                           <div><Label>CC / IFU</Label><Input value={groupeData.ccIfu} onChange={e => setGroupeData({...groupeData, ccIfu: e.target.value})} /></div>
                           <div><Label>Secteur d'activité</Label><Input value={groupeData.secteur} onChange={e => setGroupeData({...groupeData, secteur: e.target.value})} /></div>
-                          <div className="sm:col-span-2"><Label>Adresse complète</Label><Input value={groupeData.adresse} onChange={e => setGroupeData({...groupeData, adresse: e.target.value})} /></div>
+                          <div className="sm:col-span-2"><Label>Adresse du siège</Label><Input value={groupeData.adresse} onChange={e => setGroupeData({...groupeData, adresse: e.target.value})} /></div>
                           <div><Label>Téléphone</Label><Input value={groupeData.telephone} onChange={e => setGroupeData({...groupeData, telephone: e.target.value})} /></div>
                           <div><Label>Email</Label><Input value={groupeData.emailGroupe} onChange={e => setGroupeData({...groupeData, emailGroupe: e.target.value})} /></div>
-                          <div className="flex items-center gap-3 p-3 rounded-lg bg-accent/30"><Label className="text-sm">WhatsApp</Label><Switch checked={groupeData.whatsapp} onCheckedChange={v => setGroupeData({...groupeData, whatsapp: v})} /></div>
                           <div><Label>Effectif total</Label><Input type="number" value={groupeData.effectifTotal} onChange={e => setGroupeData({...groupeData, effectifTotal: e.target.value})} /></div>
                           <div><Label>Effectif à assurer</Label><Input type="number" value={groupeData.effectifAssure} onChange={e => setGroupeData({...groupeData, effectifAssure: e.target.value})} /></div>
                         </div>
                       </div>
 
-                      {/* Section B: Personnes habilitées */}
                       <div className="space-y-3">
-                        <h3 className="font-bold text-sm text-primary uppercase tracking-wider">B) Personnes habilitées</h3>
-                        <p className="text-xs text-muted-foreground font-medium">B1) Représentant légal</p>
+                        <h3 className="font-bold text-sm text-primary uppercase tracking-wider">B) Représentant légal</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div><Label>Nom & Prénoms *</Label><Input value={groupeData.repLegalNom} onChange={e => setGroupeData({...groupeData, repLegalNom: e.target.value})} /></div>
                           <div><Label>Fonction</Label><Input value={groupeData.repLegalFonction} onChange={e => setGroupeData({...groupeData, repLegalFonction: e.target.value})} /></div>
                           <div><Label>Téléphone</Label><Input value={groupeData.repLegalTel} onChange={e => setGroupeData({...groupeData, repLegalTel: e.target.value})} /></div>
                           <div><Label>Email</Label><Input value={groupeData.repLegalEmail} onChange={e => setGroupeData({...groupeData, repLegalEmail: e.target.value})} /></div>
-                          <div>
-                            <Label>Pièce d'identité</Label>
-                            <Select value={groupeData.repLegalPiece} onValueChange={v => setGroupeData({...groupeData, repLegalPiece: v})}>
-                              <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
-                              <SelectContent><SelectItem value="CNI">CNI</SelectItem><SelectItem value="Passeport">Passeport</SelectItem><SelectItem value="Autre">Autre</SelectItem></SelectContent>
-                            </Select>
-                          </div>
-                          <div><Label>N° pièce</Label><Input value={groupeData.repLegalNumPiece} onChange={e => setGroupeData({...groupeData, repLegalNumPiece: e.target.value})} /></div>
-                        </div>
-                        <p className="text-xs text-muted-foreground font-medium mt-3">B2) Responsable RH / Trésorerie (si différent)</p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div><Label>Nom & Prénoms</Label><Input value={groupeData.rhNom} onChange={e => setGroupeData({...groupeData, rhNom: e.target.value})} /></div>
-                          <div><Label>Fonction</Label><Input value={groupeData.rhFonction} onChange={e => setGroupeData({...groupeData, rhFonction: e.target.value})} /></div>
-                          <div><Label>Téléphone</Label><Input value={groupeData.rhTel} onChange={e => setGroupeData({...groupeData, rhTel: e.target.value})} /></div>
-                          <div><Label>Email</Label><Input value={groupeData.rhEmail} onChange={e => setGroupeData({...groupeData, rhEmail: e.target.value})} /></div>
+                          <div><Label>Type de pièce</Label><Input value={groupeData.repLegalPiece} onChange={e => setGroupeData({...groupeData, repLegalPiece: e.target.value})} placeholder="CNI / Passeport" /></div>
+                          <div><Label>N° de pièce</Label><Input value={groupeData.repLegalNumPiece} onChange={e => setGroupeData({...groupeData, repLegalNumPiece: e.target.value})} /></div>
                         </div>
                       </div>
 
-                      {/* Section C: Modalités */}
                       <div className="space-y-3">
-                        <h3 className="font-bold text-sm text-primary uppercase tracking-wider">C) Modalités du contrat groupe</h3>
+                        <h3 className="font-bold text-sm text-primary uppercase tracking-wider">C) Modalités d'adhésion</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
                             <Label>Type d'adhésion</Label>
                             <Select value={groupeData.typeAdhesion} onValueChange={v => setGroupeData({...groupeData, typeAdhesion: v})}>
                               <SelectTrigger><SelectValue placeholder="Choisir..." /></SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="Obligatoire">Obligatoire (tout le personnel)</SelectItem>
-                                <SelectItem value="Volontaire">Volontaire (au choix)</SelectItem>
-                                <SelectItem value="Mixte">Mixte (noyau + volontaires)</SelectItem>
+                                <SelectItem value="Obligatoire">Obligatoire (tous les membres)</SelectItem>
+                                <SelectItem value="Facultative">Facultative (sur base volontaire)</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -824,7 +931,6 @@ export default function AdhesionPage() {
                         </div>
                       </div>
 
-                      {/* Section D: Formules et tarifs */}
                       <div className="space-y-3">
                         <h3 className="font-bold text-sm text-primary uppercase tracking-wider">D) Formules, garanties et tarifs</h3>
                         <div className="space-y-2">
@@ -874,7 +980,6 @@ export default function AdhesionPage() {
                         </div>
                       </div>
 
-                      {/* Section E: Récapitulatif */}
                       <div className="space-y-3">
                         <h3 className="font-bold text-sm text-primary uppercase tracking-wider">E) Récapitulatif financier</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -890,7 +995,6 @@ export default function AdhesionPage() {
                         </div>
                       </div>
 
-                      {/* Section F: Déclarations */}
                       <div className="space-y-3">
                         <h3 className="font-bold text-sm text-primary uppercase tracking-wider">F) Déclarations et engagements</h3>
                         {[
@@ -907,7 +1011,6 @@ export default function AdhesionPage() {
                         ))}
                       </div>
 
-                      {/* Annexe: Members list */}
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <h3 className="font-bold text-sm text-primary uppercase tracking-wider">Annexe — Liste du personnel</h3>
@@ -1021,14 +1124,13 @@ export default function AdhesionPage() {
                 </div>
               )}
 
-              {/* Step 13: Signature & Reçu */}
+              {/* Step 13: Signature & Reçu — NO OTP */}
               {step === 13 && (
                 <div className="space-y-4">
                   {!signed ? (
                     <>
-                      <p className="text-sm text-muted-foreground">Signez votre contrat ci-dessous et entrez le code OTP reçu par SMS.</p>
+                      <p className="text-sm text-muted-foreground">Signez votre contrat ci-dessous pour finaliser votre souscription.</p>
 
-                      {/* Signature canvas */}
                       <div className="space-y-2">
                         <Label>Signature manuscrite</Label>
                         <div className="border-2 border-dashed border-primary/30 rounded-xl overflow-hidden bg-white">
@@ -1049,8 +1151,7 @@ export default function AdhesionPage() {
                         <Button variant="outline" size="sm" onClick={clearCanvas}>Effacer la signature</Button>
                       </div>
 
-                      <div><Label>Code OTP (reçu par SMS)</Label><Input value={otp} onChange={e => setOtp(e.target.value)} placeholder="XXXXXX" maxLength={6} /></div>
-                      <Button className="w-full gap-2" onClick={handleSign} disabled={otp.length < 4 || !hasSignature}>
+                      <Button className="w-full gap-2" onClick={handleSign} disabled={!hasSignature}>
                         <PenTool className="w-4 h-4" /> Signer le contrat
                       </Button>
                     </>
