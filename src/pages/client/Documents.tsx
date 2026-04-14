@@ -18,20 +18,16 @@ const SONAM_INFO = {
 
 const FORMULE_NAMES: Record<string, string> = { A: 'Dignité Simple', B: 'Serein', C: 'Prestige', D: 'Excellence' };
 
+const formatDateFR = (d: string | undefined | null): string => {
+  if (!d) return '—';
+  try { return new Date(d).toLocaleDateString('fr-FR'); } catch { return d; }
+};
+
 function addPDFHeader(doc: jsPDF) {
-  // Purple header bar
   doc.setFillColor(74, 14, 120);
   doc.rect(0, 0, 210, 32, 'F');
-  
-  // Logos
-  try {
-    doc.addImage(SONAM_LOGO_B64, 'PNG', 10, 4, 28, 24);
-  } catch {}
-  try {
-    doc.addImage(ASSURDIGNITE_LOGO_B64, 'PNG', 42, 8, 20, 16);
-  } catch {}
-
-  // Right side info
+  try { doc.addImage(SONAM_LOGO_B64, 'PNG', 10, 4, 28, 24); } catch {}
+  try { doc.addImage(ASSURDIGNITE_LOGO_B64, 'PNG', 42, 8, 20, 16); } catch {}
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
@@ -96,14 +92,14 @@ export default function DocumentsPage() {
       ['N° Police', contract.police_number],
       ['Formule', `${contract.formule} – ${FORMULE_NAMES[contract.formule] || contract.formule}`],
       ['Assuré principal', contract.principal_name || '—'],
-      ['Date de naissance', contract.principal_dob || '—'],
+      ['Date de naissance', formatDateFR(contract.principal_dob)],
       ['Conjoint(e)', contract.conjoint_name || 'Non inclus'],
       ['Enfants assurés', String(contract.nb_enfants || 0)],
       ['Ascendants assurés', String(contract.nb_ascendants || 0)],
       ['Capital garanti', formatCFA(contract.capital_total)],
       ['Prime annuelle', formatCFA(contract.prime_annuelle)],
-      ['Date d\'effet', contract.date_effet],
-      ['Date d\'expiration', contract.date_expiration],
+      ['Date d\'effet', formatDateFR(contract.date_effet)],
+      ['Date d\'expiration', formatDateFR(contract.date_expiration)],
       ['Statut', contract.status === 'active' ? 'Actif' : contract.status],
     ];
     lines.forEach(([label, val]) => {
@@ -183,8 +179,8 @@ export default function DocumentsPage() {
       ['Formule choisie', `${contract.formule} – ${FORMULE_NAMES[contract.formule] || contract.formule}`],
       ['Capital garanti', formatCFA(contract.capital_total)],
       ['Prime annuelle', formatCFA(contract.prime_annuelle)],
-      ['Date d\'effet', contract.date_effet],
-      ['Date d\'expiration', contract.date_expiration],
+      ['Date d\'effet', formatDateFR(contract.date_effet)],
+      ['Date d\'expiration', formatDateFR(contract.date_expiration)],
       ['Assuré principal', contract.principal_name || '—'],
       ['Conjoint(e)', contract.conjoint_name || 'Non inclus'],
       ['Nombre d\'enfants', String(contract.nb_enfants || 0)],
@@ -225,7 +221,7 @@ export default function DocumentsPage() {
       ['Assuré', contract.principal_name || '—'],
       ['Montant', formatCFA(paiement.montant)],
       ['Mode de paiement', paiement.methode || '—'],
-      ['Date de paiement', paiement.date_paiement ? new Date(paiement.date_paiement).toLocaleDateString('fr-FR') : '—'],
+      ['Date de paiement', formatDateFR(paiement.date_paiement)],
       ['Statut', paiement.status === 'paid' ? 'Payé' : paiement.status],
     ];
     items.forEach(([l, v]) => {
@@ -260,7 +256,7 @@ export default function DocumentsPage() {
     doc.text(split, 20, y);
     y += split.length * 6 + 10;
     const details = [
-      ['Période de validité', `${contract.date_effet} au ${contract.date_expiration}`],
+      ['Période de validité', `${formatDateFR(contract.date_effet)} au ${formatDateFR(contract.date_expiration)}`],
       ['Capital garanti', formatCFA(contract.capital_total)],
       ['Prime annuelle', formatCFA(contract.prime_annuelle)],
       ['Statut', 'Actif'],
@@ -285,11 +281,11 @@ export default function DocumentsPage() {
   };
 
   const documents = [
-    { name: 'Police d\'assurance', type: 'PDF', icon: FileText, date: contract?.date_effet || '—', action: generatePolice, needsContract: true },
+    { name: 'Police d\'assurance', type: 'PDF', icon: FileText, date: formatDateFR(contract?.date_effet), action: generatePolice, needsContract: true },
     { name: 'Conditions Générales', type: 'PDF', icon: BookOpen, date: '01/01/2026', action: generateCG, needsContract: false },
-    { name: 'Conditions Particulières', type: 'PDF', icon: BookOpen, date: contract?.date_effet || '—', action: generateCP, needsContract: true },
-    { name: 'Reçu de paiement', type: 'PDF', icon: Receipt, date: paiement?.date_paiement ? new Date(paiement.date_paiement).toLocaleDateString('fr-FR') : '—', action: generateRecu, needsContract: true, needsPaiement: true },
-    { name: 'Attestation d\'assurance', type: 'PDF', icon: Shield, date: contract?.date_effet || '—', action: generateAttestation, needsContract: true },
+    { name: 'Conditions Particulières', type: 'PDF', icon: BookOpen, date: formatDateFR(contract?.date_effet), action: generateCP, needsContract: true },
+    { name: 'Reçu de paiement', type: 'PDF', icon: Receipt, date: formatDateFR(paiement?.date_paiement), action: generateRecu, needsContract: true, needsPaiement: true },
+    { name: 'Attestation d\'assurance', type: 'PDF', icon: Shield, date: formatDateFR(contract?.date_effet), action: generateAttestation, needsContract: true },
   ];
 
   if (loading) {
