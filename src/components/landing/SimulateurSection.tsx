@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { simulatePrime, formatCFA, OPTIONS_CAPITALS, type OptionKey, type SimulationResult } from '@/lib/actuarial-engine';
+import { useAuth } from '@/contexts/AuthContext';
 
 const formuleNames: Record<string, string> = { A: 'Dignité Simple', B: 'Serein', C: 'Prestige', D: 'Excellence' };
 const formuleDescs: Record<string, string> = {
@@ -19,7 +20,14 @@ const formuleDescs: Record<string, string> = {
   D: 'Formule complète avec rapatriement, idéale pour la diaspora',
 };
 
-export function SimulateurSection() {
+interface SimulateurSectionProps {
+  /** Force-show the actuarial breakdown (PAP/PAI/PAC/Frais). When false, hidden for non-admins. */
+  showActuarialBreakdown?: boolean;
+}
+
+export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionProps = {}) {
+  const { role } = useAuth();
+  const canSeeBreakdown = showActuarialBreakdown ?? role === 'admin';
   const [option, setOption] = useState<OptionKey>('D');
   const [quoteDate, setQuoteDate] = useState(new Date().toISOString().slice(0, 10));
   const [principalDob, setPrincipalDob] = useState('');
@@ -231,13 +239,19 @@ export function SimulateurSection() {
                             {p.eligible ? <p className="font-semibold text-sm text-primary">{formatCFA(Math.round(p.pap))}</p> : <Badge variant="destructive" className="text-xs">Non éligible</Badge>}
                           </div>
                         ))}
-                        <div className="border-t pt-3 space-y-1 text-sm">
-                          <div className="flex justify-between"><span>PAP Total</span><span>{formatCFA(result.papTotal)}</span></div>
-                          <div className="flex justify-between"><span>PAI (×1.002)</span><span>{formatCFA(result.pai)}</span></div>
-                          <div className="flex justify-between"><span>PAC (÷0.85)</span><span>{formatCFA(result.pac)}</span></div>
-                          <div className="flex justify-between"><span>Frais fixes</span><span>{formatCFA(2500)}</span></div>
-                          <div className="flex justify-between font-bold text-primary pt-2 border-t"><span>Prime annuelle</span><span>{formatCFA(result.primeAnnuelle)}</span></div>
-                        </div>
+                        {canSeeBreakdown ? (
+                          <div className="border-t pt-3 space-y-1 text-sm">
+                            <div className="flex justify-between"><span>PAP Total</span><span>{formatCFA(result.papTotal)}</span></div>
+                            <div className="flex justify-between"><span>PAI (×1.002)</span><span>{formatCFA(result.pai)}</span></div>
+                            <div className="flex justify-between"><span>PAC (÷0.85)</span><span>{formatCFA(result.pac)}</span></div>
+                            <div className="flex justify-between"><span>Frais fixes</span><span>{formatCFA(2500)}</span></div>
+                            <div className="flex justify-between font-bold text-primary pt-2 border-t"><span>Prime annuelle</span><span>{formatCFA(result.primeAnnuelle)}</span></div>
+                          </div>
+                        ) : (
+                          <div className="border-t pt-3 flex justify-between font-bold text-primary text-base">
+                            <span>Prime annuelle</span><span>{formatCFA(result.primeAnnuelle)}</span>
+                          </div>
+                        )}
                       </CardContent></Card>
                     </motion.div>
                   )}

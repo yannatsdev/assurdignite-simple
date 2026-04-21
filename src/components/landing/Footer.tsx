@@ -1,8 +1,22 @@
-import { Phone, Mail, Facebook, Linkedin, Instagram } from 'lucide-react';
+import { Phone, Mail, Facebook, Linkedin, Twitter, MessageCircle, Link2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import logoSonam from '@/assets/logo-sonamvie.png';
 import logoAssurDignite from '@/assets/logo-assurdignite.png';
 
 export function Footer() {
+  const { toast } = useToast();
+  const SITE_URL = typeof window !== 'undefined' ? window.location.origin : 'https://assurdignite.sonam.ci';
+  const shareText = 'Découvrez AssurDignité, l\'assurance obsèques digne par SONAM VIE';
+  const shareLinks = [
+    { Icon: Facebook, label: 'Facebook', href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SITE_URL)}` },
+    { Icon: Linkedin, label: 'LinkedIn', href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(SITE_URL)}` },
+    { Icon: Twitter, label: 'X / Twitter', href: `https://twitter.com/intent/tweet?url=${encodeURIComponent(SITE_URL)}&text=${encodeURIComponent(shareText)}` },
+    { Icon: MessageCircle, label: 'WhatsApp', href: `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + SITE_URL)}` },
+  ];
+  const copyLink = async () => {
+    try { await navigator.clipboard.writeText(SITE_URL); toast({ title: 'Lien copié', description: SITE_URL }); }
+    catch { toast({ title: 'Erreur', description: 'Impossible de copier', variant: 'destructive' }); }
+  };
   return (
     <footer className="bg-gradient-sonam text-white py-16">
       <div className="container mx-auto px-4">
@@ -42,10 +56,18 @@ export function Footer() {
         </div>
         <div className="border-t border-white/20 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-white/60">© {new Date().getFullYear()} SONAM VIE - AssurDignité. Tous droits réservés.</p>
-          <div className="flex gap-4">
-            <a href="#" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"><Facebook className="w-4 h-4" /></a>
-            <a href="#" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"><Linkedin className="w-4 h-4" /></a>
-            <a href="#" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"><Instagram className="w-4 h-4" /></a>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-white/60 mr-2 hidden sm:inline">Partager :</span>
+            {shareLinks.map(({ Icon, label, href }) => (
+              <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={`Partager sur ${label}`}
+                 className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
+                <Icon className="w-4 h-4" />
+              </a>
+            ))}
+            <button onClick={copyLink} aria-label="Copier le lien"
+                    className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
+              <Link2 className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>

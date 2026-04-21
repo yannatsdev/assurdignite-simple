@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Check, Star, Crown, Shield, Heart } from 'lucide-react';
+import { Check, Star, Crown, Shield, Heart, Truck, Flower2, Home, Users, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCFA } from '@/lib/actuarial-engine';
@@ -9,6 +9,8 @@ const formules = [
     key: 'A',
     name: 'Dignité Simple',
     capital: 1500000,
+    tagline: 'L\'essentiel pour une cérémonie digne',
+    description: 'Idéale pour ceux qui souhaitent une couverture de base abordable, garantissant une cérémonie respectueuse sans charge financière pour les proches.',
     color: 'border-sonam-blue',
     icon: Shield,
     features: ['Capital principal : 1 500 000 FCFA', 'Capital conjoint : 1 500 000 FCFA', 'Capital enfant : 500 000 FCFA', 'Capital ascendant : 1 050 000 FCFA'],
@@ -17,6 +19,8 @@ const formules = [
     key: 'B',
     name: 'Serein',
     capital: 2000000,
+    tagline: 'L\'équilibre parfait protection / budget',
+    description: 'Une protection élargie qui couvre les frais d\'obsèques tout en laissant un capital substantiel à la famille pour faire face aux imprévus.',
     color: 'border-sonam-green',
     icon: Heart,
     features: ['Capital principal : 2 000 000 FCFA', 'Capital conjoint : 2 000 000 FCFA', 'Capital enfant : 500 000 FCFA', 'Capital ascendant : 1 400 000 FCFA'],
@@ -25,6 +29,8 @@ const formules = [
     key: 'C',
     name: 'Prestige',
     capital: 3000000,
+    tagline: 'Une cérémonie haut-de-gamme et un capital généreux',
+    description: 'Pour ceux qui veulent une prestation premium avec cercueil de qualité supérieure, transport longue distance et un capital espèces important.',
     color: 'border-primary',
     icon: Star,
     features: ['Capital principal : 3 000 000 FCFA', 'Capital conjoint : 3 000 000 FCFA', 'Capital enfant : 500 000 FCFA', 'Capital ascendant : 2 100 000 FCFA'],
@@ -33,11 +39,20 @@ const formules = [
     key: 'D',
     name: 'Excellence',
     capital: 5000000,
+    tagline: 'La couverture ultime, idéale pour la diaspora',
+    description: 'Notre formule la plus complète avec rapatriement international, prestations VIP et capital maximum pour préserver l\'avenir financier de votre famille.',
     color: 'border-sonam-gold',
     icon: Crown,
     popular: true,
     features: ['Capital principal : 5 000 000 FCFA', 'Capital conjoint : 5 000 000 FCFA', 'Capital enfant : 500 000 FCFA', 'Capital ascendant : 3 500 000 FCFA'],
   },
+];
+
+const servicesNature = [
+  { icon: Truck, title: 'Enlèvement & transport du corps', desc: 'Prise en charge immédiate depuis le lieu du décès, brancardage et transport sécurisé vers la morgue.' },
+  { icon: Home, title: 'Conservation & traitement', desc: 'Conservation en chambre froide, soins de thanatopraxie et habillage du défunt dans le respect des traditions.' },
+  { icon: Flower2, title: 'Cercueil & accessoires funéraires', desc: 'Fourniture du cercueil adapté à la formule, capiton, croix et ornements selon vos souhaits.' },
+  { icon: Users, title: 'Levée du corps & cérémonie', desc: 'Organisation de la levée de corps, transport au lieu d\'inhumation et accompagnement de la famille jusqu\'à la sépulture.' },
 ];
 
 export function FormulesSection() {
@@ -47,7 +62,34 @@ export function FormulesSection() {
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16">
           <span className="text-primary text-sm font-semibold uppercase tracking-wider">Nos Formules</span>
           <h2 className="text-3xl md:text-5xl font-bold mt-3 font-display">Choisissez votre niveau de protection</h2>
-          <p className="text-muted-foreground mt-4 max-w-2xl mx-auto">Chaque formule offre une répartition 70% en prestations nature et 30% en capital espèces, avec un paiement en moins de 12 heures.</p>
+          <p className="text-muted-foreground mt-4 max-w-3xl mx-auto leading-relaxed">
+            Chaque formule offre une répartition de <span className="font-semibold text-primary">70 % en prestations en nature</span> (Enlèvement, traitement et conservation du corps, Levée de corps, Allocation cercueil et transfert du corps au lieu d'inhumation) et <span className="font-semibold text-secondary">30 % en capital espèces</span>, avec un paiement en moins de 12 heures.
+          </p>
+        </motion.div>
+
+        {/* Services en nature détaillés */}
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-16 max-w-6xl mx-auto">
+          <div className="text-center mb-8">
+            <span className="inline-flex items-center gap-2 text-secondary font-semibold text-sm uppercase tracking-wider">
+              <Sparkles className="w-4 h-4" /> Prestations en nature incluses (70 %)
+            </span>
+            <h3 className="text-xl md:text-2xl font-display font-bold mt-2">Tout est pris en charge, vous n'avez rien à organiser</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {servicesNature.map((s, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
+                className="bg-card rounded-2xl p-5 border-2 border-border hover:border-primary/40 hover:shadow-lg transition-all">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-3 shadow-md">
+                  <s.icon className="w-6 h-6 text-white" />
+                </div>
+                <h4 className="font-display font-bold text-sm mb-1">{s.title}</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">{s.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+          <p className="text-center text-xs text-muted-foreground mt-6 italic">
+            Les 30 % restants sont versés en <span className="font-semibold not-italic text-secondary">capital espèces aux bénéficiaires</span> en moins de 12 heures pour couvrir les frais imprévus.
+          </p>
         </motion.div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -66,10 +108,14 @@ export function FormulesSection() {
                   </div>
                   <p className="text-sm font-semibold text-muted-foreground">Formule {f.key}</p>
                   <CardTitle className="text-xl font-display">{f.name}</CardTitle>
+                  <p className="text-xs text-secondary font-medium mt-1">{f.tagline}</p>
                   <p className="text-2xl font-bold text-primary mt-2">{formatCFA(f.capital)}</p>
                   <p className="text-xs text-muted-foreground">Capital garanti</p>
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  <p className="text-xs text-muted-foreground leading-relaxed border-l-2 border-primary/30 pl-3 italic">
+                    {f.description}
+                  </p>
                   {f.features.map((feat, j) => (
                     <div key={j} className="flex items-start gap-2 text-sm">
                       <Check className="w-4 h-4 text-secondary mt-0.5 shrink-0" />

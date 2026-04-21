@@ -2,6 +2,7 @@ import { Header } from '@/components/landing/Header';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { FormulesSection } from '@/components/landing/FormulesSection';
 import { AvantagesSection } from '@/components/landing/AvantagesSection';
+import { SimulateurSection } from '@/components/landing/SimulateurSection';
 import { FAQSection } from '@/components/landing/FAQSection';
 import { ConditionsSection } from '@/components/landing/ConditionsSection';
 import { ContactSection } from '@/components/landing/ContactSection';
@@ -62,6 +63,7 @@ const Index = () => {
 
       <FormulesSection />
       <AvantagesSection />
+      <SimulateurSection />
 
       {/* Stats */}
       <section className="py-16 bg-gradient-sonam text-white">
