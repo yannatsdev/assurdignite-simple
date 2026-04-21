@@ -1073,16 +1073,25 @@ export default function AdhesionPage() {
                         amount={simResult?.primeAnnuelle || 0}
                         email={user?.email}
                         name={user?.user_metadata?.full_name || user?.email}
-                        onSuccess={(resp: any) => {
+                        onSuccess={async (resp: any) => {
                           setPaymentMethod('kkiapay');
                           setPaymentNumber(resp?.transactionId || '');
                           setPaymentDone(true);
+                          if (user) {
+                            await supabase.from('notifications').insert({
+                              user_id: user.id,
+                              title: 'Paiement reçu',
+                              message: `Votre paiement de ${formatCFA(simResult?.primeAnnuelle || 0)} a été confirmé.`,
+                              type: 'success',
+                              link: '/client/contrats',
+                            });
+                          }
                           toast({ title: 'Paiement confirmé ✓', description: `Transaction KkiaPay : ${resp?.transactionId || 'OK'}` });
                           setTimeout(() => setStep(s => Math.min(s + 1, STEPS.length - 1)), 1500);
                         }}
                         onFailed={() => toast({ title: 'Paiement échoué', description: 'Veuillez réessayer.', variant: 'destructive' })}
                       />
-                      <p className="text-[11px] text-muted-foreground text-center">En cliquant sur le bouton ci-dessus, vous serez redirigé vers la page sécurisée KkiaPay pour finaliser votre paiement.</p>
+                      <p className="text-[11px] text-muted-foreground text-center">Une popup KkiaPay s'ouvrira avec tous les moyens de paiement disponibles.</p>
                     </div>
                   )}
                 </div>
