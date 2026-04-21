@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calculator, Plus, Minus, AlertCircle, ChevronDown, ChevronUp, TrendingUp, Users, UserPlus, Shield, Info } from 'lucide-react';
+import { Calculator, Plus, Minus, AlertCircle, ChevronDown, ChevronUp, TrendingUp, Users, UserPlus, Shield, Info, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { simulatePrime, formatCFA, OPTIONS_CAPITALS, type OptionKey, type SimulationResult } from '@/lib/actuarial-engine';
 import { useAuth } from '@/contexts/AuthContext';
@@ -225,37 +226,46 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
                   )}
                 </div>
 
-                <Button variant="outline" className="w-full gap-2" onClick={() => setShowDetails(!showDetails)}>
-                  {showDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  {showDetails ? 'Masquer' : 'Voir'} le détail
-                </Button>
-                <AnimatePresence>
-                  {showDetails && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                      <Card><CardContent className="pt-4 space-y-2">
-                        {result.persons.map((p, i) => (
-                          <div key={i} className="flex justify-between items-center py-2 border-b border-border last:border-0">
-                            <div><p className="font-medium text-sm">{p.label}</p><p className="text-xs text-muted-foreground">{p.age} ans – Capital : {formatCFA(p.capital)}</p></div>
-                            {p.eligible ? <p className="font-semibold text-sm text-primary">{formatCFA(Math.round(p.pap))}</p> : <Badge variant="destructive" className="text-xs">Non éligible</Badge>}
+                <Tabs defaultValue="resume" className="w-full">
+                  <TabsList className={`grid w-full ${canSeeBreakdown ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                    <TabsTrigger value="resume">Résumé</TabsTrigger>
+                    {canSeeBreakdown && (
+                      <TabsTrigger value="admin" className="gap-1"><Lock className="w-3 h-3" /> Détails administratifs</TabsTrigger>
+                    )}
+                  </TabsList>
+                  <TabsContent value="resume">
+                    <Card><CardContent className="pt-4 space-y-2">
+                      {result.persons.map((p, i) => (
+                        <div key={i} className="flex justify-between items-center py-2 border-b border-border last:border-0">
+                          <div><p className="font-medium text-sm">{p.label}</p><p className="text-xs text-muted-foreground">{p.age} ans – Capital : {formatCFA(p.capital)}</p></div>
+                          {p.eligible ? <p className="font-semibold text-sm text-primary">{formatCFA(Math.round(p.pap))}</p> : <Badge variant="destructive" className="text-xs">Non éligible</Badge>}
+                        </div>
+                      ))}
+                      <div className="border-t pt-3 flex justify-between font-bold text-primary text-base">
+                        <span>Prime annuelle</span><span>{formatCFA(result.primeAnnuelle)}</span>
+                      </div>
+                    </CardContent></Card>
+                  </TabsContent>
+                  {canSeeBreakdown && (
+                    <TabsContent value="admin">
+                      <Card className="border-amber-300 bg-amber-50/30">
+                        <CardContent className="pt-4 space-y-2">
+                          <div className="flex items-center gap-2 text-xs text-amber-700 mb-2">
+                            <Lock className="w-3 h-3" /> Section visible uniquement par les administrateurs SONAM VIE
                           </div>
-                        ))}
-                        {canSeeBreakdown ? (
-                          <div className="border-t pt-3 space-y-1 text-sm">
-                            <div className="flex justify-between"><span>PAP Total</span><span>{formatCFA(result.papTotal)}</span></div>
-                            <div className="flex justify-between"><span>PAI (×1.002)</span><span>{formatCFA(result.pai)}</span></div>
-                            <div className="flex justify-between"><span>PAC (÷0.85)</span><span>{formatCFA(result.pac)}</span></div>
-                            <div className="flex justify-between"><span>Frais fixes</span><span>{formatCFA(2500)}</span></div>
-                            <div className="flex justify-between font-bold text-primary pt-2 border-t"><span>Prime annuelle</span><span>{formatCFA(result.primeAnnuelle)}</span></div>
+                          <div className="space-y-1 text-sm">
+                            <div className="flex justify-between"><span>PAP Total (Prime Actuarielle Pure)</span><span className="font-mono">{formatCFA(result.papTotal)}</span></div>
+                            <div className="flex justify-between"><span>PAI = PAP × 1,002 (frais gestion)</span><span className="font-mono">{formatCFA(result.pai)}</span></div>
+                            <div className="flex justify-between"><span>PAC = PAI ÷ 0,85 (frais acquisition 15%)</span><span className="font-mono">{formatCFA(result.pac)}</span></div>
+                            <div className="flex justify-between"><span>Frais fixes accessoires</span><span className="font-mono">{formatCFA(2500)}</span></div>
+                            <div className="flex justify-between font-bold text-primary pt-2 border-t border-amber-200"><span>= Prime annuelle TTC</span><span>{formatCFA(result.primeAnnuelle)}</span></div>
                           </div>
-                        ) : (
-                          <div className="border-t pt-3 flex justify-between font-bold text-primary text-base">
-                            <span>Prime annuelle</span><span>{formatCFA(result.primeAnnuelle)}</span>
-                          </div>
-                        )}
-                      </CardContent></Card>
-                    </motion.div>
+                          <p className="text-[11px] text-muted-foreground italic pt-2">Calcul basé sur la table CIMA H et la commutation actuarielle officielle.</p>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
                   )}
-                </AnimatePresence>
+                </Tabs>
 
                 <Button className="w-full bg-secondary hover:bg-secondary/90 text-lg gap-2" size="lg" asChild>
                   <a href="/login"><TrendingUp className="w-5 h-5" /> Souscrire maintenant</a>
