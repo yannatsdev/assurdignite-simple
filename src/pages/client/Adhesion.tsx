@@ -1060,32 +1060,7 @@ export default function AdhesionPage() {
               {/* Step 11: Paiement */}
               {step === 11 && (
                 <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">Choisissez votre mode de paiement. Prime annuelle : <strong className="text-primary">{simResult ? formatCFA(simResult.primeAnnuelle) : '—'}</strong></p>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {[
-                      { id: 'wave', label: 'Wave', icon: waveIcon },
-                      { id: 'orange', label: 'Orange Money', icon: orangeIcon },
-                      { id: 'mtn', label: 'MTN Money', icon: mtnIcon },
-                      { id: 'moov', label: 'Moov Money', icon: moovIcon },
-                    ].map(m => (
-                      <div key={m.id} onClick={() => !paymentDone && setPaymentMethod(m.id)}
-                        className={`p-4 rounded-xl border-2 cursor-pointer text-center transition-all ${paymentMethod === m.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`}>
-                        <img src={m.icon} alt={m.label} className="w-10 h-10 mx-auto mb-2" />
-                        <p className="text-xs font-medium">{m.label}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <div onClick={() => !paymentDone && setPaymentMethod('virement')}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === 'virement' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`}>
-                    <p className="font-medium">🏦 Virement bancaire</p>
-                    <p className="text-xs text-muted-foreground">Joindre votre RIB</p>
-                  </div>
-                  {paymentMethod && paymentMethod !== 'virement' && !paymentDone && (
-                    <div><Label>Numéro de téléphone Mobile Money</Label><Input value={paymentNumber} onChange={e => setPaymentNumber(e.target.value)} placeholder="Ex: 07 XX XX XX XX" /></div>
-                  )}
-                  {paymentMethod === 'virement' && !paymentDone && (
-                    <div><Label>RIB bancaire</Label><Input placeholder="Entrez votre RIB" /></div>
-                  )}
+                  <p className="text-sm text-muted-foreground">Paiement sécurisé via <strong>KkiaPay</strong> (Mobile Money, carte, virement). Prime annuelle : <strong className="text-primary">{simResult ? formatCFA(simResult.primeAnnuelle) : '—'}</strong></p>
                   {paymentDone ? (
                     <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="p-4 rounded-xl bg-secondary/10 border border-secondary/30 text-center">
                       <Check className="w-8 h-8 text-secondary mx-auto mb-2" />
@@ -1093,9 +1068,23 @@ export default function AdhesionPage() {
                       <p className="text-xs text-muted-foreground">Passage automatique à l'étape suivante...</p>
                     </motion.div>
                   ) : (
-                    <Button className="w-full gap-2" onClick={handlePay} disabled={!paymentMethod}>
-                      <CreditCard className="w-4 h-4" /> Procéder au paiement
-                    </Button>
+                    <div className="rounded-xl border-2 border-primary/30 p-4 bg-accent/30 flex flex-col items-center gap-3">
+                      <KkiapayWidget
+                        amount={simResult?.primeAnnuelle || 0}
+                        email={user?.email}
+                        name={profile.fullName || user?.email}
+                        phone={profile.phone}
+                        onSuccess={(resp: any) => {
+                          setPaymentMethod('kkiapay');
+                          setPaymentNumber(resp?.transactionId || '');
+                          setPaymentDone(true);
+                          toast({ title: 'Paiement confirmé ✓', description: `Transaction KkiaPay : ${resp?.transactionId || 'OK'}` });
+                          setTimeout(() => setStep(s => Math.min(s + 1, STEPS.length - 1)), 1500);
+                        }}
+                        onFailed={() => toast({ title: 'Paiement échoué', description: 'Veuillez réessayer.', variant: 'destructive' })}
+                      />
+                      <p className="text-[11px] text-muted-foreground text-center">En cliquant sur le bouton ci-dessus, vous serez redirigé vers la page sécurisée KkiaPay pour finaliser votre paiement.</p>
+                    </div>
                   )}
                 </div>
               )}
