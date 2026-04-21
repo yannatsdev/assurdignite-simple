@@ -138,9 +138,13 @@ export default function AdminLoginPage() {
             <button onClick={() => setIsSignup(!isSignup)} className="text-sm text-primary hover:underline">
               {isSignup ? '← Retour à la connexion' : 'Créer un compte administrateur'}
             </button>
-            {!isSignup && (
+            {!isSignup ? (
               <p className="text-xs text-muted-foreground bg-accent/50 rounded-lg p-2">
-                Demo : <strong>testadmin@sonamvie.ci</strong> / <strong>Admin2026!</strong>
+                Demo admin : <strong>adminyannsonam@gmail.com</strong> / <strong>Yannedge50$</strong>
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground bg-accent/50 rounded-lg p-2">
+                Code d'accès : <strong>ADDWARRIORSONAMVIE777</strong>
               </p>
             )}
             <p className="text-xs text-muted-foreground">
