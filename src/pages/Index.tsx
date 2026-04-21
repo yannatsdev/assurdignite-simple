@@ -1,7 +1,6 @@
 import { Header } from '@/components/landing/Header';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { FormulesSection } from '@/components/landing/FormulesSection';
-import { SimulateurSection } from '@/components/landing/SimulateurSection';
 import { AvantagesSection } from '@/components/landing/AvantagesSection';
 import { FAQSection } from '@/components/landing/FAQSection';
 import { ConditionsSection } from '@/components/landing/ConditionsSection';
@@ -62,7 +61,6 @@ const Index = () => {
       </section>
 
       <FormulesSection />
-      <SimulateurSection />
       <AvantagesSection />
 
       {/* Stats */}
