@@ -40,6 +40,11 @@ export default function ClientDashboard() {
       setLoading(false);
     };
     fetchData();
+    const channel = supabase.channel('client-dashboard-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contracts', filter: `user_id=eq.${user.id}` }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'paiements', filter: `user_id=eq.${user.id}` }, () => fetchData())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   if (loading) {

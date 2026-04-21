@@ -15,8 +15,16 @@ export default function AdminContrats() {
   const [filterFormule, setFilterFormule] = useState('all');
 
   useEffect(() => {
-    supabase.from('contracts').select('*').order('created_at', { ascending: false })
-      .then(({ data }) => { setContracts(data || []); setLoading(false); });
+    const load = async () => {
+      const { data } = await supabase.from('contracts').select('*').order('created_at', { ascending: false });
+      setContracts(data || []);
+      setLoading(false);
+    };
+    load();
+    const channel = supabase.channel('admin-contracts-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contracts' }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const filtered = contracts.filter(c => {

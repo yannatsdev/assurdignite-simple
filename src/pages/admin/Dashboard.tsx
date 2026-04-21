@@ -45,6 +45,12 @@ export default function AdminDashboard() {
       setStats({ contracts: contracts || 0, primes: totalPrimes, sinistres: sinistres || 0, users: users || 0 });
     };
     fetchStats();
+    const channel = supabase.channel('admin-dashboard-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contracts' }, () => fetchStats())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sinistres' }, () => fetchStats())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'paiements' }, () => fetchStats())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const kpis = [
