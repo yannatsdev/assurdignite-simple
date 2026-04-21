@@ -170,7 +170,24 @@ export function ChatBot() {
                   <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                     msg.isBot ? 'bg-muted text-foreground rounded-tl-sm' : 'bg-primary text-primary-foreground rounded-tr-sm'
                   }`}>
-                    {msg.text ? formatMessage(msg.text) : <span className="flex items-center gap-2 text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" /> Réflexion...</span>}
+                    {msg.text ? (
+                      <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:my-1 prose-headings:font-semibold prose-h1:text-base prose-h2:text-sm prose-h3:text-sm prose-strong:text-foreground prose-a:text-primary">
+                        <ReactMarkdown
+                          components={{
+                            a: ({ href, children }) => {
+                              const isReal = href && /^(https?:|mailto:|tel:|\/)/i.test(href);
+                              return isReal
+                                ? <a href={href} target="_blank" rel="noreferrer">{children}</a>
+                                : <span>{children}</span>;
+                            },
+                          }}
+                        >
+                          {sanitizeMarkdown(msg.text)}
+                        </ReactMarkdown>
+                      </div>
+                    ) : (
+                      <span className="flex items-center gap-2 text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" /> Réflexion...</span>
+                    )}
                   </div>
                 </div>
               ))}
