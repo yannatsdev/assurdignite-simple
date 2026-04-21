@@ -62,19 +62,20 @@ function loadKkiapayScript(): Promise<void> {
 
 export function KkiapayWidget({
   amount,
-  publicKey = 'c0270ce321b4edc06e0127ac06829afd3c45f6c6',
+  publicKey,
   email,
   phone,
   name,
   onSuccess,
   onFailed,
-  sandbox = true,
+  sandbox,
   label,
   disabled,
 }: Props) {
   const [scriptReady, setScriptReady] = useState(false);
   const [scriptError, setScriptError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [config, setConfig] = useState<{ publicKey: string; sandbox: boolean } | null>(null);
   const successCb = useRef(onSuccess);
   const failedCb = useRef(onFailed);
   successCb.current = onSuccess;
@@ -82,6 +83,21 @@ export function KkiapayWidget({
 
   useEffect(() => {
     let cancelled = false;
+    // Fetch KkiaPay public key from secure edge function (unless overridden via prop)
+    (async () => {
+      if (publicKey) {
+        setConfig({ publicKey, sandbox: sandbox ?? false });
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke('kkiapay-config');
+      if (cancelled) return;
+      if (error || !data?.publicKey) {
+        setScriptError("Configuration KkiaPay indisponible");
+        return;
+      }
+      setConfig({ publicKey: data.publicKey, sandbox: sandbox ?? !!data.sandbox });
+    })();
+
     loadKkiapayScript()
       .then(() => { if (!cancelled) setScriptReady(true); })
       .catch((e) => { if (!cancelled) setScriptError(e.message); });
@@ -116,14 +132,14 @@ export function KkiapayWidget({
   }, []);
 
   const handleClick = () => {
-    if (!scriptReady || !window.openKkiapayWidget) return;
+    if (!scriptReady || !window.openKkiapayWidget || !config?.publicKey) return;
     setProcessing(true);
     try {
       window.openKkiapayWidget({
         amount: Math.round(amount),
-        api_key: publicKey,
-        key: publicKey,
-        sandbox,
+        api_key: config.publicKey,
+        key: config.publicKey,
+        sandbox: config.sandbox,
         position: 'center',
         theme: '#4A0E78',
         name: name || '',
@@ -151,10 +167,10 @@ export function KkiapayWidget({
         type="button"
         size="lg"
         onClick={handleClick}
-        disabled={!scriptReady || processing || disabled || amount <= 0}
+        disabled={!scriptReady || !config || processing || disabled || amount <= 0}
         className="w-full sm:w-auto min-w-[260px] gap-2 bg-gradient-to-r from-primary to-[hsl(var(--sonam-blue))] hover:opacity-95 text-white shadow-lg hover:shadow-xl transition-all"
       >
-        {!scriptReady ? (
+        {!scriptReady || !config ? (
           <><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</>
         ) : processing ? (
           <><Loader2 className="w-4 h-4 animate-spin" /> Paiement en cours…</>
