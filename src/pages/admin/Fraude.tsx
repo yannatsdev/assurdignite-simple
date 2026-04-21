@@ -88,19 +88,28 @@ export default function AdminFraude() {
   const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [stats, setStats] = useState({ active: 0, resolved: 0, watching: 0 });
+  const [profiles, setProfiles] = useState<Record<string, { full_name: string | null; email: string }>>({});
+  const [filterFrom, setFilterFrom] = useState('');
+  const [filterTo, setFilterTo] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'warning' | 'info' | 'success'>('all');
+  const [filterUser, setFilterUser] = useState('all');
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const [{ data: contracts }, { data: sinistres }, { data: paiements }] = await Promise.all([
+      const [{ data: contracts }, { data: sinistres }, { data: paiements }, { data: profilesData }] = await Promise.all([
         supabase.from('contracts').select('*'),
         supabase.from('sinistres').select('*'),
         supabase.from('paiements').select('*'),
+        supabase.from('profiles').select('id, full_name, email'),
       ]);
       if (cancelled) return;
       const detected = detectAlerts(contracts || [], sinistres || [], paiements || []);
       const resolved = (sinistres || []).filter((s: any) => s.status === 'paid' || s.status === 'rejected').length;
       const watching = (sinistres || []).filter((s: any) => s.status === 'investigating' || s.status === 'pending_review').length;
+      const pmap: Record<string, { full_name: string | null; email: string }> = {};
+      (profilesData || []).forEach((p: any) => { pmap[p.id] = { full_name: p.full_name, email: p.email }; });
+      setProfiles(pmap);
       setAlerts(detected);
       setStats({ active: detected.filter((a) => a.type === 'warning').length, resolved, watching });
       setLoading(false);
@@ -117,12 +126,54 @@ export default function AdminFraude() {
     };
   }, []);
 
-  const monthlyData = buildMonthly(alerts);
+  const filteredAlerts = alerts.filter((a) => {
+    if (filterType !== 'all' && a.type !== filterType) return false;
+    if (filterUser !== 'all' && a.user_id !== filterUser) return false;
+    if (filterFrom && a.date < new Date(filterFrom)) return false;
+    if (filterTo) {
+      const to = new Date(filterTo); to.setHours(23, 59, 59, 999);
+      if (a.date > to) return false;
+    }
+    return true;
+  });
+
+  const monthlyData = buildMonthly(filteredAlerts);
   const distribution = [
-    { name: 'Alertes', value: alerts.filter((a) => a.type === 'warning').length },
-    { name: 'Info', value: alerts.filter((a) => a.type === 'info').length },
+    { name: 'Alertes', value: filteredAlerts.filter((a) => a.type === 'warning').length },
+    { name: 'Info', value: filteredAlerts.filter((a) => a.type === 'info').length },
     { name: 'Résolus', value: stats.resolved },
   ].filter((x) => x.value > 0);
+
+  const userOptions = Array.from(new Set(alerts.map((a) => a.user_id).filter(Boolean))) as string[];
+
+  const exportCSV = () => {
+    if (filteredAlerts.length === 0) {
+      toast.error('Aucune alerte à exporter');
+      return;
+    }
+    const escape = (v: string) => `"${(v || '').replace(/"/g, '""')}"`;
+    const header = ['Date', 'Type', 'Catégorie', 'Utilisateur', 'Email', 'Message'].join(',');
+    const rows = filteredAlerts.map((a) => {
+      const p = a.user_id ? profiles[a.user_id] : null;
+      return [
+        a.date.toISOString(),
+        a.type,
+        a.category || '',
+        p?.full_name || '',
+        p?.email || '',
+        a.message,
+      ].map(escape).join(',');
+    });
+    const csv = '\uFEFF' + [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `journal-audit-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${filteredAlerts.length} alerte(s) exportée(s)`);
+  };
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
