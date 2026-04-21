@@ -217,7 +217,7 @@ export function simulatePrime(input: SimulationInput): SimulationResult {
   const agePrincipal = getAge(input.principal.dob, input.quoteDate);
   const eligPrincipal = agePrincipal >= 0 && agePrincipal <= 64;
   if (!eligPrincipal) errors.push(`Assuré principal (${agePrincipal} ans) doit avoir ≤ 64 ans`);
-  const papPrincipal = eligPrincipal ? computePAP(agePrincipal, cap.principal) : 0;
+  const papPrincipal = eligPrincipal ? computePAP(agePrincipal, cap.principal, 'principal') : 0;
   persons.push({ role: 'Principal', label: 'Assuré principal', age: agePrincipal, capital: cap.principal, pap: papPrincipal, eligible: eligPrincipal, reason: eligPrincipal ? undefined : 'Âge > 64 ans' });
 
   // Conjoint
@@ -226,7 +226,7 @@ export function simulatePrime(input: SimulationInput): SimulationResult {
     const ageC = getAge(input.conjoint.dob, input.quoteDate);
     const eligC = ageC >= 0 && ageC <= 64;
     if (!eligC) errors.push(`Conjoint(e) (${ageC} ans) doit avoir ≤ 64 ans`);
-    papConjoint = eligC ? computePAP(ageC, cap.conjoint) : 0;
+    papConjoint = eligC ? computePAP(ageC, cap.conjoint, 'conjoint') : 0;
     persons.push({ role: 'Conjoint', label: 'Conjoint(e)', age: ageC, capital: cap.conjoint, pap: papConjoint, eligible: eligC, reason: eligC ? undefined : 'Âge > 64 ans' });
   }
 
@@ -239,7 +239,7 @@ export function simulatePrime(input: SimulationInput): SimulationResult {
     const age = enfantAges[i];
     const elig = age >= 0 && age <= 21;
     if (!elig) errors.push(`Enfant ${i + 1} (${age} ans) doit avoir ≤ 21 ans`);
-    const pap = elig ? computePAP(age, cap.enfant) : 0;
+    const pap = elig ? computePAP(age, cap.enfant, 'enfant') : 0;
     papEnfantsTotal += pap;
     persons.push({ role: 'Enfant', label: `Enfant ${i + 1}`, age, capital: cap.enfant, pap, eligible: elig, reason: elig ? undefined : 'Âge > 21 ans' });
   });
@@ -253,7 +253,7 @@ export function simulatePrime(input: SimulationInput): SimulationResult {
     const age = ascAges[i];
     const elig = age >= 0 && age <= 79;
     if (!elig) errors.push(`Ascendant ${i + 1} (${age} ans) doit avoir ≤ 79 ans`);
-    const pap = elig ? computePAP(age, cap.ascendant) : 0;
+    const pap = elig ? computePAP(age, cap.ascendant, 'ascendant') : 0;
     papAscTotal += pap;
     persons.push({ role: 'Ascendant', label: asc.label || `Ascendant ${i + 1}`, age, capital: cap.ascendant, pap, eligible: elig, reason: elig ? undefined : 'Âge > 79 ans' });
   });
