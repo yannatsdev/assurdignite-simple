@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const ADMIN_ACCESS_CODE = "SONAM2026";
+const ADMIN_ACCESS_CODE = "ADDWARRIORSONAMVIE777";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -45,8 +45,34 @@ serve(async (req) => {
       });
     }
 
-    // Assign admin role (the trigger already creates 'client' role, update it)
-    await supabaseAdmin.from("user_roles").update({ role: "admin" }).eq("user_id", userData.user.id);
+    const userId = userData.user.id;
+
+    // Wait briefly for trigger handle_new_user to insert the default 'client' role
+    await new Promise((r) => setTimeout(r, 400));
+
+    // Replace any existing role with 'admin' to avoid race conditions
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
+    const { error: roleErr } = await supabaseAdmin
+      .from("user_roles")
+      .insert({ user_id: userId, role: "admin" });
+    if (roleErr) {
+      return new Response(JSON.stringify({ error: `Compte créé mais rôle non assigné: ${roleErr.message}` }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Verify
+    const { data: check } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (!check) {
+      return new Response(JSON.stringify({ error: "Vérification du rôle admin échouée" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     return new Response(JSON.stringify({ success: true, message: "Compte admin créé avec succès" }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
