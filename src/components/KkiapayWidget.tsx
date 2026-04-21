@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Loader2, CreditCard, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCFA } from '@/lib/actuarial-engine';
+import { supabase } from '@/integrations/supabase/client';
 
 declare global {
   interface Window {
