@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShieldAlert, AlertTriangle, CheckCircle, Eye, Loader2 } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, CheckCircle, Eye, Loader2, Download, Filter } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
 
 const COLORS = ['hsl(0, 75%, 55%)', 'hsl(40, 80%, 55%)', 'hsl(93, 47%, 48%)'];
 
-type Alert = { id: string; type: 'warning' | 'info' | 'success'; message: string; date: Date };
+type Alert = { id: string; type: 'warning' | 'info' | 'success'; message: string; date: Date; user_id?: string | null; category?: string };
 
 function detectAlerts(_contracts: any[], sinistres: any[], paiements: any[]): Alert[] {
   const alerts: Alert[] = [];
@@ -25,6 +30,7 @@ function detectAlerts(_contracts: any[], sinistres: any[], paiements: any[]): Al
         type: 'warning',
         message: `Bénéficiaire "${name}" déclaré sur ${refs.length} sinistres : ${refs.join(', ')}`,
         date: new Date(),
+        category: 'duplicate_beneficiary',
       });
     }
   });
@@ -34,6 +40,8 @@ function detectAlerts(_contracts: any[], sinistres: any[], paiements: any[]): Al
       type: 'warning',
       message: `Paiement élevé détecté : ${p.montant.toLocaleString('fr-FR')} FCFA via ${p.methode || 'N/A'} (réf ${p.reference || p.id.slice(0, 8)})`,
       date: new Date(p.date_paiement || Date.now()),
+      user_id: p.user_id,
+      category: 'high_payment',
     });
   });
   paiements.filter((p) => p.status === 'failed').slice(0, 5).forEach((p) => {
@@ -42,6 +50,8 @@ function detectAlerts(_contracts: any[], sinistres: any[], paiements: any[]): Al
       type: 'info',
       message: `Paiement en échec à investiguer : ${p.montant.toLocaleString('fr-FR')} FCFA`,
       date: new Date(p.date_paiement || Date.now()),
+      user_id: p.user_id,
+      category: 'failed_payment',
     });
   });
   sinistres.filter((s) => s.status !== 'paid' && s.status !== 'rejected').forEach((s) => {
@@ -52,6 +62,8 @@ function detectAlerts(_contracts: any[], sinistres: any[], paiements: any[]): Al
         type: 'warning',
         message: `Sinistre ${s.reference} en attente depuis ${Math.floor(days)} jours sans traitement`,
         date: new Date(s.created_at),
+        user_id: s.user_id,
+        category: 'stale_claim',
       });
     }
   });
@@ -76,19 +88,28 @@ export default function AdminFraude() {
   const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [stats, setStats] = useState({ active: 0, resolved: 0, watching: 0 });
+  const [profiles, setProfiles] = useState<Record<string, { full_name: string | null; email: string }>>({});
+  const [filterFrom, setFilterFrom] = useState('');
+  const [filterTo, setFilterTo] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'warning' | 'info' | 'success'>('all');
+  const [filterUser, setFilterUser] = useState('all');
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const [{ data: contracts }, { data: sinistres }, { data: paiements }] = await Promise.all([
+      const [{ data: contracts }, { data: sinistres }, { data: paiements }, { data: profilesData }] = await Promise.all([
         supabase.from('contracts').select('*'),
         supabase.from('sinistres').select('*'),
         supabase.from('paiements').select('*'),
+        supabase.from('profiles').select('id, full_name, email'),
       ]);
       if (cancelled) return;
       const detected = detectAlerts(contracts || [], sinistres || [], paiements || []);
       const resolved = (sinistres || []).filter((s: any) => s.status === 'paid' || s.status === 'rejected').length;
       const watching = (sinistres || []).filter((s: any) => s.status === 'investigating' || s.status === 'pending_review').length;
+      const pmap: Record<string, { full_name: string | null; email: string }> = {};
+      (profilesData || []).forEach((p: any) => { pmap[p.id] = { full_name: p.full_name, email: p.email }; });
+      setProfiles(pmap);
       setAlerts(detected);
       setStats({ active: detected.filter((a) => a.type === 'warning').length, resolved, watching });
       setLoading(false);
@@ -105,12 +126,54 @@ export default function AdminFraude() {
     };
   }, []);
 
-  const monthlyData = buildMonthly(alerts);
+  const filteredAlerts = alerts.filter((a) => {
+    if (filterType !== 'all' && a.type !== filterType) return false;
+    if (filterUser !== 'all' && a.user_id !== filterUser) return false;
+    if (filterFrom && a.date < new Date(filterFrom)) return false;
+    if (filterTo) {
+      const to = new Date(filterTo); to.setHours(23, 59, 59, 999);
+      if (a.date > to) return false;
+    }
+    return true;
+  });
+
+  const monthlyData = buildMonthly(filteredAlerts);
   const distribution = [
-    { name: 'Alertes', value: alerts.filter((a) => a.type === 'warning').length },
-    { name: 'Info', value: alerts.filter((a) => a.type === 'info').length },
+    { name: 'Alertes', value: filteredAlerts.filter((a) => a.type === 'warning').length },
+    { name: 'Info', value: filteredAlerts.filter((a) => a.type === 'info').length },
     { name: 'Résolus', value: stats.resolved },
   ].filter((x) => x.value > 0);
+
+  const userOptions = Array.from(new Set(alerts.map((a) => a.user_id).filter(Boolean))) as string[];
+
+  const exportCSV = () => {
+    if (filteredAlerts.length === 0) {
+      toast.error('Aucune alerte à exporter');
+      return;
+    }
+    const escape = (v: string) => `"${(v || '').replace(/"/g, '""')}"`;
+    const header = ['Date', 'Type', 'Catégorie', 'Utilisateur', 'Email', 'Message'].join(',');
+    const rows = filteredAlerts.map((a) => {
+      const p = a.user_id ? profiles[a.user_id] : null;
+      return [
+        a.date.toISOString(),
+        a.type,
+        a.category || '',
+        p?.full_name || '',
+        p?.email || '',
+        a.message,
+      ].map(escape).join(',');
+    });
+    const csv = '\uFEFF' + [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `journal-audit-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${filteredAlerts.length} alerte(s) exportée(s)`);
+  };
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
@@ -163,20 +226,66 @@ export default function AdminFraude() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="font-display text-sm">Journal d'audit ({alerts.length})</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          {alerts.length === 0 && (
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <CardTitle className="font-display text-sm flex items-center gap-2">
+            <Filter className="w-4 h-4" /> Journal d'audit ({filteredAlerts.length}/{alerts.length})
+          </CardTitle>
+          <Button size="sm" variant="outline" onClick={exportCSV} className="gap-2">
+            <Download className="w-4 h-4" /> Exporter CSV
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-3 rounded-lg bg-muted/40 border border-border">
+            <div className="space-y-1">
+              <Label className="text-xs">Du</Label>
+              <Input type="date" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} className="h-9" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Au</Label>
+              <Input type="date" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} className="h-9" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Type d'alerte</Label>
+              <Select value={filterType} onValueChange={(v) => setFilterType(v as any)}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous</SelectItem>
+                  <SelectItem value="warning">Alerte</SelectItem>
+                  <SelectItem value="info">Info</SelectItem>
+                  <SelectItem value="success">Résolu</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Utilisateur</Label>
+              <Select value={filterUser} onValueChange={setFilterUser}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous</SelectItem>
+                  {userOptions.map((uid) => (
+                    <SelectItem key={uid} value={uid}>
+                      {profiles[uid]?.full_name || profiles[uid]?.email || uid.slice(0, 8)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {filteredAlerts.length === 0 && (
             <div className="text-center py-10 text-sm text-muted-foreground">
               <CheckCircle className="w-10 h-10 mx-auto mb-2 text-secondary" />
-              Aucune alerte détectée. Tous les contrôles sont au vert.
+              Aucune alerte ne correspond aux filtres.
             </div>
           )}
-          {alerts.map((a) => (
+          {filteredAlerts.map((a) => (
             <div key={a.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border border-border">
               <AlertTriangle className={`w-5 h-5 shrink-0 mt-0.5 ${a.type === 'warning' ? 'text-sonam-gold' : a.type === 'success' ? 'text-secondary' : 'text-primary'}`} />
               <div className="flex-1">
                 <p className="text-sm">{a.message}</p>
-                <p className="text-xs text-muted-foreground mt-1">{a.date.toLocaleDateString('fr-FR')}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {a.date.toLocaleDateString('fr-FR')}
+                  {a.user_id && profiles[a.user_id] && ` • ${profiles[a.user_id].full_name || profiles[a.user_id].email}`}
+                </p>
               </div>
               <Badge variant="outline" className="text-xs">{a.type === 'warning' ? 'Alerte' : a.type === 'success' ? 'Résolu' : 'Info'}</Badge>
             </div>
