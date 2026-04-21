@@ -15,11 +15,8 @@ import { simulatePrime, formatCFA, OPTIONS_CAPITALS, type OptionKey, type Simula
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import waveIcon from '@/assets/wave.svg';
-import orangeIcon from '@/assets/orange.svg';
-import mtnIcon from '@/assets/mtn.svg';
-import moovIcon from '@/assets/moov.svg';
 import jsPDF from 'jspdf';
+import { KkiapayWidget } from '@/components/KkiapayWidget';
 
 const STEPS = [
   'Simulation', 'Choix Formule', 'KYC Principal', 'Conjoint', 'Assurés Complémentaires',
