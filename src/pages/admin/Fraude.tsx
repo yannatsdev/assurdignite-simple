@@ -226,20 +226,66 @@ export default function AdminFraude() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="font-display text-sm">Journal d'audit ({alerts.length})</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          {alerts.length === 0 && (
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <CardTitle className="font-display text-sm flex items-center gap-2">
+            <Filter className="w-4 h-4" /> Journal d'audit ({filteredAlerts.length}/{alerts.length})
+          </CardTitle>
+          <Button size="sm" variant="outline" onClick={exportCSV} className="gap-2">
+            <Download className="w-4 h-4" /> Exporter CSV
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-3 rounded-lg bg-muted/40 border border-border">
+            <div className="space-y-1">
+              <Label className="text-xs">Du</Label>
+              <Input type="date" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} className="h-9" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Au</Label>
+              <Input type="date" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} className="h-9" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Type d'alerte</Label>
+              <Select value={filterType} onValueChange={(v) => setFilterType(v as any)}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous</SelectItem>
+                  <SelectItem value="warning">Alerte</SelectItem>
+                  <SelectItem value="info">Info</SelectItem>
+                  <SelectItem value="success">Résolu</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Utilisateur</Label>
+              <Select value={filterUser} onValueChange={setFilterUser}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous</SelectItem>
+                  {userOptions.map((uid) => (
+                    <SelectItem key={uid} value={uid}>
+                      {profiles[uid]?.full_name || profiles[uid]?.email || uid.slice(0, 8)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {filteredAlerts.length === 0 && (
             <div className="text-center py-10 text-sm text-muted-foreground">
               <CheckCircle className="w-10 h-10 mx-auto mb-2 text-secondary" />
-              Aucune alerte détectée. Tous les contrôles sont au vert.
+              Aucune alerte ne correspond aux filtres.
             </div>
           )}
-          {alerts.map((a) => (
+          {filteredAlerts.map((a) => (
             <div key={a.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border border-border">
               <AlertTriangle className={`w-5 h-5 shrink-0 mt-0.5 ${a.type === 'warning' ? 'text-sonam-gold' : a.type === 'success' ? 'text-secondary' : 'text-primary'}`} />
               <div className="flex-1">
                 <p className="text-sm">{a.message}</p>
-                <p className="text-xs text-muted-foreground mt-1">{a.date.toLocaleDateString('fr-FR')}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {a.date.toLocaleDateString('fr-FR')}
+                  {a.user_id && profiles[a.user_id] && ` • ${profiles[a.user_id].full_name || profiles[a.user_id].email}`}
+                </p>
               </div>
               <Badge variant="outline" className="text-xs">{a.type === 'warning' ? 'Alerte' : a.type === 'success' ? 'Résolu' : 'Info'}</Badge>
             </div>
