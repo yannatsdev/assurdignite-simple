@@ -1,191 +1,153 @@
 
 
-# Plan — Refonte premium AssurDignité (formules, KkiaPay, admin, design)
+# Plan — Refonte premium UX, fix KkiaPay, branding chatbot, RAZ data
 
-## 1. Fix admin login + nouveau code d'accès + admin pré-créé
+## 1. Fix paiement KkiaPay bloqué (Étape 12 + Paiements)
 
-**`supabase/functions/admin-signup/index.ts`** :
-- Changer `ADMIN_ACCESS_CODE = "ADDWARRIORSONAMVIE777"` (au lieu de SONAM2026).
-- Bug actuel : le trigger `handle_new_user` crée d'abord le rôle `client`, puis on fait `UPDATE` — mais la fonction édite avant que le trigger ait fini. Remplacer `UPDATE` par `UPSERT` (delete + insert role='admin') en bouclant jusqu'à ce que le rôle existe, ou utiliser `upsert({user_id, role:'admin'}, {onConflict:'user_id,role'})` après suppression du rôle client.
-- Après création, vérifier explicitement que `user_roles` contient bien `admin` avant de retourner success.
+Le custom element `<kkiapay-widget>` ne se monte pas correctement quand React le rend après le chargement du script CDN → bouton "Payer maintenant" affiche un spinner infini.
 
-**`src/pages/AdminLogin.tsx`** :
-- Mettre à jour le texte demo : `adminyannsonam@gmail.com / Yannedge50$`.
-- Indiquer que le code d'accès est `ADDWARRIORSONAMVIE777`.
+**Refonte `src/components/KkiapayWidget.tsx`** :
+- Ne plus rendre le custom element. Charger dynamiquement le script `https://cdn.kkiapay.me/k.js` au mount avec polling de `window.openKkiapayWidget`.
+- Exposer un bouton React natif premium "Payer maintenant" qui appelle `window.openKkiapayWidget({ amount, key, sandbox, position:'center', theme, name, email, phone, callback })` → ouvre la popup KkiaPay officielle.
+- Attacher `window.addSuccessListener(cb)` et `addFailedListener(cb)` une seule fois par instance avec cleanup.
+- Props : `amount, email, phone, name, onSuccess, onFailed, sandbox=true, label?`.
+- État : `loading` (script chargement), `processing` (paiement en cours), `ready`.
+- Toast `sonner` succès/échec.
 
-**Migration SQL** : créer le compte admin `adminyannsonam@gmail.com / Yannedge50$` directement via une fonction PL/pgSQL appelée une fois (ou via edge function `admin-bootstrap` invoquée au déploiement) — l'utilisateur sera créé dans `auth.users` avec password hashé + rôle admin dans `user_roles`.
+**`Adhesion.tsx` Step 12** : Sur `onSuccess`, créer la ligne `paiements{ user_id, contract_id, montant, status:'paid', methode:'kkiapay', reference:resp.transactionId }` puis avancer à l'étape 13.
 
-## 2. Nouveau moteur actuariel (Excel ASSUR_DIGNITE_v25032026)
+**`Paiements.tsx`** : Sur `onSuccess`, insert paiement payé + toast.
 
-**`src/lib/actuarial-engine.ts`** : remplacer entièrement la table CIMA H actuelle par les valeurs lues du fichier Excel (Page 4 — colonnes x, lx, dx, Dx, Nx, Cx, Mx, Rx pour ages 0-106).
+## 2. Notifications instantanées paiement
 
-**Paramètres** (Page 3) :
-- Taux garanti i = 3.50%, v = 1/(1+i) = 0.966183575
-- fc (chargement gestion) = 0.002
-- fa (chargement acquisition) = 15%
-- fi (incitation) = 1%
-- Frais accessoire = 2 500 FCFA
+- `client/Paiements.tsx` + `Dashboard.tsx` : déjà abonnés au realtime. Ajouter un `toast.success("Paiement confirmé — votre contrat est actif ✓")` ou `toast.error("Paiement échoué")` quand `payload.eventType==='UPDATE'` et `status` change.
+- Nouvelle page `src/pages/client/Notifications.tsx` (historique) + table `notifications` (migration) avec realtime + lien vers contrat. Badge cloche dans `ClientLayout`.
 
-**Formules** (basées sur l'Excel) :
+## 3. Refonte design Dashboards (inspiration screenshot Digisurance)
+
+**`src/pages/client/Dashboard.tsx`** :
+- Ligne du haut : 3 cards horizontales colorées (orange/violet/vert) — "Couverture obsèques", "Capital garanti", "Bénéficiaires".
+- Tabs filtres ("Tous", "Actifs", "Expirés").
+- Liste accordéons des contrats (style screenshot 1) : header avec n° police + nom assuré + chevron, déploie panneau avec coverages (table), summary invoice à droite avec "Next bill", bouton "Voir reçu".
+- Modal "Pay Now" (style screenshot 2) : facture détaillée + sélection moyen paiement → KkiaPay.
+- Toast "Payment Success" (style screenshot 3) après paiement.
+
+**`src/pages/admin/Dashboard.tsx`** :
+- 3 cards horizontales colorées (Polices actives / Primes encaissées / Sinistres traités).
+- Tabs "Tous / Santé / Auto / Vie".
+- Tableaux accordéons des contrats récents avec sparklines.
+- Cards "À traiter aujourd'hui" : sinistres en attente + paiements en échec + nouvelles adhésions.
+- Heatmap activité hebdomadaire.
+
+## 4. Réinitialisation données (RAZ)
+
+Migration SQL :
+```sql
+TRUNCATE TABLE public.paiements, public.sinistres, public.beneficiaires,
+  public.assures_complementaires, public.contracts CASCADE;
 ```
-PAP_personne = Capital × (M_x − M_(x+1)) / D_x       // prime pure annuelle viagère 1 an
-PAP_total    = Σ PAP par personne (principal+conjoint+enfants+ascendants)
-PAI          = PAP_total × (1 + fc)                    // ×1.002
-PAC          = PAI / (1 − fa)                          // ÷0.85
-Prime annuelle = PAC + 2 500
-```
-**Périodicité** (coefficients depuis Excel) :
-- Annuel ×1, Semestriel ≈ ×0.5165 (somme exacte calculée), Trimestriel ≈ ×0.2616, Mensuel ≈ ×0.0876, Unique = valeur actualisée totale.
-- Ajouter `simulatePrime(input, periodicity)` retournant le bon montant.
+Conserve `user_roles`, `profiles`, `auth.users` (admin bootstrap intact).
+Toutes les pages affichent désormais des **données live réelles** (vide au départ) et plus de mock. Vérifier `Dashboard.tsx` admin → retirer les fallbacks `'2 847'`, `'128 500 000'` etc. (afficher 0 si vide).
 
-**Vérification** : avec principal 40 ans, conjoint 40 ans, 2 enfants 15 ans, 2 asc. 55 ans, formule A → résultat attendu **60 913 FCFA annuel** (PAP_total ≈ 39 629, PAI ≈ 39 708, PAC ≈ 46 715, +2500 ≈ 49 215… ajuster avec fi si nécessaire).
+## 5. Landing page — nettoyages demandés
 
-## 3. Cacher le simulateur publiquement
+- **`FormulesSection.tsx`** : supprimer entièrement le bloc "Transparence tarifaire / Comment est calculée votre prime ?" (lignes 103-137). Ne conserver que les formules + services nature.
+- **`AdminLogin.tsx`** : supprimer la mention "Demo admin : adminyannsonam@gmail.com / Yannedge50$" (lignes 141-145). Garder uniquement la mention du code d'accès en mode signup.
 
-- **`src/pages/Index.tsx`** : retirer `<SimulateurSection />` de la landing.
-- **`src/pages/client/Souscrire.tsx`** : remplacer le simulateur par un message "Démarrer mon adhésion" qui mène directement à l'`Adhesion` (le calcul se fait à l'étape 1).
-- **`src/pages/client/Adhesion.tsx` Step 1** : conserver le calcul interne.
-- **`src/pages/admin/Outils.tsx`** : garder `SimulateurSection` (admin only).
+## 6. Simulateur — onglet "Détails administratifs"
 
-## 4. Intégration KkiaPay (remplace Mobile Money buttons)
+`SimulateurSection.tsx` : Remplacer `showDetails` par des `Tabs` (shadcn) avec 2 onglets quand admin :
+- **"Résumé"** (public) : prime annuelle + répartition + prime par assuré.
+- **"Détails administratifs"** (admin only) : PAP Total, PAI ×1.002, PAC ÷0.85, Frais fixes 2 500 FCFA, formule détaillée.
+Pour les non-admins, l'onglet 2 n'apparaît pas.
 
-**`index.html`** : ajouter `<script src="https://cdn.kkiapay.me/k.js"></script>` avant `</body>`.
+## 7. ChatBot premium intelligent
 
-**Composant `<KkiapayWidget>`** (`src/components/KkiapayWidget.tsx`) : enveloppe le custom element `<kkiapay-widget>` avec amount, key (publique demo `c0270ce321b4edc06e0127ac06829afd3c45f6c6`), callback URL, et écoute `success`/`failed` events.
+**`src/components/ChatBot.tsx`** :
+- Rebranding visuel : header avec logo SONAM mini, titre "Assistant AssurDignité", sous-titre "Disponible 24/7", animation pulse en ligne.
+- Quick replies enrichies : "Mes formules", "Déclarer un sinistre", "Suivi de mon dossier", "Renouveler ma prime", "Contact urgence".
+- Détection intent côté UI : si user tape "sinistre" ou "décès", proposer un bouton "🚨 Démarrer Fast-Track sinistre" qui ouvre un modal `<FastTrackSinistreModal>` (4 étapes : Décédé → Date/Lieu → Documents (upload) → Confirmation), insère dans `sinistres` table avec `status='fast_track'`, retourne référence.
+- Suivi dossier : si user tape "suivi" ou ref `SIN-XXX`, fetch sinistre et affiche carte status (déclaré / en cours / payé) avec timeline.
+- Markdown rendu via `react-markdown` (à ajouter) au lieu du parser custom — meilleure mise en forme (titres ###, listes, gras).
 
-**Edge function `kkiapay-webhook`** : reçoit la confirmation KkiaPay → met à jour `paiements.status='paid'` + `contracts.status='active'`. Retourne 200.
+**`supabase/functions/chat-ai/index.ts`** : enrichir le system prompt → "Tu es l'assistant officiel AssurDignité de SONAM VIE. Réponds toujours en français, structuré en titres et puces. Si l'utilisateur évoque un décès/sinistre, propose le Fast-Track sinistre. Cite contacts : 27 20 31 71 82, servicecommercialsonamvie@sonam.ci. Sois empathique." Garder modèle `google/gemini-2.5-flash` (rapide). Vérifier non-2xx.
 
-**Pages mises à jour** :
-- `src/pages/client/Adhesion.tsx` Step 12 (Paiement) : remplace les 4 boutons mobile money par `<KkiapayWidget amount={prime}>`.
-- `src/pages/client/Paiements.tsx` : remplace les 4 boutons par KkiaPay.
+## 8. Espace admin "Rapports" — Export PDF mensuel
 
-**Note clés** : démarrage avec la clé publique du brief. Pour live, l'utilisateur fournira plus tard PUBLIC/PRIVATE/SECRET via add_secret.
+**`src/pages/admin/Reporting.tsx`** : nouveau bouton "Générer rapport mensuel PDF" :
+- Sélecteur de mois.
+- Fetch `contracts` actifs, `paiements` payés du mois (sum), `sinistres` traités du mois.
+- Génère PDF jsPDF avec logo SONAM, tableau primes encaissées, tableau contrats actifs, tableau sinistres avec total versé. Header gradient, KPI tiles, tableaux avec autoTable.
+- `doc.save('Rapport-AssurDignite-{YYYY-MM}.pdf')`.
 
-## 5. Logos PDF base64 (SONAM, AssurDignité, KkiaPay)
+## 9. SEO + accessibilité landing
 
-**`src/lib/pdf-logos.ts`** : convertir les vrais PNG `logo-sonamvie.png`, `logo-assurdignite.png` + un nouveau `logo-kkiapay.png` (téléchargé) en base64 avec script Node + `sharp` pour optimiser à 200×80 px max. Les 3 logos exportés comme constantes `SONAM_LOGO_B64`, `ASSURDIGNITE_LOGO_B64`, `KKIAPAY_LOGO_B64`.
+**`index.html`** : 
+- Title corrigé : "AssurDignité — Assurance obsèques SONAM VIE | Côte d'Ivoire & Zone CIMA".
+- Description complète <160 chars sans saut de ligne.
+- Ajouter `<meta name="keywords">`, `<link rel="canonical">`, JSON-LD `Organization` + `Product`.
+- `lang="fr"`.
 
-**`src/pages/client/Documents.tsx` + Adhesion.tsx** : `addPDFHeader(doc)` utilise `doc.addImage()` avec dimensions correctes (logo SONAM 35×14mm gauche, AssurDignité 30×12mm droite). Pied de page reçu : ajout "Paiement sécurisé via KkiaPay" + logo KkiaPay.
+**Landing components** : 
+- Hierarchy `<h1>` unique sur Hero, `<h2>` sections, `<h3>` cards.
+- Tous boutons/liens avec `aria-label` explicite si icône seule.
+- `alt` détaillés pour images (`family-six-members.jpg` → "Famille africaine multigénérationnelle protégée par AssurDignité").
+- `tabIndex` cohérent + focus visible (`focus-visible:ring-2 focus-visible:ring-primary`).
+- Contrastes vérifiés (texte sur images : ajout overlay si besoin).
 
-**Refonte design PDF** : header bleu SONAM avec gradient, typographie Helvetica bold, encadré bleu pour montants, watermark transparent "AssurDignité", QR code avec ID police, signature client image, table prestations (jspdf-autotable).
+## 10. Innovations dashboards
 
-## 6. Refonte landing — explication formules + image famille africaine
+**Client** :
+- Widget "Météo de votre couverture" : score santé du contrat (% à jour, bénéficiaires renseignés, KYC complets) avec gauge animée.
+- Timeline "Événements importants" (souscription, paiements, anniversaire contrat, renouvellement à venir).
+- "Smart suggestions" basées sur le profil (ex: "Ajoutez votre conjoint pour 30% de capital en plus").
 
-**`src/components/landing/AvantagesSection.tsx`** : remplacer `family-multigenerational.jpg` par une nouvelle image (générée via AI Lovable nano-banana) montrant **mère, fille, fils, père, grand-mère, grand-père** ensemble dans un cadre africain.
+**Admin** :
+- "Pulse en temps réel" : compteur live des connexions clients (canal `presence` Supabase).
+- Funnel adhésion (étape 1→14) avec taux d'abandon par étape.
+- Carte de chaleur géographique (régions de souscription) — stub si data manquante.
+- Alertes intelligentes : "3 sinistres > 7j sans traitement" carte rouge cliquable.
 
-**`src/components/landing/FormulesSection.tsx`** — nouveau bloc "Comment est calculée votre prime ?" sous le titre :
-```
-1. PAP Total — Prime pure actuarielle (somme par âge de chaque assuré × capital, table CIMA H)
-2. PAI = PAP × 1.002 — Ajout des frais de gestion (0.2 %)
-3. PAC = PAI ÷ 0.85 — Couverture des frais d'acquisition (15 %)
-4. Frais fixes — 2 500 FCFA accessoire administratif
-= Prime annuelle TTC
-```
-Cards animées avec icône, formule visible, explication courte.
+## 11. Fix erreurs / build
 
-**Texte hero** : conserver "Choisissez votre niveau de protection. Chaque formule offre une répartition de 70 % en prestations en nature (Enlèvement, traitement et conservation du corps, Levée de corps, Allocation cercueil et transfert du corps au lieu d'inhumation) et 30 % en capital espèces, avec un paiement en moins de 12 heures."
-
-**Animations** : framer-motion `whileInView` + parallax léger sur hero, marquee logos partenaires, compteurs animés sur stats.
-
-## 7. Footer — vrais liens de partage
-
-**`src/components/landing/Footer.tsx`** : Facebook/LinkedIn/Twitter/WhatsApp deviennent des liens de partage du site :
-```
-https://www.facebook.com/sharer/sharer.php?u={SITE_URL}
-https://www.linkedin.com/sharing/share-offsite/?url={SITE_URL}
-https://twitter.com/intent/tweet?url={SITE_URL}&text=AssurDignité
-https://wa.me/?text=Découvrez%20AssurDignité%20{SITE_URL}
-```
-Ajouter aussi WhatsApp et bouton "Copier le lien".
-
-## 8. Refonte UI premium (inspiration screenshot 1)
-
-**Client Dashboard** (`src/pages/client/Dashboard.tsx`) :
-- Hero "Hello {prénom} 👋 Complete your profile easily" avec ring de progression % autour de l'avatar.
-- Card violette gradient "Police {numéro}" avec champ Policy holder, validity, bouton "Renew now".
-- Carrousel "Health & Wellness" avec icônes circulaires colorées (Santé, Famille, Maison, Voyage).
-- Section "Quick Actions" avec icône + montant (Sinistre, Bénéficiaires, Documents).
-- "Chat with expert" card.
-- Bottom navigation mobile (Home, Policies, Benefits, Buy) avec FAB violet central.
-
-**Admin Dashboard** : KPI cards avec mini-graphes sparkline, charts area Recharts responsive, cartes "À traiter aujourd'hui" (sinistres, paiements en attente).
-
-**Layouts** : 
-- `ClientLayout` : sidebar collapse mobile + bottom nav.
-- `AdminLayout` : header sticky avec recherche globale + cloche notifications.
-
-## 9. KYC avancé + sync backend
-
-**`Adhesion.tsx`** :
-- Validation côté client de chaque champ avec zod (CNI obligatoire, photo selfie obligatoire, date de naissance ≥ 18 ans pour principal).
-- Upload réel à `kyc-documents/{userId}/{timestamp}_{type}.{ext}` avec progress bar par fichier.
-- Sauvegarde des URLs signées dans `contracts.kyc_documents` (jsonb existant) + nouveau row dans `assures_complementaires` pour conjoint/enfants avec leurs propres fichiers.
-- Edge function `submit-adhesion` : valide, crée contract + paiement pending + retourne `payment_id` pour KkiaPay.
-
-**Admin Contrats** : visualisation des KYC avec liens signedUrl 1h, badge vert si tous les docs sont uploadés.
-
-## 10. Données live partout
-
-- Dashboard client : real-time subscription sur `paiements`, `sinistres`, `contracts` (canal Supabase).
-- Dashboard admin : query agrégée live (count contracts par status, sum paiements par mois).
-- Compteurs landing : agrégats publics via fonction RPC `get_public_stats()` (nb contrats actifs, montant total versé sinistres).
-
-## 11. Améliorations responsive globales
-
-- Tous les `Card`, `Table`, `Dialog` avec `overflow-x-auto`.
-- Sidebar `Sheet` mobile avec swipe.
-- Typographie fluide `text-2xl sm:text-3xl lg:text-4xl`.
-- Boutons CTA full-width sur mobile.
-- Tests viewport 375×812, 768×1024, 1280×800.
-
-## 12. Nettoyage erreurs
-
-- Vérifier types TypeScript après refonte actuariel.
-- Supprimer imports inutilisés (wave/orange/mtn/moov si remplacés par KkiaPay).
-- Console logs propres.
+- TypeScript : vérifier types `KkiapayWidget` props après refactor.
+- Vérifier import `react-markdown` à ajouter (`npm install react-markdown` via package.json).
 - Lint Supabase final.
+- Aucun `console.log` résiduel.
 
 ---
 
 ## Fichiers impactés
 
 | Fichier | Action |
-|---------|--------|
-| `src/lib/actuarial-engine.ts` | Réécriture complète table + formules Excel |
-| `src/lib/pdf-logos.ts` | 3 logos base64 réels |
-| `supabase/functions/admin-signup/index.ts` | Code ADDWARRIORSONAMVIE777 + fix UPSERT role |
-| `supabase/functions/kkiapay-webhook/index.ts` | Nouveau — confirme paiement |
-| `supabase/functions/submit-adhesion/index.ts` | Nouveau — création contrat + KYC |
-| `supabase/functions/admin-bootstrap/index.ts` | Nouveau — crée adminyannsonam@gmail.com |
-| Migration SQL | Fonction RPC `get_public_stats`, trigger paiements→contracts |
-| `index.html` | Script KkiaPay |
-| `src/components/KkiapayWidget.tsx` | Nouveau widget |
-| `src/pages/AdminLogin.tsx` | Texte demo + code |
-| `src/pages/Index.tsx` | Retire SimulateurSection |
-| `src/pages/client/Souscrire.tsx` | CTA → Adhesion |
-| `src/pages/client/Adhesion.tsx` | KkiaPay + KYC zod + submit-adhesion |
-| `src/pages/client/Paiements.tsx` | KkiaPay |
-| `src/pages/client/Dashboard.tsx` | Refonte premium screenshot 1 |
-| `src/pages/client/Documents.tsx` | PDFs avec vrais logos + design |
-| `src/pages/admin/Dashboard.tsx` | KPI premium + sparklines |
-| `src/components/landing/FormulesSection.tsx` | Bloc explication formule |
-| `src/components/landing/AvantagesSection.tsx` | Nouvelle image famille africaine |
-| `src/components/landing/Footer.tsx` | Liens de partage réels |
-| `src/components/client/ClientSidebar.tsx` | Bottom nav mobile + FAB |
-| `src/layouts/ClientLayout.tsx` + `AdminLayout.tsx` | Responsive headers |
-| `src/assets/family-six-members.jpg` | Nouvelle image AI |
-| `src/assets/logo-kkiapay.png` | Logo KkiaPay |
+|---|---|
+| `src/components/KkiapayWidget.tsx` | Refonte programmatique (popup au lieu de custom element) |
+| `src/pages/client/Adhesion.tsx` | onSuccess insert paiement + toast |
+| `src/pages/client/Paiements.tsx` | Toast sur realtime + KkiaPay refacto |
+| `src/pages/client/Dashboard.tsx` | Refonte cards horizontales + accordéons + smart widgets |
+| `src/pages/client/Notifications.tsx` | Nouveau — historique notifs |
+| `src/pages/admin/Dashboard.tsx` | Refonte premium + heatmap + funnel + RAZ fallbacks |
+| `src/pages/admin/Reporting.tsx` | Bouton export PDF mensuel |
+| `src/components/landing/FormulesSection.tsx` | Supprimer bloc "Transparence tarifaire" |
+| `src/components/landing/SimulateurSection.tsx` | Tabs Résumé / Détails admin |
+| `src/components/ChatBot.tsx` | Branding premium + Fast-Track + react-markdown |
+| `src/components/FastTrackSinistreModal.tsx` | Nouveau modal multi-étapes |
+| `src/pages/AdminLogin.tsx` | Retirer mention demo |
+| `src/layouts/ClientLayout.tsx` | Cloche notifs + lien Notifications |
+| `index.html` | SEO meta + JSON-LD + lang fr |
+| `supabase/functions/chat-ai/index.ts` | System prompt enrichi |
+| Migration SQL | TRUNCATE tables data + table `notifications` + RLS |
 
 ## Ordre d'exécution
 
-1. Fix admin (code + UPSERT role + bootstrap user adminyannsonam)
-2. Nouveau moteur actuariel + tests
-3. Cacher simulateur public
-4. KkiaPay (script + widget + edge functions + remplacer mobile money)
-5. Logos base64 + redesign PDFs
-6. Refonte landing (image famille, explication formules, animations, footer share)
-7. Refonte client dashboard (style screenshot 1)
-8. Refonte admin dashboard
-9. KYC avancé + edge submit-adhesion + données live
-10. Responsive global + nettoyage erreurs
+1. Fix KkiaPay (bloquant pour le flow paiement)
+2. Suppression bloc "Transparence tarifaire" + mention demo admin
+3. RAZ data (TRUNCATE) + table notifications + retrait mock admin Dashboard
+4. Refonte Dashboards client + admin (style Digisurance)
+5. Simulateur Tabs Résumé/Admin
+6. ChatBot premium + Fast-Track + react-markdown
+7. Page Reporting PDF mensuel
+8. SEO + accessibilité landing
+9. Innovations widgets (smart suggestions, funnel, heatmap)
+10. Build clean + lint final
 
