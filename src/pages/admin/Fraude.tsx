@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShieldAlert, AlertTriangle, CheckCircle, Eye, Loader2 } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, CheckCircle, Eye, Loader2, Download, Filter } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
 
 const COLORS = ['hsl(0, 75%, 55%)', 'hsl(40, 80%, 55%)', 'hsl(93, 47%, 48%)'];
 
