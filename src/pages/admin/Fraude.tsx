@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 
 const COLORS = ['hsl(0, 75%, 55%)', 'hsl(40, 80%, 55%)', 'hsl(93, 47%, 48%)'];
 
-type Alert = { id: string; type: 'warning' | 'info' | 'success'; message: string; date: Date };
+type Alert = { id: string; type: 'warning' | 'info' | 'success'; message: string; date: Date; user_id?: string | null; category?: string };
 
 function detectAlerts(_contracts: any[], sinistres: any[], paiements: any[]): Alert[] {
   const alerts: Alert[] = [];
@@ -30,6 +30,7 @@ function detectAlerts(_contracts: any[], sinistres: any[], paiements: any[]): Al
         type: 'warning',
         message: `Bénéficiaire "${name}" déclaré sur ${refs.length} sinistres : ${refs.join(', ')}`,
         date: new Date(),
+        category: 'duplicate_beneficiary',
       });
     }
   });
@@ -39,6 +40,8 @@ function detectAlerts(_contracts: any[], sinistres: any[], paiements: any[]): Al
       type: 'warning',
       message: `Paiement élevé détecté : ${p.montant.toLocaleString('fr-FR')} FCFA via ${p.methode || 'N/A'} (réf ${p.reference || p.id.slice(0, 8)})`,
       date: new Date(p.date_paiement || Date.now()),
+      user_id: p.user_id,
+      category: 'high_payment',
     });
   });
   paiements.filter((p) => p.status === 'failed').slice(0, 5).forEach((p) => {
@@ -47,6 +50,8 @@ function detectAlerts(_contracts: any[], sinistres: any[], paiements: any[]): Al
       type: 'info',
       message: `Paiement en échec à investiguer : ${p.montant.toLocaleString('fr-FR')} FCFA`,
       date: new Date(p.date_paiement || Date.now()),
+      user_id: p.user_id,
+      category: 'failed_payment',
     });
   });
   sinistres.filter((s) => s.status !== 'paid' && s.status !== 'rejected').forEach((s) => {
@@ -57,6 +62,8 @@ function detectAlerts(_contracts: any[], sinistres: any[], paiements: any[]): Al
         type: 'warning',
         message: `Sinistre ${s.reference} en attente depuis ${Math.floor(days)} jours sans traitement`,
         date: new Date(s.created_at),
+        user_id: s.user_id,
+        category: 'stale_claim',
       });
     }
   });
