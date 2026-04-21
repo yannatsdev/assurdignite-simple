@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
+import { MessageCircle, X, Send, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import ReactMarkdown from 'react-markdown';
 
 interface Message {
   id: number;
@@ -14,38 +15,14 @@ type AiMsg = { role: 'user' | 'assistant'; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-ai`;
 
-function formatMessage(text: string): JSX.Element {
-  const lines = text.split('\n');
-  return (
-    <span>
-      {lines.map((line, lineIdx) => {
-        if (lineIdx > 0) {
-          if (line.startsWith('• ') || line.startsWith('- ') || line.startsWith('* ')) {
-            const content = line.slice(2);
-            return <span key={lineIdx}><br /><span className="pl-2">• {renderBold(content)}</span></span>;
-          }
-          if (/^\d+\.\s/.test(line)) {
-            return <span key={lineIdx}><br /><span className="pl-2">{renderBold(line)}</span></span>;
-          }
-        }
-        return <span key={lineIdx}>{lineIdx > 0 && <br />}{renderBold(line)}</span>;
-      })}
-    </span>
-  );
-}
-
-function renderBold(text: string): JSX.Element {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return (
-    <>
-      {parts.map((part, i) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-          return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>;
-        }
-        return <span key={i}>{part}</span>;
-      })}
-    </>
-  );
+// Strip placeholder links like [text](lien_vers_xxx) → text, and remove unresolved (lien_xxx)
+function sanitizeMarkdown(text: string): string {
+  return text
+    // Replace [label](placeholder) where placeholder isn't a real URL
+    .replace(/\[([^\]]+)\]\((?!https?:\/\/|mailto:|tel:|\/)[^)]+\)/gi, '$1')
+    // Remove orphan (lien_xxx)
+    .replace(/\((lien_[^)]+)\)/gi, '')
+    .trim();
 }
 
 export function ChatBot() {
