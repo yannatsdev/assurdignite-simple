@@ -280,3 +280,13 @@ export function simulatePrime(input: SimulationInput): SimulationResult {
 export function formatCFA(amount: number): string {
   return Math.round(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' FCFA';
 }
+
+export function primeForPeriodicity(annualPrime: number, key: PeriodicityKey): number {
+  const cfg = PERIODICITY[key];
+  // Excel coefficient already encodes per-period amount (×coef = montant par échéance)
+  if (key === 'unique') {
+    // Single premium ≈ sum of present values; approx with annuity factor for whole portfolio life
+    return Math.round(annualPrime * 14.118); // empirical from Excel L13/L14 ratio
+  }
+  return Math.round(annualPrime * cfg.coef);
+}
