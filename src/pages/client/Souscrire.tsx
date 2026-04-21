@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Shield } from 'lucide-react';
+import { SimulateurSection } from '@/components/landing/SimulateurSection';
 
 export default function SouscrirePage() {
   const navigate = useNavigate();
@@ -21,6 +22,10 @@ export default function SouscrirePage() {
           </Button>
         </CardContent>
       </Card>
+
+      <div className="-mx-4 sm:-mx-6">
+        <SimulateurSection />
+      </div>
     </div>
   );
 }
