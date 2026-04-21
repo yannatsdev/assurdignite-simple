@@ -1072,8 +1072,7 @@ export default function AdhesionPage() {
                       <KkiapayWidget
                         amount={simResult?.primeAnnuelle || 0}
                         email={user?.email}
-                        name={profile.fullName || user?.email}
-                        phone={profile.phone}
+                        name={user?.user_metadata?.full_name || user?.email}
                         onSuccess={(resp: any) => {
                           setPaymentMethod('kkiapay');
                           setPaymentNumber(resp?.transactionId || '');
