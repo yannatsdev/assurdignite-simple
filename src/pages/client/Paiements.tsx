@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { History, Loader2 } from 'lucide-react';
@@ -7,14 +7,14 @@ import { formatCFA } from '@/lib/actuarial-engine';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { KkiapayWidget } from '@/components/KkiapayWidget';
-import { useToast } from '@/hooks/use-toast';
+import { toast as sonnerToast } from 'sonner';
 
 export default function PaiementsPage() {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [paiements, setPaiements] = useState<any[]>([]);
   const [contract, setContract] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const knownIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!user) return;
@@ -25,10 +25,23 @@ export default function PaiementsPage() {
       ]);
       setPaiements(p || []);
       setContract(c?.[0] || null);
+      (p || []).forEach(x => knownIds.current.add(x.id));
       setLoading(false);
     };
     load();
-    const channel = supabase.channel('paiements-rt').on('postgres_changes', { event: '*', schema: 'public', table: 'paiements' }, () => load()).subscribe();
+    const channel = supabase
+      .channel(`paiements-rt-${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'paiements', filter: `user_id=eq.${user.id}` }, (payload: any) => {
+        if (payload.eventType === 'INSERT' && payload.new?.status === 'paid' && !knownIds.current.has(payload.new.id)) {
+          sonnerToast.success('Paiement confirmé', { description: `${formatCFA(payload.new.montant)} reçu — votre contrat est actif ✓` });
+        } else if (payload.eventType === 'UPDATE' && payload.old?.status !== 'paid' && payload.new?.status === 'paid') {
+          sonnerToast.success('Paiement validé', { description: 'Votre paiement vient d\'être confirmé.' });
+        } else if (payload.eventType === 'UPDATE' && payload.new?.status === 'failed') {
+          sonnerToast.error('Paiement échoué', { description: 'Une nouvelle tentative est nécessaire.' });
+        }
+        load();
+      })
+      .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
@@ -61,17 +74,30 @@ export default function PaiementsPage() {
                 email={user?.email}
                 name={user?.user_metadata?.full_name || user?.email}
                 onSuccess={async (resp: any) => {
-                  await supabase.from('paiements').insert({
+                  const ref = resp?.transactionId || `KKP-${Date.now()}`;
+                  const { error } = await supabase.from('paiements').insert({
                     user_id: user!.id,
                     contract_id: contract?.id || null,
                     montant: renewAmount,
                     methode: 'kkiapay',
                     status: 'paid',
-                    reference: resp?.transactionId || `KKP-${Date.now()}`,
+                    reference: ref,
                   });
-                  toast({ title: 'Paiement réussi', description: 'Votre paiement a bien été enregistré.' });
+                  if (error) {
+                    sonnerToast.error('Erreur enregistrement', { description: error.message });
+                  } else {
+                    sonnerToast.success('Paiement réussi 🎉', { description: `Référence ${ref} — Contrat actif.` });
+                    await supabase.from('notifications').insert({
+                      user_id: user!.id,
+                      title: 'Paiement confirmé',
+                      message: `Votre paiement de ${formatCFA(renewAmount)} a été reçu.`,
+                      type: 'success',
+                      link: '/client/paiements',
+                      contract_id: contract?.id || null,
+                    });
+                  }
                 }}
-                onFailed={() => toast({ title: 'Paiement échoué', description: 'Veuillez réessayer.', variant: 'destructive' })}
+                onFailed={() => sonnerToast.error('Paiement échoué', { description: 'Veuillez réessayer.' })}
               />
             </div>
           ) : (

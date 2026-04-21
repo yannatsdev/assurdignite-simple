@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Check, Star, Crown, Shield, Heart, Truck, Flower2, Home, Users, Sparkles, Calculator, Percent, FileText, Plus } from 'lucide-react';
+import { Check, Star, Crown, Shield, Heart, Truck, Flower2, Home, Users, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCFA } from '@/lib/actuarial-engine';
@@ -55,14 +55,6 @@ const servicesNature = [
   { icon: Users, title: 'Levée du corps & cérémonie', desc: 'Organisation de la levée de corps, transport au lieu d\'inhumation et accompagnement de la famille jusqu\'à la sépulture.' },
 ];
 
-// Public-friendly explanation (PAP/PAI/PAC labels are voluntarily hidden — admin-only).
-const calcSteps = [
-  { icon: Calculator, title: 'Coût actuariel par assuré', desc: 'Selon l\'âge de chaque membre couvert et le capital choisi, nous appliquons la table de mortalité officielle CIMA H pour calculer le juste coût de protection.' },
-  { icon: Percent, title: 'Frais de gestion (0,2 %)', desc: 'Une légère majoration couvre la gestion administrative et le suivi de votre dossier tout au long de l\'année.' },
-  { icon: Shield, title: 'Frais d\'acquisition (15 %)', desc: 'Inclut le travail de votre conseiller, la rédaction du contrat et l\'accès à votre espace digital sécurisé.' },
-  { icon: FileText, title: 'Frais accessoires fixes', desc: 'Un montant forfaitaire couvre l\'émission, l\'envoi et l\'archivage de votre certificat d\'assurance.' },
-];
-
 export function FormulesSection() {
   return (
     <section id="formules" className="py-24 bg-muted/50">
@@ -98,42 +90,6 @@ export function FormulesSection() {
           <p className="text-center text-xs text-muted-foreground mt-6 italic">
             Les 30 % restants sont versés en <span className="font-semibold not-italic text-secondary">capital espèces aux bénéficiaires</span> en moins de 12 heures pour couvrir les frais imprévus.
           </p>
-        </motion.div>
-
-        {/* Comment est calculée votre prime — explication publique sans labels techniques */}
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-16 max-w-6xl mx-auto">
-          <div className="text-center mb-8">
-            <span className="inline-flex items-center gap-2 text-primary font-semibold text-sm uppercase tracking-wider">
-              <Calculator className="w-4 h-4" /> Transparence tarifaire
-            </span>
-            <h3 className="text-xl md:text-2xl font-display font-bold mt-2">Comment est calculée votre prime ?</h3>
-            <p className="text-sm text-muted-foreground mt-2 max-w-2xl mx-auto">
-              Une tarification 100 % transparente, basée sur des règles actuarielles officielles et validée par la zone CIMA.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative">
-            {calcSteps.map((s, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                className="relative bg-card rounded-2xl p-5 border-2 border-border hover:border-secondary/40 hover:shadow-lg transition-all">
-                <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-secondary text-white flex items-center justify-center text-sm font-bold shadow-md">
-                  {i + 1}
-                </div>
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-secondary/20 to-primary/10 flex items-center justify-center mb-3">
-                  <s.icon className="w-6 h-6 text-primary" />
-                </div>
-                <h4 className="font-display font-bold text-sm mb-1">{s.title}</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">{s.desc}</p>
-                {i < calcSteps.length - 1 && (
-                  <Plus className="hidden lg:block absolute -right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary bg-background rounded-full p-0.5 border-2 border-secondary" />
-                )}
-              </motion.div>
-            ))}
-          </div>
-          <div className="mt-6 text-center">
-            <div className="inline-block bg-gradient-to-r from-primary to-secondary text-white px-6 py-3 rounded-xl shadow-lg">
-              <span className="text-sm font-semibold">= Prime annuelle TTC à payer</span>
-            </div>
-          </div>
         </motion.div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
