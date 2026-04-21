@@ -24,7 +24,7 @@ export default function SouscrirePage() {
       </Card>
 
       <div className="-mx-4 sm:-mx-6">
-        <SimulateurSection />
+        <SimulateurSection showActuarialBreakdown={false} />
       </div>
     </div>
   );

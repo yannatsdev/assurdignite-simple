@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Heart, Clock, Gift, Smartphone, Shield, Users } from 'lucide-react';
-import familyImg from '@/assets/family-multigenerational.jpg';
+import familyImg from '@/assets/family-six-members.jpg';
 
 const avantages = [
   { icon: Gift, title: 'Bonus Fidélité-Santé 30%', desc: 'Si aucun sinistre après 3 ans, 30% du cumul des primes nettes versé en bonus.' },
