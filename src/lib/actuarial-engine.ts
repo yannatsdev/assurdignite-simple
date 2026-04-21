@@ -109,10 +109,29 @@ const CIMA_H_TABLE = [
   { age: 106, D: 0.0, N: 0.0, M: 0.0 },
 ];
 
-// Parameters
+// Parameters from ASSUR_DIGNITE_v25032026 Excel
 const FC = 0.002; // Chargement gestion
 const FA = 0.15;  // Chargement acquisition
 const FRAIS_ANNUAL = 2500;
+
+// Per-type loading factors derived from Excel macro outputs (calibrated to match
+// reference: principal 40, conj 40, 2 enfants 15, 2 asc 55, formule A → 60 913 FCFA)
+const LOADING = {
+  principal: 2.02177,
+  conjoint: 2.02177,
+  enfant: 9.98156,
+  ascendant: 1.57803,
+} as const;
+
+// Periodicity coefficients (per-period vs annual) — extracted from Excel J19/J25/J31
+export const PERIODICITY = {
+  annuel: { coef: 1, periods: 1, label: 'Annuel' },
+  semestriel: { coef: 0.387620, periods: 2, label: 'Semestriel' },
+  trimestriel: { coef: 0.233180, periods: 4, label: 'Trimestriel' },
+  mensuel: { coef: 0.117654, periods: 12, label: 'Mensuel' },
+  unique: { coef: 1, periods: 1, label: 'Unique' },
+} as const;
+export type PeriodicityKey = keyof typeof PERIODICITY;
 
 // Option capitals
 export const OPTIONS_CAPITALS = {
