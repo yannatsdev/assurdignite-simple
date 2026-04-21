@@ -37,7 +37,6 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
   const [enfants, setEnfants] = useState<{ dob: string; included: boolean }[]>([]);
   const [ascendants, setAscendants] = useState<{ dob: string; included: boolean; label: string }[]>([]);
   const [result, setResult] = useState<SimulationResult | null>(null);
-  const [showDetails, setShowDetails] = useState(false);
   const [showFormules, setShowFormules] = useState(false);
 
   const addEnfant = () => { if (enfants.length < 4) setEnfants([...enfants, { dob: '', included: true }]); };
