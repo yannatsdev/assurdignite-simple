@@ -8,9 +8,15 @@ const corsHeaders = {
 serve((req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const publicKey = Deno.env.get("KKIAPAY_PUBLIC_KEY") ?? "";
-  // Heuristic : sandbox keys start with a different pattern; default to live for production keys.
-  // KkiaPay live public keys typically don't start with "sandbox" prefix.
-  const sandbox = (Deno.env.get("KKIAPAY_SANDBOX") ?? "false").toLowerCase() === "true";
+  const privateKey = Deno.env.get("KKIAPAY_PRIVATE_KEY") ?? "";
+  const secretKey = Deno.env.get("KKIAPAY_SECRET") ?? "";
+  // KkiaPay test keys are prefixed with `tpk_` (private) and `tsk_` (secret).
+  // Live keys use `pk_` / `sk_`. We auto-detect sandbox to match the public key environment.
+  const explicit = Deno.env.get("KKIAPAY_SANDBOX");
+  const isTest = privateKey.startsWith("tpk_") || secretKey.startsWith("tsk_");
+  const sandbox = explicit != null
+    ? explicit.toLowerCase() === "true"
+    : isTest;
   return new Response(JSON.stringify({ publicKey, sandbox }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
