@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Check, Star, Crown, Shield, Heart, Truck, Flower2, Home, Users, Sparkles } from 'lucide-react';
+import { Check, Star, Crown, Shield, Heart, Truck, Flower2, Home, Users, Sparkles, Calculator, Percent, FileText, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCFA } from '@/lib/actuarial-engine';
@@ -53,6 +53,14 @@ const servicesNature = [
   { icon: Home, title: 'Conservation & traitement', desc: 'Conservation en chambre froide, soins de thanatopraxie et habillage du défunt dans le respect des traditions.' },
   { icon: Flower2, title: 'Cercueil & accessoires funéraires', desc: 'Fourniture du cercueil adapté à la formule, capiton, croix et ornements selon vos souhaits.' },
   { icon: Users, title: 'Levée du corps & cérémonie', desc: 'Organisation de la levée de corps, transport au lieu d\'inhumation et accompagnement de la famille jusqu\'à la sépulture.' },
+];
+
+// Public-friendly explanation (PAP/PAI/PAC labels are voluntarily hidden — admin-only).
+const calcSteps = [
+  { icon: Calculator, title: 'Coût actuariel par assuré', desc: 'Selon l\'âge de chaque membre couvert et le capital choisi, nous appliquons la table de mortalité officielle CIMA H pour calculer le juste coût de protection.' },
+  { icon: Percent, title: 'Frais de gestion (0,2 %)', desc: 'Une légère majoration couvre la gestion administrative et le suivi de votre dossier tout au long de l\'année.' },
+  { icon: Shield, title: 'Frais d\'acquisition (15 %)', desc: 'Inclut le travail de votre conseiller, la rédaction du contrat et l\'accès à votre espace digital sécurisé.' },
+  { icon: FileText, title: 'Frais accessoires fixes', desc: 'Un montant forfaitaire couvre l\'émission, l\'envoi et l\'archivage de votre certificat d\'assurance.' },
 ];
 
 export function FormulesSection() {
