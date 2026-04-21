@@ -198,13 +198,14 @@ function getCIMARow(age: number) {
   return CIMA_H_TABLE[age];
 }
 
-function computePAP(age: number, capital: number): number {
+function computePAP(age: number, capital: number, role: keyof typeof LOADING): number {
   const row = getCIMARow(age);
   const rowNext = getCIMARow(age + 1);
   if (!row || !rowNext) return 0;
-  const denominator = row.N - rowNext.N;
-  if (denominator <= 0) return 0;
-  return capital * (row.M - rowNext.M) / denominator;
+  if (row.D <= 0) return 0;
+  // Cx[x]/Dx[x] × Capital × per-type loading factor (Excel macro convention)
+  const cxRatio = (row.M - rowNext.M) / row.D;
+  return capital * cxRatio * LOADING[role];
 }
 
 export function simulatePrime(input: SimulationInput): SimulationResult {
