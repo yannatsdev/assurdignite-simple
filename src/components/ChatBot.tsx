@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
+import { MessageCircle, X, Send, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import ReactMarkdown from 'react-markdown';
 
 interface Message {
   id: number;
@@ -14,38 +15,14 @@ type AiMsg = { role: 'user' | 'assistant'; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-ai`;
 
-function formatMessage(text: string): JSX.Element {
-  const lines = text.split('\n');
-  return (
-    <span>
-      {lines.map((line, lineIdx) => {
-        if (lineIdx > 0) {
-          if (line.startsWith('• ') || line.startsWith('- ') || line.startsWith('* ')) {
-            const content = line.slice(2);
-            return <span key={lineIdx}><br /><span className="pl-2">• {renderBold(content)}</span></span>;
-          }
-          if (/^\d+\.\s/.test(line)) {
-            return <span key={lineIdx}><br /><span className="pl-2">{renderBold(line)}</span></span>;
-          }
-        }
-        return <span key={lineIdx}>{lineIdx > 0 && <br />}{renderBold(line)}</span>;
-      })}
-    </span>
-  );
-}
-
-function renderBold(text: string): JSX.Element {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return (
-    <>
-      {parts.map((part, i) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-          return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>;
-        }
-        return <span key={i}>{part}</span>;
-      })}
-    </>
-  );
+// Strip placeholder links like [text](lien_vers_xxx) → text, and remove unresolved (lien_xxx)
+function sanitizeMarkdown(text: string): string {
+  return text
+    // Replace [label](placeholder) where placeholder isn't a real URL
+    .replace(/\[([^\]]+)\]\((?!https?:\/\/|mailto:|tel:|\/)[^)]+\)/gi, '$1')
+    // Remove orphan (lien_xxx)
+    .replace(/\((lien_[^)]+)\)/gi, '')
+    .trim();
 }
 
 export function ChatBot() {
@@ -176,12 +153,13 @@ export function ChatBot() {
           >
             <div className="bg-gradient-sonam p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                  <MessageCircle className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center relative">
+                  <Sparkles className="w-5 h-5 text-white" />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-secondary border-2 border-white animate-pulse" />
                 </div>
                 <div>
-                  <p className="text-white font-semibold text-sm font-sans">Assistant IA AssurDignité</p>
-                  <p className="text-white/70 text-xs">Propulsé par Gemini • SONAM VIE</p>
+                  <p className="text-white font-semibold text-sm font-sans">Assistant ASSURDIGNITÉ</p>
+                  <p className="text-white/70 text-xs">Propulsé par IA • ASSURDIGNITE</p>
                 </div>
               </div>
               <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white"><X className="w-5 h-5" /></button>
@@ -193,7 +171,24 @@ export function ChatBot() {
                   <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                     msg.isBot ? 'bg-muted text-foreground rounded-tl-sm' : 'bg-primary text-primary-foreground rounded-tr-sm'
                   }`}>
-                    {msg.text ? formatMessage(msg.text) : <span className="flex items-center gap-2 text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" /> Réflexion...</span>}
+                    {msg.text ? (
+                      <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:my-1 prose-headings:font-semibold prose-h1:text-base prose-h2:text-sm prose-h3:text-sm prose-strong:text-foreground prose-a:text-primary">
+                        <ReactMarkdown
+                          components={{
+                            a: ({ href, children }) => {
+                              const isReal = href && /^(https?:|mailto:|tel:|\/)/i.test(href);
+                              return isReal
+                                ? <a href={href} target="_blank" rel="noreferrer">{children}</a>
+                                : <span>{children}</span>;
+                            },
+                          }}
+                        >
+                          {sanitizeMarkdown(msg.text)}
+                        </ReactMarkdown>
+                      </div>
+                    ) : (
+                      <span className="flex items-center gap-2 text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" /> Réflexion...</span>
+                    )}
                   </div>
                 </div>
               ))}

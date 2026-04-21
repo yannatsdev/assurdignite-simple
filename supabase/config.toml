@@ -2,3 +2,9 @@ project_id = "qwhxjwoqzptwlzapcwdd"
 
 [functions.kkiapay-webhook]
 verify_jwt = false
+
+[functions.kkiapay-config]
+verify_jwt = false
+
+[functions.chat-ai]
+verify_jwt = false
