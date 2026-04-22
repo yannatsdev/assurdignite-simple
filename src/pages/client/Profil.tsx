@@ -15,6 +15,9 @@ export default function ProfilPage() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [newPwd, setNewPwd] = useState('');
+  const [confirmPwd, setConfirmPwd] = useState('');
+  const [pwdLoading, setPwdLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -28,6 +31,17 @@ export default function ProfilPage() {
     const { error } = await supabase.from('profiles').update({ full_name: profile.full_name, phone: profile.phone }).eq('id', user.id);
     if (error) { toast({ title: 'Erreur', description: error.message, variant: 'destructive' }); return; }
     toast({ title: 'Profil mis à jour' });
+  };
+
+  const handlePasswordChange = async () => {
+    if (newPwd.length < 6) { toast({ title: 'Mot de passe trop court', description: 'Minimum 6 caractères.', variant: 'destructive' }); return; }
+    if (newPwd !== confirmPwd) { toast({ title: 'Les mots de passe ne correspondent pas', variant: 'destructive' }); return; }
+    setPwdLoading(true);
+    const { error } = await supabase.auth.updateUser({ password: newPwd });
+    setPwdLoading(false);
+    if (error) { toast({ title: 'Erreur', description: error.message, variant: 'destructive' }); return; }
+    setNewPwd(''); setConfirmPwd('');
+    toast({ title: 'Mot de passe mis à jour ✓' });
   };
 
   const handleAvatarUpload = async (file: File) => {
@@ -103,7 +117,11 @@ export default function ProfilPage() {
           <Card>
             <CardHeader><CardTitle className="font-display flex items-center gap-2"><Shield className="w-5 h-5" /> Sécurité</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <Button variant="outline" className="w-full">Changer le mot de passe</Button>
+              <div><Label>Nouveau mot de passe</Label><Input type="password" value={newPwd} onChange={e => setNewPwd(e.target.value)} placeholder="Minimum 6 caractères" /></div>
+              <div><Label>Confirmer le mot de passe</Label><Input type="password" value={confirmPwd} onChange={e => setConfirmPwd(e.target.value)} /></div>
+              <Button onClick={handlePasswordChange} className="w-full" disabled={pwdLoading || !newPwd || !confirmPwd}>
+                {pwdLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Changer le mot de passe'}
+              </Button>
             </CardContent>
           </Card>
         </div>
