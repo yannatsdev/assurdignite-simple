@@ -381,7 +381,7 @@ export default function AdhesionPage() {
     y = pdfKeyValueGrid(doc, [
       ['Nom & prénom', `${kyc.prenom} ${kyc.nom}`.trim() || '—'],
       ['Date de naissance', fmt(kyc.dob || simPrincipalDob)],
-      ['CNI', kyc.cniNumber || '—'],
+      ['CNI', kyc.cni || '—'],
       ['Date de souscription', fmt(quoteDate)],
     ], y);
 
