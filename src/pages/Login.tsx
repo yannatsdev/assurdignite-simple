@@ -52,7 +52,7 @@ export default function LoginPage() {
         <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-8 lg:p-12 text-white">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
             <h2 className="text-xl sm:text-2xl lg:text-4xl font-bold font-display mb-2 lg:mb-4">Bienvenue sur votre Espace Client</h2>
-            <p className="text-white/80 text-sm lg:text-lg max-w-md hidden sm:block">Gérez vos contrats, suivez vos paiements et déclarez vos sinistres en toute simplicité.</p>
+            <p className="text-white/80 text-sm lg:text-lg max-w-md hidden sm:block">Gérez vos contrats, suivez vos paiements et déclarez vos sinistres en toute simplicité, 100% digital.</p>
           </motion.div>
         </div>
       </div>
