@@ -1,119 +1,126 @@
 
 
-# Plan — Refonte premium UX, fix KkiaPay, branding chatbot, RAZ data
+# Plan — Refonte landing YAKO-style, fixes admin/profil/docs, paiement simulation
 
-## 1. Fix paiement KkiaPay bloqué (Étape 12 + Paiements)
+## 1. Fix signup admin (Edge Function non-2xx)
 
-Le custom element `<kkiapay-widget>` ne se monte pas correctement quand React le rend après le chargement du script CDN → bouton "Payer maintenant" affiche un spinner infini.
+**`supabase/functions/admin-signup/index.ts`** : L'erreur vient probablement d'un crash silencieux du trigger `handle_new_user` (race condition) ou d'un `SUPABASE_SERVICE_ROLE_KEY` manquant. Refonte robuste :
+- Try/catch granulaire avec logs explicites.
+- Suppression du `setTimeout` (race) → utiliser `upsert` avec `onConflict: 'user_id,role'` directement.
+- Vérifier que l'utilisateur n'existe pas déjà (`listUsers` filtré par email) avant `createUser`. Si existe → assigner juste le rôle admin.
+- Retourner les détails d'erreur Supabase (code, message, hint).
 
-**Refonte `src/components/KkiapayWidget.tsx`** :
-- Ne plus rendre le custom element. Charger dynamiquement le script `https://cdn.kkiapay.me/k.js` au mount avec polling de `window.openKkiapayWidget`.
-- Exposer un bouton React natif premium "Payer maintenant" qui appelle `window.openKkiapayWidget({ amount, key, sandbox, position:'center', theme, name, email, phone, callback })` → ouvre la popup KkiaPay officielle.
-- Attacher `window.addSuccessListener(cb)` et `addFailedListener(cb)` une seule fois par instance avec cleanup.
-- Props : `amount, email, phone, name, onSuccess, onFailed, sandbox=true, label?`.
-- État : `loading` (script chargement), `processing` (paiement en cours), `ready`.
-- Toast `sonner` succès/échec.
+**Création du compte** : Après le fix, j'appellerai la fonction directement via `curl_edge_functions` avec `adminyannsonam@gmail.com / Yannedge50$ / ADDWARRIORSONAMVIE777`.
 
-**`Adhesion.tsx` Step 12** : Sur `onSuccess`, créer la ligne `paiements{ user_id, contract_id, montant, status:'paid', methode:'kkiapay', reference:resp.transactionId }` puis avancer à l'étape 13.
+## 2. Refonte landing page — style YAKO Africa Assurance
 
-**`Paiements.tsx`** : Sur `onSuccess`, insert paiement payé + toast.
+Inspiration screenshot YAKO : barre supérieure colorée avec contacts, navbar blanche permanente, hero plein écran avec image famille + overlay vert/violet, cartes catégories, section "Notre expertise" avec photo + bullets, section "Notre ADN" 3 piliers (Vision/Mission/Valeurs), témoignages carrousel, bandeau partenaires/logos, footer riche multi-colonnes.
 
-## 2. Notifications instantanées paiement
+**`src/components/landing/Header.tsx`** :
+- Barre top fine violette (contact + email + adresse).
+- Navbar **blanche permanente** (plus de transparent au scroll, comme image 6 uploaded).
+- Logos SONAM + AssurDignité **agrandis** (h-14 desktop / h-10 mobile, fond blanc avec padding).
+- Liens nav : Accueil, Nos Formules, Simulateur, Avantages, FAQ, Contact (taille `text-base font-semibold`).
+- CTA "Mon Espace" + "Souscrire" boutons à droite.
 
-- `client/Paiements.tsx` + `Dashboard.tsx` : déjà abonnés au realtime. Ajouter un `toast.success("Paiement confirmé — votre contrat est actif ✓")` ou `toast.error("Paiement échoué")` quand `payload.eventType==='UPDATE'` et `status` change.
-- Nouvelle page `src/pages/client/Notifications.tsx` (historique) + table `notifications` (migration) avec realtime + lien vers contrat. Badge cloche dans `ClientLayout`.
+**`src/components/landing/HeroSection.tsx`** :
+- Titre H1 changé : **"Votre Assurance Obsèques SONAM VIE"** (au lieu de "Assurance Obsèques par SONAM VIE").
+- Police agrandie (`text-4xl sm:text-5xl md:text-6xl lg:text-7xl`).
+- Sous-titre `text-lg sm:text-xl`.
+- Hero plein écran avec image famille + overlay gradient violet→vert.
+- 2 CTA principaux + badges de confiance (CIMA, 25 ans, etc.) plus gros.
 
-## 3. Refonte design Dashboards (inspiration screenshot Digisurance)
+**Nouvelle section "Comment souscrire"** (remplace `processSteps` actuels dans `Index.tsx`) :
+1. Choisir la formule
+2. Faire la simulation et la validation
+3. Scanner votre CNI, enregistrement biométrique
+4. Conditions générales et validation
+5. Payer
+6. Recevoir la police d'assurance et le reçu
 
-**`src/pages/client/Dashboard.tsx`** :
-- Ligne du haut : 3 cards horizontales colorées (orange/violet/vert) — "Couverture obsèques", "Capital garanti", "Bénéficiaires".
-- Tabs filtres ("Tous", "Actifs", "Expirés").
-- Liste accordéons des contrats (style screenshot 1) : header avec n° police + nom assuré + chevron, déploie panneau avec coverages (table), summary invoice à droite avec "Next bill", bouton "Voir reçu".
-- Modal "Pay Now" (style screenshot 2) : facture détaillée + sélection moyen paiement → KkiaPay.
-- Toast "Payment Success" (style screenshot 3) après paiement.
+Style : 6 cards horizontales avec numéros violets, icônes différentes, ligne de connexion entre étapes.
 
-**`src/pages/admin/Dashboard.tsx`** :
-- 3 cards horizontales colorées (Polices actives / Primes encaissées / Sinistres traités).
-- Tabs "Tous / Santé / Auto / Vie".
-- Tableaux accordéons des contrats récents avec sparklines.
-- Cards "À traiter aujourd'hui" : sinistres en attente + paiements en échec + nouvelles adhésions.
-- Heatmap activité hebdomadaire.
+**`src/components/landing/FormulesSection.tsx`** — restructure :
+- Titre supérieur : **"Trouver nos prestations"** (remplace "Choisissez votre niveau de protection").
+- Sous-titre : **"Tout est pris en charge par Sonam Vie"**.
+- Section : **"Nos prestations en nature"**.
+- Les 4 tableaux des formules (Essentiel, Confort, Serein, Excellence).
+- En bas, nouvelle section : **"PRESTATIONS EN NATURE INCLUSES (70 %)"** avec 4 cards :
+  - Enlèvement & transport du corps
+  - Conservation & traitement
+  - Cercueil & accessoires funéraires
+  - Levée du corps & cérémonie
 
-## 4. Réinitialisation données (RAZ)
+**`src/components/landing/SimulateurSection.tsx`** :
+- Supprimer mention **"Moteur actuariel CIMA H intégré. Résultats instantanés et détaillés."** (landing + espace client).
+- Augmenter polices.
 
-Migration SQL :
-```sql
-TRUNCATE TABLE public.paiements, public.sinistres, public.beneficiaires,
-  public.assures_complementaires, public.contracts CASCADE;
-```
-Conserve `user_roles`, `profiles`, `auth.users` (admin bootstrap intact).
-Toutes les pages affichent désormais des **données live réelles** (vide au départ) et plus de mock. Vérifier `Dashboard.tsx` admin → retirer les fallbacks `'2 847'`, `'128 500 000'` etc. (afficher 0 si vide).
+**Nouveau CTA final avant Footer (`Index.tsx`)** :
+Section large violet/dégradé avec H2 **"Parlons de votre protection"**, sous-titre rassurant, 2 boutons (Souscrire / Nous contacter), illustration.
 
-## 5. Landing page — nettoyages demandés
+**Polices globales** : Augmenter de +1 cran sur tous les sections landing (`text-sm` → `text-base`, `text-base` → `text-lg`, etc.) pour lisibilité optimale.
 
-- **`FormulesSection.tsx`** : supprimer entièrement le bloc "Transparence tarifaire / Comment est calculée votre prime ?" (lignes 103-137). Ne conserver que les formules + services nature.
-- **`AdminLogin.tsx`** : supprimer la mention "Demo admin : adminyannsonam@gmail.com / Yannedge50$" (lignes 141-145). Garder uniquement la mention du code d'accès en mode signup.
+## 3. Fix login client — mention "100% digital"
 
-## 6. Simulateur — onglet "Détails administratifs"
+**`src/pages/Login.tsx`** : Ajouter "100% digital" après "en toute simplicité".
 
-`SimulateurSection.tsx` : Remplacer `showDetails` par des `Tabs` (shadcn) avec 2 onglets quand admin :
-- **"Résumé"** (public) : prime annuelle + répartition + prime par assuré.
-- **"Détails administratifs"** (admin only) : PAP Total, PAI ×1.002, PAC ÷0.85, Frais fixes 2 500 FCFA, formule détaillée.
-Pour les non-admins, l'onglet 2 n'apparaît pas.
+## 4. Espace client — Profil complet (mot de passe + infos)
 
-## 7. ChatBot premium intelligent
+**`src/pages/client/Profil.tsx`** : Refonte avec 2 sections :
+- **Mes informations** : nom, prénom, email (lecture), téléphone, adresse, date naissance, profession → `update profiles` + bouton "Enregistrer".
+- **Sécurité** : champs nouveau mot de passe + confirmation → `supabase.auth.updateUser({ password })` + toast.
 
-**`src/components/ChatBot.tsx`** :
-- Rebranding visuel : header avec logo SONAM mini, titre "Assistant AssurDignité", sous-titre "Disponible 24/7", animation pulse en ligne.
-- Quick replies enrichies : "Mes formules", "Déclarer un sinistre", "Suivi de mon dossier", "Renouveler ma prime", "Contact urgence".
-- Détection intent côté UI : si user tape "sinistre" ou "décès", proposer un bouton "🚨 Démarrer Fast-Track sinistre" qui ouvre un modal `<FastTrackSinistreModal>` (4 étapes : Décédé → Date/Lieu → Documents (upload) → Confirmation), insère dans `sinistres` table avec `status='fast_track'`, retourne référence.
-- Suivi dossier : si user tape "suivi" ou ref `SIN-XXX`, fetch sinistre et affiche carte status (déclaré / en cours / payé) avec timeline.
-- Markdown rendu via `react-markdown` (à ajouter) au lieu du parser custom — meilleure mise en forme (titres ###, listes, gras).
+**`src/pages/client/Dashboard.tsx`** : Remplacer "Complétez votre profil pour profiter de tous les avantages." par **"Complétez votre profil pour profiter de tous les avantages d'Assurdignité."**
 
-**`supabase/functions/chat-ai/index.ts`** : enrichir le system prompt → "Tu es l'assistant officiel AssurDignité de SONAM VIE. Réponds toujours en français, structuré en titres et puces. Si l'utilisateur évoque un décès/sinistre, propose le Fast-Track sinistre. Cite contacts : 27 20 31 71 82, servicecommercialsonamvie@sonam.ci. Sois empathique." Garder modèle `google/gemini-2.5-flash` (rapide). Vérifier non-2xx.
+## 5. Espace client — Logos SONAM + AssurDignité fond blanc
 
-## 8. Espace admin "Rapports" — Export PDF mensuel
+**`src/components/client/ClientSidebar.tsx`** + **`src/layouts/ClientLayout.tsx`** :
+- Bloc logos sur fond **blanc** avec padding et `rounded-xl shadow-sm border`, agrandis (h-12).
+- Version mobile : logos centrés, taille adaptée (h-10).
+- Same fix admin sidebar.
 
-**`src/pages/admin/Reporting.tsx`** : nouveau bouton "Générer rapport mensuel PDF" :
-- Sélecteur de mois.
-- Fetch `contracts` actifs, `paiements` payés du mois (sum), `sinistres` traités du mois.
-- Génère PDF jsPDF avec logo SONAM, tableau primes encaissées, tableau contrats actifs, tableau sinistres avec total versé. Header gradient, KPI tiles, tableaux avec autoTable.
-- `doc.save('Rapport-AssurDignite-{YYYY-MM}.pdf')`.
+## 6. Étape 12 — Paiement simulation + logos opérateurs
 
-## 9. SEO + accessibilité landing
+**`src/pages/client/Adhesion.tsx`** Step 12 :
+- Bloc actuel KkiaPay conservé.
+- **Nouveau bloc** "Effectuer un paiement de simulation" avec 4 logos cliquables (MTN, Orange, Moov, Wave) en grid 2x2.
+- Au clic d'un logo → modal de confirmation "Simuler paiement de XXX FCFA via {opérateur}" → bouton "Confirmer".
+- À la confirmation → insert `paiements{ status:'paid', methode:'simulation_'+op, reference:'SIM-'+timestamp }` + toast succès + avance à étape 13.
 
-**`index.html`** : 
-- Title corrigé : "AssurDignité — Assurance obsèques SONAM VIE | Côte d'Ivoire & Zone CIMA".
-- Description complète <160 chars sans saut de ligne.
-- Ajouter `<meta name="keywords">`, `<link rel="canonical">`, JSON-LD `Organization` + `Product`.
-- `lang="fr"`.
+**Copie des logos uploadés** dans `src/assets/payments/` : `mtn.svg`, `orange.svg`, `moov.svg`, `wave.svg`.
 
-**Landing components** : 
-- Hierarchy `<h1>` unique sur Hero, `<h2>` sections, `<h3>` cards.
-- Tous boutons/liens avec `aria-label` explicite si icône seule.
-- `alt` détaillés pour images (`family-six-members.jpg` → "Famille africaine multigénérationnelle protégée par AssurDignité").
-- `tabIndex` cohérent + focus visible (`focus-visible:ring-2 focus-visible:ring-primary`).
-- Contrastes vérifiés (texte sur images : ajout overlay si besoin).
+## 7. Documents — design pro et impression
 
-## 10. Innovations dashboards
+**Tous les générateurs PDF (police, reçu, sinistre)** : refonte complète style screenshot 5 (sonam violet header, logos bien alignés).
 
-**Client** :
-- Widget "Météo de votre couverture" : score santé du contrat (% à jour, bénéficiaires renseignés, KYC complets) avec gauge animée.
-- Timeline "Événements importants" (souscription, paiements, anniversaire contrat, renouvellement à venir).
-- "Smart suggestions" basées sur le profil (ex: "Ajoutez votre conjoint pour 30% de capital en plus").
+**Header PDF unifié** :
+- Bandeau violet `#4A0E78` plein largeur, hauteur 80px.
+- Logo SONAM gauche (50px h) + AssurDignité (40px h) sur **fond blanc arrondi** dans le header.
+- Coordonnées à droite (téléphone, email, adresse).
 
-**Admin** :
-- "Pulse en temps réel" : compteur live des connexions clients (canal `presence` Supabase).
-- Funnel adhésion (étape 1→14) avec taux d'abandon par étape.
-- Carte de chaleur géographique (régions de souscription) — stub si data manquante.
-- Alertes intelligentes : "3 sinistres > 7j sans traitement" carte rouge cliquable.
+**Reçu de paiement** : doit contenir nom + prénom + n° police + formule choisie + options + liste bénéficiaires (nom/lien/%) + montant payé + date + référence + cachet.
 
-## 11. Fix erreurs / build
+**Police d'assurance** : couverture pro avec logos centrés, encadré violet "POLICE N° XXXX", sections numérotées (Souscripteur, Assurés, Bénéficiaires, Garanties, Conditions), signatures bas.
 
-- TypeScript : vérifier types `KkiapayWidget` props après refactor.
-- Vérifier import `react-markdown` à ajouter (`npm install react-markdown` via package.json).
-- Lint Supabase final.
-- Aucun `console.log` résiduel.
+**`src/lib/pdf-logos.ts`** : Vérifier dimensions logos base64 (correction ratio).
+
+**`src/pages/client/Documents.tsx`** : CSS `@media print` (cacher sidebar/nav, A4, marges, page-break), boutons "Télécharger PDF" + "Imprimer".
+
+## 8. Responsivité globale
+
+Audit rapide :
+- Header : burger menu mobile fonctionnel, logos visibles.
+- Sidebar client/admin : drawer mobile.
+- Tableaux dashboards : `overflow-x-auto`.
+- Cards grids : `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`.
+- Formulaires Adhésion : inputs `w-full` + spacing.
+- Tester viewports 375 / 768 / 1280.
+
+## 9. Fix erreurs / build
+
+- TypeScript clean.
+- Import des SVG via `?url` ou `import logoMtn from '@/assets/payments/mtn.svg'`.
+- Build final OK.
 
 ---
 
@@ -121,33 +128,36 @@ Pour les non-admins, l'onglet 2 n'apparaît pas.
 
 | Fichier | Action |
 |---|---|
-| `src/components/KkiapayWidget.tsx` | Refonte programmatique (popup au lieu de custom element) |
-| `src/pages/client/Adhesion.tsx` | onSuccess insert paiement + toast |
-| `src/pages/client/Paiements.tsx` | Toast sur realtime + KkiaPay refacto |
-| `src/pages/client/Dashboard.tsx` | Refonte cards horizontales + accordéons + smart widgets |
-| `src/pages/client/Notifications.tsx` | Nouveau — historique notifs |
-| `src/pages/admin/Dashboard.tsx` | Refonte premium + heatmap + funnel + RAZ fallbacks |
-| `src/pages/admin/Reporting.tsx` | Bouton export PDF mensuel |
-| `src/components/landing/FormulesSection.tsx` | Supprimer bloc "Transparence tarifaire" |
-| `src/components/landing/SimulateurSection.tsx` | Tabs Résumé / Détails admin |
-| `src/components/ChatBot.tsx` | Branding premium + Fast-Track + react-markdown |
-| `src/components/FastTrackSinistreModal.tsx` | Nouveau modal multi-étapes |
-| `src/pages/AdminLogin.tsx` | Retirer mention demo |
-| `src/layouts/ClientLayout.tsx` | Cloche notifs + lien Notifications |
-| `index.html` | SEO meta + JSON-LD + lang fr |
-| `supabase/functions/chat-ai/index.ts` | System prompt enrichi |
-| Migration SQL | TRUNCATE tables data + table `notifications` + RLS |
+| `supabase/functions/admin-signup/index.ts` | Robustification + idempotence |
+| `src/components/landing/Header.tsx` | Top bar + navbar blanche permanente + logos agrandis |
+| `src/components/landing/HeroSection.tsx` | Titre changé, polices agrandies, hero plein écran |
+| `src/pages/Index.tsx` | Nouveau parcours "Comment souscrire" 6 étapes + CTA final "Parlons de votre protection" |
+| `src/components/landing/FormulesSection.tsx` | Restructure : "Trouver nos prestations" + section "Prestations en nature 70%" |
+| `src/components/landing/SimulateurSection.tsx` | Retrait mention CIMA H, polices + |
+| `src/pages/Login.tsx` | "100% digital" |
+| `src/pages/client/Profil.tsx` | Update infos + changement mot de passe |
+| `src/pages/client/Dashboard.tsx` | Texte "d'Assurdignité" |
+| `src/components/client/ClientSidebar.tsx` | Logos fond blanc agrandis |
+| `src/components/admin/AdminSidebar.tsx` | Logos fond blanc agrandis |
+| `src/layouts/ClientLayout.tsx` + `AdminLayout.tsx` | Responsive logos mobile |
+| `src/pages/client/Adhesion.tsx` Step 12 | Bloc paiement simulation 4 logos opérateurs |
+| `src/assets/payments/*.svg` | Copie MTN/Orange/Moov/Wave |
+| `src/lib/pdf-logos.ts` | Fix ratios logos |
+| Tous générateurs PDF (Documents, Adhesion reçu, Sinistre) | Header unifié pro, contenu enrichi reçu |
+| `src/pages/client/Documents.tsx` | CSS @media print + bouton imprimer |
+| `src/index.css` | Print styles globaux |
 
 ## Ordre d'exécution
 
-1. Fix KkiaPay (bloquant pour le flow paiement)
-2. Suppression bloc "Transparence tarifaire" + mention demo admin
-3. RAZ data (TRUNCATE) + table notifications + retrait mock admin Dashboard
-4. Refonte Dashboards client + admin (style Digisurance)
-5. Simulateur Tabs Résumé/Admin
-6. ChatBot premium + Fast-Track + react-markdown
-7. Page Reporting PDF mensuel
-8. SEO + accessibilité landing
-9. Innovations widgets (smart suggestions, funnel, heatmap)
-10. Build clean + lint final
+1. Fix `admin-signup` edge function + création compte admin yann
+2. Copie logos paiements SVG dans assets
+3. Refonte Header (top bar + navbar blanche + logos)
+4. Refonte Hero + Index parcours 6 étapes + CTA final
+5. Restructure FormulesSection + retrait mention CIMA Simulateur
+6. Login "100% digital" + Dashboard texte
+7. Profil : update infos + password
+8. ClientSidebar + AdminSidebar logos blancs agrandis
+9. Adhesion Step 12 paiement simulation
+10. Refonte PDFs (header pro + reçu enrichi + print CSS)
+11. Audit responsive + build final
 
