@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Menu, X, Shield, Phone } from 'lucide-react';
+import { Menu, X, Phone, Mail, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import logoSonam from '@/assets/logo-sonamvie.png';
 import logoAssurDignite from '@/assets/logo-assurdignite.png';
@@ -21,53 +21,72 @@ export function Header() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
+    const onScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-background/95 backdrop-blur-md shadow-lg border-b border-border' : 'bg-transparent'}`}>
-      <div className="container mx-auto px-4 flex items-center justify-between h-20">
-        <div className="flex items-center gap-3">
-          <img src={logoSonam} alt="SONAM VIE" className="h-12 w-auto" />
-          <div className="w-px h-8 bg-border" />
-          <img src={logoAssurDignite} alt="AssurDignité" className="h-10 w-auto" />
-        </div>
-
-        <nav className="hidden lg:flex items-center gap-8">
-          {NAV_ITEMS.map(item => (
-            <a key={item.href} href={item.href} className={`text-sm font-medium transition-colors hover:text-primary ${scrolled ? 'text-foreground' : 'text-white'}`}>
-              {item.label}
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-shadow duration-300 bg-background ${scrolled ? 'shadow-lg' : 'shadow-sm'}`}>
+      {/* Top contact bar */}
+      <div className="bg-primary text-white text-xs sm:text-sm">
+        <div className="container mx-auto px-4 h-9 flex items-center justify-between gap-4 overflow-x-auto">
+          <div className="flex items-center gap-4 whitespace-nowrap">
+            <a href="tel:+22527203171" className="flex items-center gap-1.5 hover:text-secondary transition-colors">
+              <Phone className="w-3.5 h-3.5" /> +225 27 20 31 71 82
             </a>
-          ))}
-        </nav>
-
-        <div className="hidden lg:flex items-center gap-3">
-          <Button variant={scrolled ? 'outline' : 'ghost'} size="sm" onClick={() => navigate('/login')}
-            className={scrolled ? 'border-primary text-primary hover:bg-primary/10' : 'border-white text-white hover:bg-white/10 border'}>
-            Espace Client
-          </Button>
-          <Button size="sm" onClick={() => navigate('/admin/login')} className="bg-secondary hover:bg-secondary/90">
-            Espace Admin
-          </Button>
+            <span className="hidden sm:flex items-center gap-1.5">
+              <Mail className="w-3.5 h-3.5" /> servicecommercialsonamvie@sonam.ci
+            </span>
+          </div>
+          <span className="hidden md:flex items-center gap-1.5 whitespace-nowrap">
+            <MapPin className="w-3.5 h-3.5" /> Abidjan, Côte d'Ivoire
+          </span>
         </div>
+      </div>
 
-        <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden">
-          {mobileOpen ? <X className={`w-6 h-6 ${scrolled ? 'text-foreground' : 'text-white'}`} /> : <Menu className={`w-6 h-6 ${scrolled ? 'text-foreground' : 'text-white'}`} />}
-        </button>
+      <div className="border-b border-border">
+        <div className="container mx-auto px-4 flex items-center justify-between h-20 sm:h-24">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <img src={logoSonam} alt="SONAM VIE" className="h-12 sm:h-16 w-auto" />
+            <div className="w-px h-10 sm:h-14 bg-border" />
+            <img src={logoAssurDignite} alt="AssurDignité" className="h-10 sm:h-14 w-auto" />
+          </div>
+
+          <nav className="hidden lg:flex items-center gap-7">
+            {NAV_ITEMS.map(item => (
+              <a key={item.href} href={item.href} className="text-base font-semibold text-foreground transition-colors hover:text-primary">
+                {item.label}
+              </a>
+            ))}
+          </nav>
+
+          <div className="hidden lg:flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={() => navigate('/login')}
+              className="border-primary text-primary hover:bg-primary/10 font-semibold">
+              Mon Espace
+            </Button>
+            <Button size="sm" onClick={() => navigate('/login')} className="bg-secondary hover:bg-secondary/90 font-semibold">
+              Souscrire
+            </Button>
+          </div>
+
+          <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden">
+            {mobileOpen ? <X className="w-6 h-6 text-foreground" /> : <Menu className="w-6 h-6 text-foreground" />}
+          </button>
+        </div>
       </div>
 
       {mobileOpen && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="lg:hidden bg-background border-b border-border p-4 space-y-3">
           {NAV_ITEMS.map(item => (
-            <a key={item.href} href={item.href} className="block py-2 text-foreground hover:text-primary font-medium" onClick={() => setMobileOpen(false)}>
+            <a key={item.href} href={item.href} className="block py-2 text-foreground hover:text-primary font-semibold text-base" onClick={() => setMobileOpen(false)}>
               {item.label}
             </a>
           ))}
           <div className="flex gap-2 pt-3 border-t border-border">
-            <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate('/login')}>Espace Client</Button>
-            <Button size="sm" className="flex-1 bg-secondary" onClick={() => navigate('/admin/login')}>Admin</Button>
+            <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate('/login')}>Mon Espace</Button>
+            <Button size="sm" className="flex-1 bg-secondary" onClick={() => navigate('/login')}>Souscrire</Button>
           </div>
         </motion.div>
       )}
