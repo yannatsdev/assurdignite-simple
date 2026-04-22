@@ -40,7 +40,7 @@ export function Header() {
             </span>
           </div>
           <span className="hidden md:flex items-center gap-1.5 whitespace-nowrap">
-            <MapPin className="w-3.5 h-3.5" /> Abidjan, Côte d'Ivoire
+            <MapPin className="w-3.5 h-3.5" /> Plateau, Immeuble Trade Center 3ème étage, Avenue NOGUES
           </span>
         </div>
       </div>
