@@ -17,6 +17,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import { KkiapayWidget } from '@/components/KkiapayWidget';
+import logoMtn from '@/assets/mtn.svg';
+import logoOrange from '@/assets/orange.svg';
+import logoMoov from '@/assets/moov.svg';
+import logoWave from '@/assets/wave.svg';
 
 const STEPS = [
   'Simulation', 'Choix Formule', 'KYC Principal', 'Conjoint', 'Assurés Complémentaires',
