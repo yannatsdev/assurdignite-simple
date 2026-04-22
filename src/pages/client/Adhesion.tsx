@@ -371,63 +371,61 @@ export default function AdhesionPage() {
 
   const generatePDF = async () => {
     if (!simResult) return;
-    const { SONAM_LOGO_B64, ASSURDIGNITE_LOGO_B64 } = await import('@/lib/pdf-logos');
-    const doc = new jsPDF();
-    doc.setFillColor(74, 14, 120);
-    doc.rect(0, 0, 210, 32, 'F');
-    try { doc.addImage(SONAM_LOGO_B64, 'PNG', 10, 4, 28, 24); } catch {}
-    try { doc.addImage(ASSURDIGNITE_LOGO_B64, 'PNG', 42, 8, 20, 16); } catch {}
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.text('27 20 31 71 82 / 05 95 45 21 65', 195, 12, { align: 'right' });
-    doc.text('servicecommercialsonamvie@sonam.ci', 195, 18, { align: 'right' });
-    doc.text('Immeuble SONAM, Plateau, Abidjan', 195, 24, { align: 'right' });
+    const { newPdf, pdfHeader, pdfTitle, pdfSection, pdfKeyValueGrid, pdfTable, pdfFooter, formatDateFR: fmt } = await import('@/lib/pdf-shared');
+    const doc = newPdf();
+    pdfHeader(doc, 'Reçu de souscription');
+    let y = 52;
+    y = pdfTitle(doc, 'REÇU DE SOUSCRIPTION', y, `Référence ${quoteDate}`);
 
-    doc.setTextColor(74, 14, 120);
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('REÇU DE SOUSCRIPTION — ASSURDIGNITÉ', 105, 40, { align: 'center' });
+    y = pdfSection(doc, 'Souscripteur', y);
+    y = pdfKeyValueGrid(doc, [
+      ['Nom & prénom', `${kyc.prenom} ${kyc.nom}`.trim() || '—'],
+      ['Date de naissance', fmt(kyc.dob || simPrincipalDob)],
+      ['CNI', kyc.cniNumber || '—'],
+      ['Date de souscription', fmt(quoteDate)],
+    ], y);
 
-    doc.setTextColor(0);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    let y = 55;
-    const addLine = (label: string, value: string) => {
-      doc.setFont('helvetica', 'bold');
-      doc.text(`${label} :`, 20, y);
-      doc.setFont('helvetica', 'normal');
-      doc.text(value, 85, y);
-      y += 8;
-    };
-    addLine('Assuré principal', `${kyc.prenom} ${kyc.nom}`);
-    addLine('Date de naissance', formatDateFR(kyc.dob || simPrincipalDob));
-    addLine('Formule', `${formule} – ${FORMULE_DETAILS[formule].name}`);
-    addLine('Capital garanti', formatCFA(simResult.capitaux.principal));
-    addLine('Prime annuelle', formatCFA(simResult.primeAnnuelle));
-    if (hasConjoint) addLine('Conjoint(e)', `${conjoint.prenom} ${conjoint.nom}`);
-    addLine('Enfants assurés', String(enfants.length));
-    addLine('Ascendants assurés', String(ascendants.length));
-    addLine('Mode de paiement', paymentMethod);
-    addLine('Date de souscription', formatDateFR(quoteDate));
+    y = pdfSection(doc, 'Formule & garanties', y);
+    y = pdfKeyValueGrid(doc, [
+      ['Formule choisie', `${formule} — ${FORMULE_DETAILS[formule].name}`],
+      ['Capital principal', formatCFA(simResult.capitaux.principal)],
+      ['Capital conjoint', hasConjoint ? formatCFA(simResult.capitaux.conjoint || 0) : 'Non inclus'],
+      ['Capital enfant (par)', formatCFA(simResult.capitaux.enfant || 0)],
+      ['Capital ascendant (par)', formatCFA(simResult.capitaux.ascendant || 0)],
+      ['Prime annuelle', formatCFA(simResult.primeAnnuelle)],
+      ['Mode de paiement', String(paymentMethod || '—').replace('simulation_', 'Simulation ')],
+      ['Couverture', '70% nature + 30% espèces'],
+    ], y);
 
-    if (canvasRef.current && hasSignature) {
-      y += 5;
-      doc.text('Signature :', 20, y);
-      const imgData = canvasRef.current.toDataURL('image/png');
-      doc.addImage(imgData, 'PNG', 20, y + 3, 60, 25);
-      y += 35;
+    if (hasConjoint || enfants.length || ascendants.length) {
+      y = pdfSection(doc, 'Assurés complémentaires', y);
+      const rows: string[][] = [];
+      if (hasConjoint) rows.push([`${conjoint.prenom} ${conjoint.nom}`.trim(), 'Conjoint(e)', fmt(conjoint.dob)]);
+      enfants.forEach((e: any, i: number) => rows.push([`${e.prenom} ${e.nom}`.trim() || `Enfant ${i + 1}`, 'Enfant', fmt(e.dob)]));
+      ascendants.forEach((a: any, i: number) => rows.push([`${a.prenom} ${a.nom}`.trim() || `Ascendant ${i + 1}`, 'Ascendant', fmt(a.dob)]));
+      y = pdfTable(doc, ['Nom & prénom', 'Lien', 'Né(e) le'], rows, y, [85, 50, 45]);
     }
 
-    y = Math.max(y + 10, 250);
-    doc.setDrawColor(74, 14, 120);
-    doc.setLineWidth(0.5);
-    doc.line(15, y, 195, y);
-    doc.setFontSize(8);
-    doc.setTextColor(100, 100, 100);
-    doc.text('Ce document est une attestation de souscription. Il ne remplace pas le contrat définitif.', 105, y + 5, { align: 'center' });
-    doc.text('SONAM VIE S.A. – Code des Assurances CIMA', 105, y + 10, { align: 'center' });
+    if (beneficiaires?.length) {
+      y = pdfSection(doc, 'Bénéficiaires désignés', y);
+      y = pdfTable(
+        doc,
+        ['Nom', 'Lien', 'Téléphone'],
+        beneficiaires.map((b: any) => [b.nom || '—', b.lien_parente || '—', b.telephone || '—']),
+        y, [80, 60, 40],
+      );
+    }
 
+    if (canvasRef.current && hasSignature) {
+      if (y > 235) { doc.addPage(); pdfHeader(doc); y = 52; }
+      y = pdfSection(doc, 'Signature du souscripteur', y);
+      try {
+        const imgData = canvasRef.current.toDataURL('image/png');
+        doc.addImage(imgData, 'PNG', 20, y, 60, 25);
+      } catch {}
+    }
+
+    pdfFooter(doc);
     doc.save(`AssurDignite_Recu_${quoteDate}.pdf`);
   };
 
