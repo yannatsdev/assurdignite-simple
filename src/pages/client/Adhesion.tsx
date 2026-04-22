@@ -411,7 +411,7 @@ export default function AdhesionPage() {
       y = pdfTable(
         doc,
         ['Nom', 'Lien', 'Téléphone'],
-        beneficiaires.map((b: any) => [b.nom || '—', b.lien_parente || '—', b.telephone || '—']),
+        beneficiaires.map((b: any) => [b.nom || '—', b.lien || b.lien_parente || '—', b.telephone || '—']),
         y, [80, 60, 40],
       );
     }
