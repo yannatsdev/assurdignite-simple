@@ -9,13 +9,17 @@ import { ContactSection } from '@/components/landing/ContactSection';
 import { Footer } from '@/components/landing/Footer';
 import { ChatBot } from '@/components/ChatBot';
 import { motion } from 'framer-motion';
-import { Shield, Clock, Users, Award, CheckCircle2, Star } from 'lucide-react';
+import { Shield, Users, Award, CheckCircle2, Star, Calculator, ScanLine, FileCheck2, CreditCard, FileSignature, ArrowRight, Phone } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 const processSteps = [
-  { icon: Shield, title: 'Choisissez votre formule', desc: 'Sélectionnez parmi nos 4 formules adaptées à vos besoins.' },
-  { icon: CheckCircle2, title: 'Remplissez le formulaire', desc: 'Complétez votre dossier en ligne en quelques minutes.' },
-  { icon: Clock, title: 'Payez en toute sécurité', desc: 'Paiement mobile ou virement bancaire, simple et rapide.' },
-  { icon: Award, title: 'Vous êtes protégé', desc: 'Votre couverture est active immédiatement.' },
+  { icon: Shield, title: 'Choisir la formule', desc: 'Sélectionnez la formule AssurDignité adaptée à vos besoins et à votre budget.' },
+  { icon: Calculator, title: 'Simulation & validation', desc: "Faites la simulation de votre prime et validez votre choix en quelques secondes." },
+  { icon: ScanLine, title: 'Scan CNI & biométrie', desc: 'Scannez votre Carte Nationale d\'Identité et effectuez l\'enregistrement biométrique.' },
+  { icon: FileCheck2, title: 'Conditions générales', desc: 'Consultez et acceptez les conditions générales du contrat.' },
+  { icon: CreditCard, title: 'Payer', desc: 'Réglez votre prime annuelle en toute sécurité via Mobile Money ou carte.' },
+  { icon: FileSignature, title: 'Police & reçu', desc: "Recevez immédiatement votre police d'assurance et votre reçu de paiement." },
 ];
 
 const testimonials = [
@@ -41,20 +45,22 @@ const Index = () => {
       <section className="py-16 sm:py-20 bg-muted/30">
         <div className="container mx-auto px-4">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
-            <span className="text-sm text-secondary font-semibold uppercase tracking-wider">Comment ça marche</span>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display mt-2">Souscrivez en 4 étapes simples</h2>
+            <span className="text-base text-secondary font-semibold uppercase tracking-wider">Comment ça marche</span>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold font-display mt-2">Comment souscrire</h2>
+            <p className="text-base sm:text-lg text-muted-foreground mt-3 max-w-2xl mx-auto">Souscrivez en 6 étapes simples, 100% en ligne.</p>
           </motion.div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
             {processSteps.map((step, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                className="text-center relative">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <step.icon className="w-7 h-7 text-white" />
+                className="text-center bg-card rounded-2xl p-5 border-2 border-border hover:border-primary/40 hover:shadow-lg transition-all">
+                <div className="relative inline-block mb-3">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center mx-auto shadow-lg">
+                    <step.icon className="w-7 h-7 text-white" />
+                  </div>
+                  <span className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-secondary text-white text-sm font-bold flex items-center justify-center shadow-md">{i + 1}</span>
                 </div>
-                <div className="absolute top-8 left-[60%] w-[calc(100%-20px)] h-0.5 bg-primary/20 hidden lg:block" style={{ display: i === 3 ? 'none' : undefined }} />
-                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-secondary text-white text-xs font-bold mb-2">{i + 1}</span>
-                <h3 className="font-bold font-display text-sm mb-1">{step.title}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">{step.desc}</p>
+                <h3 className="font-bold font-display text-base mb-2">{step.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -72,8 +78,8 @@ const Index = () => {
             {statsItems.map((stat, i) => (
               <motion.div key={i} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
                 className="text-center">
-                <p className="text-3xl sm:text-4xl font-bold font-display">{stat.value}</p>
-                <p className="text-sm text-white/70 mt-1">{stat.label}</p>
+                <p className="text-4xl sm:text-5xl font-bold font-display">{stat.value}</p>
+                <p className="text-base text-white/80 mt-2">{stat.label}</p>
               </motion.div>
             ))}
           </div>
@@ -84,8 +90,8 @@ const Index = () => {
       <section className="py-16 sm:py-20">
         <div className="container mx-auto px-4">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
-            <span className="text-sm text-secondary font-semibold uppercase tracking-wider">Témoignages</span>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display mt-2">Ce que disent nos assurés</h2>
+            <span className="text-base text-secondary font-semibold uppercase tracking-wider">Témoignages</span>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold font-display mt-2">Ce que disent nos assurés</h2>
           </motion.div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {testimonials.map((t, i) => (
@@ -96,14 +102,14 @@ const Index = () => {
                     <Star key={j} className="w-4 h-4 fill-amber-400 text-amber-400" />
                   ))}
                 </div>
-                <p className="text-sm text-muted-foreground leading-relaxed mb-4">"{t.text}"</p>
+                <p className="text-base text-muted-foreground leading-relaxed mb-4">"{t.text}"</p>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                     <Users className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold">{t.name}</p>
-                    <p className="text-xs text-muted-foreground">{t.role}</p>
+                    <p className="text-base font-semibold">{t.name}</p>
+                    <p className="text-sm text-muted-foreground">{t.role}</p>
                   </div>
                 </div>
               </motion.div>
@@ -115,6 +121,33 @@ const Index = () => {
       <FAQSection />
       <ConditionsSection />
       <ContactSection />
+
+      {/* Final CTA — Parlons de votre protection */}
+      <section className="relative py-20 sm:py-24 bg-gradient-to-br from-primary via-primary to-[hsl(var(--sonam-blue))] text-white overflow-hidden">
+        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_30%_50%,white,transparent_60%)]" />
+        <div className="container mx-auto px-4 relative z-10">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="max-w-3xl mx-auto text-center space-y-6">
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/15 backdrop-blur-sm text-white text-sm font-semibold">
+              <Shield className="w-4 h-4" /> Appel à l'action
+            </span>
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold font-display">Parlons de votre protection</h2>
+            <p className="text-lg sm:text-xl text-white/85 max-w-2xl mx-auto leading-relaxed">
+              Notre équipe SONAM VIE est à votre écoute pour vous accompagner dans le choix de la formule AssurDignité adaptée à votre famille.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2">
+              <Button size="lg" asChild className="bg-secondary hover:bg-secondary/90 text-white text-base sm:text-lg px-8 gap-2 font-semibold shadow-xl">
+                <Link to="/login"><ArrowRight className="w-5 h-5" /> Souscrire maintenant</Link>
+              </Button>
+              <Button size="lg" asChild className="bg-white/20 border-2 border-white text-white hover:bg-white/30 text-base sm:text-lg px-8 gap-2 backdrop-blur-sm font-semibold">
+                <a href="#contact"><Phone className="w-5 h-5" /> Nous contacter</a>
+              </Button>
+            </div>
+            <p className="text-sm text-white/70 pt-2">📞 +225 27 20 31 71 82 • 📧 servicecommercialsonamvie@sonam.ci</p>
+          </motion.div>
+        </div>
+      </section>
+
       <Footer />
       <ChatBot />
     </div>

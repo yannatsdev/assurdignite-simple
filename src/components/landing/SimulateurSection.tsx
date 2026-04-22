@@ -64,7 +64,7 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
           <span className="text-secondary font-semibold text-sm uppercase tracking-wider">Simulateur</span>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mt-3 font-display">Calculez votre prime annuelle</h2>
-          <p className="text-muted-foreground mt-4 max-w-xl mx-auto">Moteur actuariel CIMA H intégré. Résultats instantanés et détaillés.</p>
+          <p className="text-muted-foreground text-base sm:text-lg mt-4 max-w-2xl mx-auto">Estimez votre prime annuelle en quelques secondes selon votre situation familiale.</p>
         </motion.div>
 
         {/* Formule info accordion */}

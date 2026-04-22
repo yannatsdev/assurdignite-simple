@@ -13,6 +13,7 @@ serve(async (req) => {
 
   try {
     const { email, password, fullName, accessCode } = await req.json();
+    console.log("[admin-signup] request for", email);
 
     if (!email || !password || !fullName || !accessCode) {
       return new Response(JSON.stringify({ error: "Tous les champs sont requis" }), {
@@ -26,50 +27,62 @@ serve(async (req) => {
       });
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
-    // Create user
-    const { data: userData, error: signUpError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { full_name: fullName },
-    });
-
-    if (signUpError) {
-      return new Response(JSON.stringify({ error: signUpError.message }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const userId = userData.user.id;
-
-    // Wait briefly for trigger handle_new_user to insert the default 'client' role
-    await new Promise((r) => setTimeout(r, 400));
-
-    // Replace any existing role with 'admin' to avoid race conditions
-    await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
-    const { error: roleErr } = await supabaseAdmin
-      .from("user_roles")
-      .insert({ user_id: userId, role: "admin" });
-    if (roleErr) {
-      return new Response(JSON.stringify({ error: `Compte créé mais rôle non assigné: ${roleErr.message}` }), {
+    const url = Deno.env.get("SUPABASE_URL");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!url || !serviceKey) {
+      console.error("[admin-signup] missing env vars", { hasUrl: !!url, hasKey: !!serviceKey });
+      return new Response(JSON.stringify({ error: "Configuration serveur manquante" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Verify
-    const { data: check } = await supabaseAdmin
+    const supabaseAdmin = createClient(url, serviceKey);
+
+    // Check if user already exists
+    let userId: string | null = null;
+    try {
+      const { data: list } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 });
+      const existing = list?.users?.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+      if (existing) {
+        userId = existing.id;
+        console.log("[admin-signup] user already exists, will assign admin role:", userId);
+      }
+    } catch (e) {
+      console.error("[admin-signup] listUsers error:", e);
+    }
+
+    if (!userId) {
+      const { data: userData, error: signUpError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: fullName },
+      });
+      if (signUpError) {
+        console.error("[admin-signup] createUser error:", signUpError);
+        return new Response(JSON.stringify({ error: signUpError.message }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      userId = userData.user.id;
+    }
+
+    // Ensure profile exists (in case trigger failed)
+    await supabaseAdmin.from("profiles").upsert(
+      { id: userId, email, full_name: fullName },
+      { onConflict: "id" }
+    );
+
+    // Remove any existing roles, assign admin
+    const { error: delErr } = await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
+    if (delErr) console.error("[admin-signup] delete roles error:", delErr);
+
+    const { error: roleErr } = await supabaseAdmin
       .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (!check) {
-      return new Response(JSON.stringify({ error: "Vérification du rôle admin échouée" }), {
+      .insert({ user_id: userId, role: "admin" });
+    if (roleErr) {
+      console.error("[admin-signup] insert admin role error:", roleErr);
+      return new Response(JSON.stringify({ error: `Rôle non assigné: ${roleErr.message}` }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -78,7 +91,7 @@ serve(async (req) => {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("admin-signup error:", e);
+    console.error("[admin-signup] uncaught error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Erreur interne" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

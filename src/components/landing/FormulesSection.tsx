@@ -60,37 +60,20 @@ export function FormulesSection() {
     <section id="formules" className="py-24 bg-muted/50">
       <div className="container mx-auto px-4">
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16">
-          <span className="text-primary text-sm font-semibold uppercase tracking-wider">Nos Formules</span>
-          <h2 className="text-3xl md:text-5xl font-bold mt-3 font-display">Choisissez votre niveau de protection</h2>
-          <p className="text-muted-foreground mt-4 max-w-3xl mx-auto leading-relaxed">
-            Chaque formule offre une répartition de <span className="font-semibold text-primary">70 % en prestations en nature</span> (Enlèvement, traitement et conservation du corps, Levée de corps, Allocation cercueil et transfert du corps au lieu d'inhumation) et <span className="font-semibold text-secondary">30 % en capital espèces</span>, avec un paiement en moins de 12 heures.
+          <span className="text-primary text-base font-semibold uppercase tracking-wider">Nos Formules</span>
+          <h2 className="text-3xl md:text-5xl font-bold mt-3 font-display">Trouver nos prestations</h2>
+          <p className="text-foreground/80 text-lg md:text-xl font-medium mt-4 max-w-3xl mx-auto leading-relaxed">
+            Tout est pris en charge par <span className="font-bold text-primary">Sonam Vie</span>.
+          </p>
+          <p className="text-muted-foreground text-base mt-3 max-w-3xl mx-auto leading-relaxed">
+            Chaque formule offre une répartition de <span className="font-semibold text-primary">70 % en prestations en nature</span> et <span className="font-semibold text-secondary">30 % en capital espèces</span>, avec un paiement en moins de 12 heures.
           </p>
         </motion.div>
 
-        {/* Services en nature détaillés */}
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-16 max-w-6xl mx-auto">
-          <div className="text-center mb-8">
-            <span className="inline-flex items-center gap-2 text-secondary font-semibold text-sm uppercase tracking-wider">
-              <Sparkles className="w-4 h-4" /> Prestations en nature incluses (70 %)
-            </span>
-            <h3 className="text-xl md:text-2xl font-display font-bold mt-2">Tout est pris en charge, vous n'avez rien à organiser</h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {servicesNature.map((s, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
-                className="bg-card rounded-2xl p-5 border-2 border-border hover:border-primary/40 hover:shadow-lg transition-all">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-3 shadow-md">
-                  <s.icon className="w-6 h-6 text-white" />
-                </div>
-                <h4 className="font-display font-bold text-sm mb-1">{s.title}</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">{s.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-          <p className="text-center text-xs text-muted-foreground mt-6 italic">
-            Les 30 % restants sont versés en <span className="font-semibold not-italic text-secondary">capital espèces aux bénéficiaires</span> en moins de 12 heures pour couvrir les frais imprévus.
-          </p>
-        </motion.div>
+        {/* Section title: Nos prestations en nature */}
+        <div className="text-center mb-10">
+          <h3 className="text-2xl md:text-3xl font-display font-bold text-foreground">Nos prestations en nature</h3>
+        </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {formules.map((f, i) => (
@@ -106,14 +89,14 @@ export function FormulesSection() {
                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
                     <f.icon className="w-6 h-6 text-primary" />
                   </div>
-                  <p className="text-sm font-semibold text-muted-foreground">Formule {f.key}</p>
+                  <p className="text-base font-semibold text-muted-foreground">Formule {f.key}</p>
                   <CardTitle className="text-xl font-display">{f.name}</CardTitle>
-                  <p className="text-xs text-secondary font-medium mt-1">{f.tagline}</p>
+                  <p className="text-sm text-secondary font-medium mt-1">{f.tagline}</p>
                   <p className="text-2xl font-bold text-primary mt-2">{formatCFA(f.capital)}</p>
-                  <p className="text-xs text-muted-foreground">Capital garanti</p>
+                  <p className="text-sm text-muted-foreground">Capital garanti</p>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <p className="text-xs text-muted-foreground leading-relaxed border-l-2 border-primary/30 pl-3 italic">
+                  <p className="text-sm text-muted-foreground leading-relaxed border-l-2 border-primary/30 pl-3 italic">
                     {f.description}
                   </p>
                   {f.features.map((feat, j) => (
@@ -132,6 +115,31 @@ export function FormulesSection() {
             </motion.div>
           ))}
         </div>
+
+        {/* Prestations en nature incluses (70%) — moved BELOW formules per user request */}
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mt-20 max-w-6xl mx-auto">
+          <div className="text-center mb-10">
+            <span className="inline-flex items-center gap-2 text-secondary font-bold text-base uppercase tracking-wider">
+              <Sparkles className="w-5 h-5" /> Prestations en nature incluses (70 %)
+            </span>
+            <h3 className="text-2xl md:text-3xl font-display font-bold mt-3 text-foreground">Tout est pris en charge, vous n'avez rien à organiser</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {servicesNature.map((s, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
+                className="bg-card rounded-2xl p-6 border-2 border-border hover:border-primary/40 hover:shadow-xl transition-all">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-4 shadow-md">
+                  <s.icon className="w-7 h-7 text-white" />
+                </div>
+                <h4 className="font-display font-bold text-base mb-2">{s.title}</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+          <p className="text-center text-sm text-muted-foreground mt-8 italic max-w-3xl mx-auto">
+            Les 30 % restants sont versés en <span className="font-semibold not-italic text-secondary">capital espèces aux bénéficiaires</span> en moins de 12 heures pour couvrir les frais imprévus.
+          </p>
+        </motion.div>
       </div>
     </section>
   );

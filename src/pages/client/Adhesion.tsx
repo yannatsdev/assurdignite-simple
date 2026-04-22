@@ -17,6 +17,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import { KkiapayWidget } from '@/components/KkiapayWidget';
+import logoMtn from '@/assets/mtn.svg';
+import logoOrange from '@/assets/orange.svg';
+import logoMoov from '@/assets/moov.svg';
+import logoWave from '@/assets/wave.svg';
 
 const STEPS = [
   'Simulation', 'Choix Formule', 'KYC Principal', 'Conjoint', 'Assurés Complémentaires',
@@ -1092,6 +1096,49 @@ export default function AdhesionPage() {
                         onFailed={() => toast({ title: 'Paiement échoué', description: 'Veuillez réessayer.', variant: 'destructive' })}
                       />
                       <p className="text-[11px] text-muted-foreground text-center">Une popup KkiaPay s'ouvrira avec tous les moyens de paiement disponibles.</p>
+                    </div>
+                  )}
+                  {!paymentDone && (
+                    <div className="rounded-xl border-2 border-dashed border-secondary/50 p-5 bg-secondary/5 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-secondary text-white">Mode démo</Badge>
+                        <p className="text-sm font-semibold">Effectuer un paiement de simulation</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Choisissez un opérateur ci-dessous pour simuler le paiement et continuer le parcours sans paiement réel.</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {[
+                          { key: 'mtn', logo: logoMtn, label: 'MTN MoMo' },
+                          { key: 'orange', logo: logoOrange, label: 'Orange Money' },
+                          { key: 'moov', logo: logoMoov, label: 'Moov Money' },
+                          { key: 'wave', logo: logoWave, label: 'Wave' },
+                        ].map((op) => (
+                          <button
+                            key={op.key}
+                            type="button"
+                            onClick={async () => {
+                              if (!user || !simResult) return;
+                              const reference = `SIM-${Date.now().toString(36).toUpperCase()}`;
+                              setPaymentMethod(`simulation_${op.key}`);
+                              setPaymentNumber(reference);
+                              setPaymentDone(true);
+                              await supabase.from('notifications').insert({
+                                user_id: user.id,
+                                title: 'Paiement simulé enregistré',
+                                message: `Simulation ${op.label} de ${formatCFA(simResult.primeAnnuelle)} confirmée.`,
+                                type: 'success',
+                                link: '/client/contrats',
+                              });
+                              toast({ title: `Paiement simulé via ${op.label} ✓`, description: `Référence : ${reference}` });
+                              setTimeout(() => setStep(s => Math.min(s + 1, STEPS.length - 1)), 1500);
+                            }}
+                            className="group flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-white border-2 border-border hover:border-secondary hover:shadow-lg transition-all"
+                          >
+                            <img src={op.logo} alt={op.label} className="h-12 w-auto object-contain" />
+                            <span className="text-xs font-medium text-foreground">{op.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground text-center italic">⚠️ Mode démonstration : aucune transaction réelle n'est effectuée.</p>
                     </div>
                   )}
                 </div>

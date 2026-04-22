@@ -2,6 +2,7 @@ import { NavLink } from '@/components/NavLink';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar';
 import { LayoutDashboard, Settings, FileText, CreditCard, AlertTriangle, ShieldAlert, BarChart3, Users, MessageSquare, Wrench } from 'lucide-react';
 import logoSonam from '@/assets/logo-sonamvie.png';
+import logoAssurDignite from '@/assets/logo-assurdignite.png';
 
 const menuItems = [
   { title: 'Tableau de bord', url: '/admin', icon: LayoutDashboard },
@@ -23,8 +24,19 @@ export function AdminSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r-sidebar-border">
       <SidebarContent>
-        <div className="p-4 flex items-center gap-2">
-          {!collapsed && <><img src={logoSonam} alt="SONAM" className="h-8" /><span className="text-xs font-semibold text-sidebar-foreground">ADMIN</span></>}
+        <div className="p-3">
+          {!collapsed ? (
+            <div className="bg-white rounded-xl shadow-sm border border-border p-3 flex items-center justify-center gap-3">
+              <img src={logoSonam} alt="SONAM VIE" className="h-10 w-auto" />
+              <div className="w-px h-8 bg-border" />
+              <img src={logoAssurDignite} alt="AssurDignité" className="h-9 w-auto" />
+              <span className="text-[10px] font-bold text-primary ml-1">ADMIN</span>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow-sm border border-border p-1.5 flex items-center justify-center">
+              <img src={logoSonam} alt="SONAM" className="h-7 w-auto" />
+            </div>
+          )}
         </div>
         <SidebarGroup>
           <SidebarGroupLabel>Back-Office</SidebarGroupLabel>

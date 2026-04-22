@@ -24,12 +24,17 @@ export function ClientSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
-        <div className="p-4 flex items-center gap-2">
-          {!collapsed && (
-            <>
-              <img src={logoSonam} alt="SONAM" className="h-8" />
-              <img src={logoAssurDignite} alt="AssurDignité" className="h-6" />
-            </>
+        <div className="p-3">
+          {!collapsed ? (
+            <div className="bg-white rounded-xl shadow-sm border border-border p-3 flex items-center justify-center gap-3">
+              <img src={logoSonam} alt="SONAM VIE" className="h-10 w-auto" />
+              <div className="w-px h-8 bg-border" />
+              <img src={logoAssurDignite} alt="AssurDignité" className="h-9 w-auto" />
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow-sm border border-border p-1.5 flex items-center justify-center">
+              <img src={logoSonam} alt="SONAM" className="h-7 w-auto" />
+            </div>
           )}
         </div>
         <SidebarGroup>
