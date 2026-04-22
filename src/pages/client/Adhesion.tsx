@@ -1214,10 +1214,10 @@ export default function AdhesionPage() {
       </AnimatePresence>
 
       {/* Navigation */}
-      <div className="flex justify-between">
-        <Button variant="outline" onClick={prev} disabled={step === 0} className="gap-2"><ArrowLeft className="w-4 h-4" /> Précédent</Button>
+      <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 py-3 -mx-4 px-4 sm:mx-0 sm:px-0 sm:static sm:bg-transparent sm:backdrop-blur-0 sm:py-0 border-t border-border sm:border-0">
+        <Button variant="outline" onClick={prev} disabled={step === 0} className="gap-2 w-full sm:w-auto"><ArrowLeft className="w-4 h-4" /> Précédent</Button>
         {step < STEPS.length - 1 && (
-          <Button onClick={next} className="gap-2" disabled={
+          <Button onClick={next} className="gap-2 w-full sm:w-auto" disabled={
             (step === 0 && !simResult) ||
             (step === 8 && !medicalDeclaration) ||
             (step === 10 && !cgAccepted) ||
