@@ -9,7 +9,9 @@ import { ContactSection } from '@/components/landing/ContactSection';
 import { Footer } from '@/components/landing/Footer';
 import { ChatBot } from '@/components/ChatBot';
 import { motion } from 'framer-motion';
-import { Shield, Users, Award, CheckCircle2, Star, Calculator, ScanLine, FileCheck2, CreditCard, FileSignature, ArrowRight, Phone, PlayCircle } from 'lucide-react';
+import { Shield, Users, Award, CheckCircle2, Star, Calculator, ScanLine, FileCheck2, CreditCard, FileSignature, ArrowRight, Phone } from 'lucide-react';
+import { VideoPlayer } from '@/components/VideoPlayer';
+import videoCover from '@/assets/video-cover.jpg';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
@@ -128,13 +130,12 @@ const Index = () => {
             transition={{ duration: 0.7 }}
             className="text-center mb-10 max-w-3xl mx-auto"
           >
-            <span className="text-base text-secondary font-semibold uppercase tracking-wider">Notre histoire</span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold font-display mt-2">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-secondary/15 text-secondary font-bold text-sm sm:text-base uppercase tracking-wider">
+              Notre histoire
+            </span>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold font-display mt-4 text-foreground">
               Une protection qui prend tout son sens
             </h2>
-            <p className="text-base sm:text-lg text-muted-foreground mt-4 leading-relaxed">
-              Découvrez en images pourquoi des milliers de familles ivoiriennes choisissent AssurDignité pour préserver leur sérénité.
-            </p>
           </motion.div>
 
           <motion.div
@@ -142,21 +143,14 @@ const Index = () => {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="relative max-w-5xl mx-auto rounded-3xl overflow-hidden shadow-2xl border-4 border-white"
+            className="max-w-5xl mx-auto"
           >
-            <video
+            <VideoPlayer
               src="/videos/family-story.mp4"
-              poster="/placeholder.svg"
-              controls
-              playsInline
-              preload="metadata"
-              className="w-full h-auto block aspect-video object-cover bg-black"
-            >
-              Votre navigateur ne supporte pas la lecture vidéo.
-            </video>
-            <div className="absolute top-4 left-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary text-white text-sm font-semibold shadow-lg">
-              <PlayCircle className="w-4 h-4" /> AssurDignité
-            </div>
+              poster={videoCover}
+              title="L'histoire d'une famille protégée"
+              badge="AssurDignité"
+            />
           </motion.div>
         </div>
       </section>
