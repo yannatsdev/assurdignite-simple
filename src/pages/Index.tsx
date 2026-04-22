@@ -9,7 +9,7 @@ import { ContactSection } from '@/components/landing/ContactSection';
 import { Footer } from '@/components/landing/Footer';
 import { ChatBot } from '@/components/ChatBot';
 import { motion } from 'framer-motion';
-import { Shield, Users, Award, CheckCircle2, Star, Calculator, ScanLine, FileCheck2, CreditCard, FileSignature, ArrowRight, Phone } from 'lucide-react';
+import { Shield, Users, Award, CheckCircle2, Star, Calculator, ScanLine, FileCheck2, CreditCard, FileSignature, ArrowRight, Phone, PlayCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
@@ -115,6 +115,49 @@ const Index = () => {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Video story section */}
+      <section className="relative py-16 sm:py-24 bg-gradient-to-br from-muted/40 via-background to-accent/30 overflow-hidden">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
+            className="text-center mb-10 max-w-3xl mx-auto"
+          >
+            <span className="text-base text-secondary font-semibold uppercase tracking-wider">Notre histoire</span>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold font-display mt-2">
+              Une protection qui prend tout son sens
+            </h2>
+            <p className="text-base sm:text-lg text-muted-foreground mt-4 leading-relaxed">
+              Découvrez en images pourquoi des milliers de familles ivoiriennes choisissent AssurDignité pour préserver leur sérénité.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="relative max-w-5xl mx-auto rounded-3xl overflow-hidden shadow-2xl border-4 border-white"
+          >
+            <video
+              src="/videos/family-story.mp4"
+              poster="/placeholder.svg"
+              controls
+              playsInline
+              preload="metadata"
+              className="w-full h-auto block aspect-video object-cover bg-black"
+            >
+              Votre navigateur ne supporte pas la lecture vidéo.
+            </video>
+            <div className="absolute top-4 left-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary text-white text-sm font-semibold shadow-lg">
+              <PlayCircle className="w-4 h-4" /> AssurDignité
+            </div>
+          </motion.div>
         </div>
       </section>
 
