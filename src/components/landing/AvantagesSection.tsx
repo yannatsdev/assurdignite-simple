@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Heart, Clock, Gift, Smartphone, Shield, Users } from 'lucide-react';
-import familyImg from '@/assets/family-six-members.jpg';
+import familyImg from '@/assets/avantages-family.jpg';
 
 const avantages = [
   { icon: Gift, title: 'Bonus Fidélité-Santé 30%', desc: 'Si aucun sinistre après 3 ans, 30% du cumul des primes nettes versé en bonus.' },
@@ -31,15 +31,16 @@ export function AvantagesSection() {
             </div>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 items-stretch">
             {avantages.map((a, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                className="bg-card rounded-xl p-5 border border-border hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
-                  <a.icon className="w-5 h-5 text-primary" />
+                whileHover={{ y: -4 }}
+                className="bg-card rounded-xl p-6 border border-border hover:shadow-xl hover:border-primary/40 transition-all duration-300 flex flex-col h-full">
+                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
+                  <a.icon className="w-6 h-6 text-primary" />
                 </div>
-                <h3 className="font-bold text-sm font-display mb-1">{a.title}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">{a.desc}</p>
+                <h3 className="font-bold text-lg font-display mb-2 leading-snug">{a.title}</h3>
+                <p className="text-base text-muted-foreground leading-relaxed">{a.desc}</p>
               </motion.div>
             ))}
           </div>

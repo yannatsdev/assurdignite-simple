@@ -78,34 +78,36 @@ export function FormulesSection() {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {formules.map((f, i) => (
             <motion.div key={f.key} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-              whileHover={{ y: -8 }} className="transition-all duration-300">
-              <Card className={`relative h-full border-2 ${f.color} hover:shadow-xl transition-shadow ${f.popular ? 'ring-2 ring-secondary' : ''}`}>
+              whileHover={{ y: -8 }} className="transition-all duration-300 h-full">
+              <Card className={`relative h-full flex flex-col border-2 ${f.color} hover:shadow-xl transition-shadow ${f.popular ? 'ring-2 ring-secondary' : ''}`}>
                 {f.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-secondary text-white text-xs font-semibold px-4 py-1 rounded-full flex items-center gap-1">
                     <Star className="w-3 h-3" /> Populaire
                   </div>
                 )}
-                <CardHeader className="text-center pb-4">
+                <CardHeader className="text-center pb-4 min-h-[280px] flex flex-col items-center">
                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
                     <f.icon className="w-6 h-6 text-primary" />
                   </div>
                   <p className="text-base font-semibold text-muted-foreground">Formule {f.key}</p>
                   <CardTitle className="text-xl font-display">{f.name}</CardTitle>
-                  <p className="text-sm text-secondary font-medium mt-1">{f.tagline}</p>
+                  <p className="text-sm text-secondary font-medium mt-1 min-h-[40px] flex items-center">{f.tagline}</p>
                   <p className="text-2xl font-bold text-primary mt-2">{formatCFA(f.capital)}</p>
                   <p className="text-sm text-muted-foreground">Capital garanti</p>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-sm text-muted-foreground leading-relaxed border-l-2 border-primary/30 pl-3 italic">
+                <CardContent className="space-y-3 flex-1 flex flex-col">
+                  <p className="text-sm text-muted-foreground leading-relaxed border-l-2 border-primary/30 pl-3 italic min-h-[110px]">
                     {f.description}
                   </p>
-                  {f.features.map((feat, j) => (
-                    <div key={j} className="flex items-start gap-2 text-sm">
-                      <Check className="w-4 h-4 text-secondary mt-0.5 shrink-0" />
-                      <span>{feat}</span>
-                    </div>
-                  ))}
-                  <div className="pt-4">
+                  <div className="space-y-3 flex-1">
+                    {f.features.map((feat, j) => (
+                      <div key={j} className="flex items-start gap-2 text-sm">
+                        <Check className="w-4 h-4 text-secondary mt-0.5 shrink-0" />
+                        <span>{feat}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="pt-4 mt-auto">
                     <Button className="w-full" asChild>
                       <a href="#simulateur">Simuler ma prime</a>
                     </Button>
@@ -124,15 +126,15 @@ export function FormulesSection() {
             </span>
             <h3 className="text-2xl md:text-3xl font-display font-bold mt-3 text-foreground">Tout est pris en charge, vous n'avez rien à organiser</h3>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
             {servicesNature.map((s, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
-                className="bg-card rounded-2xl p-6 border-2 border-border hover:border-primary/40 hover:shadow-xl transition-all">
+                className="bg-card rounded-2xl p-6 border-2 border-border hover:border-primary/40 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-4 shadow-md">
                   <s.icon className="w-7 h-7 text-white" />
                 </div>
-                <h4 className="font-display font-bold text-base mb-2">{s.title}</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
+                <h4 className="font-display font-bold text-lg mb-2 min-h-[56px]">{s.title}</h4>
+                <p className="text-base text-muted-foreground leading-relaxed">{s.desc}</p>
               </motion.div>
             ))}
           </div>
