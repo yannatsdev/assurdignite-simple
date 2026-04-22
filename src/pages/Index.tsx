@@ -9,7 +9,9 @@ import { ContactSection } from '@/components/landing/ContactSection';
 import { Footer } from '@/components/landing/Footer';
 import { ChatBot } from '@/components/ChatBot';
 import { motion } from 'framer-motion';
-import { Shield, Users, Award, CheckCircle2, Star, Calculator, ScanLine, FileCheck2, CreditCard, FileSignature, ArrowRight, Phone, PlayCircle } from 'lucide-react';
+import { Shield, Users, Award, CheckCircle2, Star, Calculator, ScanLine, FileCheck2, CreditCard, FileSignature, ArrowRight, Phone } from 'lucide-react';
+import { VideoPlayer } from '@/components/VideoPlayer';
+import videoCover from '@/assets/video-cover.jpg';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
