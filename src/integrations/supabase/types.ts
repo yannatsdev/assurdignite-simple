@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      actuarial_config_versions: {
+        Row: {
+          config_json: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          source_file_name: string | null
+          validation_report: Json
+          version_name: string
+        }
+        Insert: {
+          config_json: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          source_file_name?: string | null
+          validation_report?: Json
+          version_name: string
+        }
+        Update: {
+          config_json?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          source_file_name?: string | null
+          validation_report?: Json
+          version_name?: string
+        }
+        Relationships: []
+      }
       assures_complementaires: {
         Row: {
           contract_id: string
@@ -89,6 +122,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      chatbot_faqs: {
+        Row: {
+          answer: string
+          category: string
+          created_at: string
+          id: string
+          is_active: boolean
+          question: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          question: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          question?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       contracts: {
         Row: {
@@ -234,28 +300,37 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string | null
+          deleted_at: string | null
+          disabled_at: string | null
           email: string
           full_name: string | null
           id: string
           phone: string | null
+          status: string
           updated_at: string | null
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string | null
+          deleted_at?: string | null
+          disabled_at?: string | null
           email: string
           full_name?: string | null
           id: string
           phone?: string | null
+          status?: string
           updated_at?: string | null
         }
         Update: {
           avatar_url?: string | null
           created_at?: string | null
+          deleted_at?: string | null
+          disabled_at?: string | null
           email?: string
           full_name?: string | null
           id?: string
           phone?: string | null
+          status?: string
           updated_at?: string | null
         }
         Relationships: []
