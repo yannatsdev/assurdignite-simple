@@ -24,17 +24,16 @@ export function AdminSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r-sidebar-border">
       <SidebarContent>
-        <div className="p-3">
+        <div className="p-2 sm:p-3">
           {!collapsed ? (
-            <div className="bg-white rounded-xl shadow-sm border border-border p-3 flex items-center justify-center gap-3">
-              <img src={logoSonam} alt="SONAM VIE" className="h-10 w-auto" />
-              <div className="w-px h-8 bg-border" />
-              <img src={logoAssurDignite} alt="AssurDignité" className="h-9 w-auto" />
-              <span className="text-[10px] font-bold text-primary ml-1">ADMIN</span>
+            <div className="bg-background rounded-xl shadow-sm border border-border px-3 py-2.5 flex items-center justify-center gap-3 min-h-[64px] overflow-hidden">
+              <img src={logoSonam} alt="SONAM VIE" className="h-10 max-w-[92px] w-auto object-contain shrink-0" />
+              <div className="w-px h-9 bg-border shrink-0" />
+              <img src={logoAssurDignite} alt="AssurDignité" className="h-10 max-w-[100px] w-auto object-contain shrink-0" />
             </div>
           ) : (
-            <div className="bg-white rounded-lg shadow-sm border border-border p-1.5 flex items-center justify-center">
-              <img src={logoSonam} alt="SONAM" className="h-7 w-auto" />
+            <div className="bg-background rounded-lg shadow-sm border border-border p-1.5 flex items-center justify-center min-h-[44px]">
+              <img src={logoSonam} alt="SONAM VIE" className="h-8 max-w-10 w-auto object-contain" />
             </div>
           )}
         </div>
@@ -46,8 +45,8 @@ export function AdminSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink to={item.url} end={item.url === '/admin'} className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
+                      <item.icon className="mr-2 h-4 w-4 shrink-0" />
+                      {!collapsed && <span className="truncate">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

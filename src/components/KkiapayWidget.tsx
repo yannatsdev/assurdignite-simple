@@ -1,186 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, CreditCard, ShieldCheck } from 'lucide-react';
+import { Loader2, CreditCard, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCFA } from '@/lib/actuarial-engine';
 import { supabase } from '@/integrations/supabase/client';
 
-declare global {
-  interface Window {
-    addSuccessListener?: (cb: (response: any) => void) => void;
-    addFailedListener?: (cb: (response: any) => void) => void;
-    removeKkiapayListener?: (event: string, cb: any) => void;
-    openKkiapayWidget?: (opts: any) => void;
-  }
-}
+declare global { interface Window { addSuccessListener?: (cb: (response: any) => void) => void; addFailedListener?: (cb: (response: any) => void) => void; removeKkiapayListener?: (event: string, cb: any) => void; openKkiapayWidget?: (opts: any) => void; } }
 
-interface Props {
-  amount: number;
-  publicKey?: string;
-  email?: string;
-  phone?: string;
-  name?: string;
-  onSuccess?: (resp: any) => void;
-  onFailed?: (resp: any) => void;
-  sandbox?: boolean;
-  label?: string;
-  disabled?: boolean;
-}
-
+interface Props { amount: number; publicKey?: string; email?: string; phone?: string; name?: string; data?: Record<string, any>; onSuccess?: (resp: any) => void; onFailed?: (resp: any) => void; sandbox?: boolean; label?: string; disabled?: boolean; }
 const KKIAPAY_SCRIPT = 'https://cdn.kkiapay.me/k.js';
 
-function loadKkiapayScript(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (typeof window === 'undefined') return reject(new Error('SSR'));
-    if (typeof window.openKkiapayWidget === 'function') return resolve();
-    const existing = document.querySelector(`script[src="${KKIAPAY_SCRIPT}"]`) as HTMLScriptElement | null;
-    if (existing) {
-      const start = Date.now();
-      const tick = () => {
-        if (typeof window.openKkiapayWidget === 'function') return resolve();
-        if (Date.now() - start > 8000) return reject(new Error('KkiaPay timeout'));
-        setTimeout(tick, 100);
-      };
-      tick();
-      return;
-    }
-    const s = document.createElement('script');
-    s.src = KKIAPAY_SCRIPT;
-    s.async = true;
-    s.onload = () => {
-      const start = Date.now();
-      const tick = () => {
-        if (typeof window.openKkiapayWidget === 'function') return resolve();
-        if (Date.now() - start > 5000) return reject(new Error('KkiaPay function not exposed'));
-        setTimeout(tick, 80);
-      };
-      tick();
-    };
-    s.onerror = () => reject(new Error('KkiaPay script failed to load'));
-    document.head.appendChild(s);
-  });
+function loadKkiapayScript(): Promise<void> { return new Promise((resolve, reject) => { if (typeof window === 'undefined') return reject(new Error('Navigateur indisponible')); if (typeof window.openKkiapayWidget === 'function') return resolve(); const existing = document.querySelector(`script[src="${KKIAPAY_SCRIPT}"]`) as HTMLScriptElement | null; if (existing) { const start = Date.now(); const tick = () => { if (typeof window.openKkiapayWidget === 'function') return resolve(); if (Date.now() - start > 10000) return reject(new Error('Le module KkiaPay met trop de temps à répondre')); setTimeout(tick, 120); }; tick(); return; } const s = document.createElement('script'); s.src = KKIAPAY_SCRIPT; s.async = true; s.onload = () => { const start = Date.now(); const tick = () => { if (typeof window.openKkiapayWidget === 'function') return resolve(); if (Date.now() - start > 7000) return reject(new Error('KkiaPay chargé mais non disponible')); setTimeout(tick, 100); }; tick(); }; s.onerror = () => reject(new Error('Impossible de charger KkiaPay. Vérifiez le réseau ou les bloqueurs.')); document.head.appendChild(s); }); }
+const cleanPhone = (phone?: string) => (phone || '').replace(/[^0-9+]/g, '');
+
+export function KkiapayWidget({ amount, publicKey, email, phone, name, data, onSuccess, onFailed, sandbox, label, disabled }: Props) {
+  const [scriptReady, setScriptReady] = useState(false); const [scriptError, setScriptError] = useState<string | null>(null); const [processing, setProcessing] = useState(false); const [config, setConfig] = useState<{ publicKey: string; sandbox: boolean } | null>(null);
+  const attached = useRef(false); const successCb = useRef(onSuccess); const failedCb = useRef(onFailed); successCb.current = onSuccess; failedCb.current = onFailed;
+  useEffect(() => { let cancelled = false; (async () => { if (publicKey) { setConfig({ publicKey, sandbox: sandbox ?? false }); return; } const { data, error } = await supabase.functions.invoke('kkiapay-config'); if (cancelled) return; if (error || !data?.publicKey) { setScriptError(data?.message || error?.message || 'Configuration KkiaPay indisponible'); return; } setConfig({ publicKey: data.publicKey, sandbox: sandbox ?? !!data.sandbox }); })(); loadKkiapayScript().then(() => { if (!cancelled) setScriptReady(true); }).catch((e) => { if (!cancelled) setScriptError(e.message); }); const onSuccessHandler = (resp: any) => { setProcessing(false); successCb.current?.(resp); }; const onFailedHandler = (resp: any) => { setProcessing(false); failedCb.current?.(resp); }; const attachListeners = () => { if (attached.current) return true; if (typeof window.addSuccessListener === 'function') { window.addSuccessListener(onSuccessHandler); window.addFailedListener?.(onFailedHandler); attached.current = true; return true; } return false; }; if (!attachListeners()) { const start = Date.now(); const iv = setInterval(() => { if (attachListeners() || Date.now() - start > 8000) clearInterval(iv); }, 150); return () => { cancelled = true; clearInterval(iv); }; } return () => { cancelled = true; }; }, []);
+  const handleClick = () => { if (!scriptReady || !window.openKkiapayWidget || !config?.publicKey) return; setProcessing(true); setScriptError(null); try { window.openKkiapayWidget({ amount: Math.round(amount), api_key: config.publicKey, key: config.publicKey, sandbox: config.sandbox, position: 'center', theme: '#4A0E78', name: (name || '').slice(0, 80), email: (email || '').slice(0, 120), phone: cleanPhone(phone), data: JSON.stringify({ ...(data || {}), name, email, phone: cleanPhone(phone), amount: Math.round(amount), source: 'assurdignite' }) }); } catch (e) { setProcessing(false); setScriptError(e instanceof Error ? e.message : 'Erreur KkiaPay'); } };
+  if (scriptError) return <div className="text-center text-sm text-destructive p-3 rounded-lg border border-destructive/30 bg-destructive/5 space-y-2"><AlertTriangle className="w-4 h-4 mx-auto" /><p>{scriptError}</p><p className="text-xs text-muted-foreground">Réessayez ou utilisez le mode de simulation si vous êtes en environnement test.</p></div>;
+  return <div className="w-full flex flex-col items-center gap-2"><Button type="button" size="lg" onClick={handleClick} disabled={!scriptReady || !config || processing || disabled || amount <= 0} className="w-full sm:w-auto min-w-[260px] gap-2 bg-gradient-to-r from-primary to-[hsl(var(--sonam-blue))] hover:opacity-95 text-primary-foreground shadow-lg hover:shadow-xl transition-all">{!scriptReady || !config ? <><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</> : processing ? <><Loader2 className="w-4 h-4 animate-spin" /> Paiement en cours…</> : <><CreditCard className="w-4 h-4" /> {label || `Payer ${formatCFA(amount)}`}</>}</Button><p className="text-[11px] text-muted-foreground flex items-center gap-1 text-center"><ShieldCheck className="w-3 h-3 text-secondary" /> Paiement sécurisé KkiaPay — Wave, Orange, MTN, Moov, Carte bancaire</p>{config?.sandbox && <BadgeLike />}</div>;
 }
-
-export function KkiapayWidget({
-  amount,
-  publicKey,
-  email,
-  phone,
-  name,
-  onSuccess,
-  onFailed,
-  sandbox,
-  label,
-  disabled,
-}: Props) {
-  const [scriptReady, setScriptReady] = useState(false);
-  const [scriptError, setScriptError] = useState<string | null>(null);
-  const [processing, setProcessing] = useState(false);
-  const [config, setConfig] = useState<{ publicKey: string; sandbox: boolean } | null>(null);
-  const successCb = useRef(onSuccess);
-  const failedCb = useRef(onFailed);
-  successCb.current = onSuccess;
-  failedCb.current = onFailed;
-
-  useEffect(() => {
-    let cancelled = false;
-    // Fetch KkiaPay public key from secure edge function (unless overridden via prop)
-    (async () => {
-      if (publicKey) {
-        setConfig({ publicKey, sandbox: sandbox ?? false });
-        return;
-      }
-      const { data, error } = await supabase.functions.invoke('kkiapay-config');
-      if (cancelled) return;
-      if (error || !data?.publicKey) {
-        setScriptError("Configuration KkiaPay indisponible");
-        return;
-      }
-      setConfig({ publicKey: data.publicKey, sandbox: sandbox ?? !!data.sandbox });
-    })();
-
-    loadKkiapayScript()
-      .then(() => { if (!cancelled) setScriptReady(true); })
-      .catch((e) => { if (!cancelled) setScriptError(e.message); });
-
-    const onSuccessHandler = (resp: any) => {
-      setProcessing(false);
-      successCb.current?.(resp);
-    };
-    const onFailedHandler = (resp: any) => {
-      setProcessing(false);
-      failedCb.current?.(resp);
-    };
-
-    const attachListeners = () => {
-      if (typeof window.addSuccessListener === 'function') {
-        window.addSuccessListener(onSuccessHandler);
-        window.addFailedListener?.(onFailedHandler);
-        return true;
-      }
-      return false;
-    };
-
-    if (!attachListeners()) {
-      const start = Date.now();
-      const iv = setInterval(() => {
-        if (attachListeners() || Date.now() - start > 8000) clearInterval(iv);
-      }, 150);
-      return () => { cancelled = true; clearInterval(iv); };
-    }
-
-    return () => { cancelled = true; };
-  }, []);
-
-  const handleClick = () => {
-    if (!scriptReady || !window.openKkiapayWidget || !config?.publicKey) return;
-    setProcessing(true);
-    try {
-      window.openKkiapayWidget({
-        amount: Math.round(amount),
-        api_key: config.publicKey,
-        key: config.publicKey,
-        sandbox: config.sandbox,
-        position: 'center',
-        theme: '#4A0E78',
-        name: name || '',
-        email: email || '',
-        phone: phone || '',
-        data: JSON.stringify({ name, email, phone }),
-      });
-    } catch (e) {
-      setProcessing(false);
-      setScriptError(e instanceof Error ? e.message : 'Erreur KkiaPay');
-    }
-  };
-
-  if (scriptError) {
-    return (
-      <div className="text-center text-sm text-destructive p-3 rounded-lg border border-destructive/30 bg-destructive/5">
-        Impossible de charger le module de paiement. Vérifiez votre connexion et réessayez.
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-full flex flex-col items-center gap-2">
-      <Button
-        type="button"
-        size="lg"
-        onClick={handleClick}
-        disabled={!scriptReady || !config || processing || disabled || amount <= 0}
-        className="w-full sm:w-auto min-w-[260px] gap-2 bg-gradient-to-r from-primary to-[hsl(var(--sonam-blue))] hover:opacity-95 text-white shadow-lg hover:shadow-xl transition-all"
-      >
-        {!scriptReady || !config ? (
-          <><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</>
-        ) : processing ? (
-          <><Loader2 className="w-4 h-4 animate-spin" /> Paiement en cours…</>
-        ) : (
-          <><CreditCard className="w-4 h-4" /> {label || `Payer ${formatCFA(amount)}`}</>
-        )}
-      </Button>
-      <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-        <ShieldCheck className="w-3 h-3 text-secondary" /> Paiement sécurisé KkiaPay — Wave, Orange, MTN, Moov, Carte bancaire
-      </p>
-    </div>
-  );
-}
+function BadgeLike() { return <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary/10 text-secondary border border-secondary/30">Mode test KkiaPay détecté</span>; }
