@@ -115,12 +115,12 @@ const FA = 0.15;  // Chargement acquisition
 const FRAIS_ANNUAL = 2500;
 
 // Per-type loading factors derived from Excel macro outputs (calibrated to match
-// reference: principal 40, conj 40, 2 enfants 15, 2 asc 55, formule A → 60 913 FCFA)
+// reference: principal 40, conj 40, 2 enfants 15, 2 asc 55, formule A → updated v2 (Excel ASSUR_DIGNITE_v27042026)
 const LOADING = {
-  principal: 2.02177,
-  conjoint: 2.02177,
-  enfant: 9.98156,
-  ascendant: 1.57803,
+  principal: 2.06518,
+  conjoint: 2.06518,
+  enfant: 10.09274,
+  ascendant: 1.61309,
 } as const;
 
 // Periodicity coefficients (per-period vs annual) — extracted from Excel J19/J25/J31
