@@ -1,473 +1,192 @@
+# Plan — Mise à jour tarifs Excel v2, suppression KkiaPay, chatbot intelligent, responsive
 
-# Plan de correction production-ready — Admin, Client, Paiements, Reporting, Calculs, UX
+## 1. Nouveau barème actuariel (Excel v27/04/2026 — fichier "maintenance_fees_2")
 
-## Objectif
+Le fichier de référence est `ASSUR_DIGNITE_v27042026_maintenance_fees_2.xlsm`. Comparaison avec l'ancien barème (cas type principal 42 ans / conjoint 42 / 1 enfant 15 / 1 ascendant 55, formule A) :
 
-Rendre la plateforme AssurDignité fiable en production avec :
-- des données admin réellement live,
-- une gestion utilisateurs/rôles opérationnelle,
-- un reporting PDF professionnel,
-- une FAQ chatbot administrable,
-- un import Excel validé pour les paramètres de calcul,
-- une séparation claire souscription individuelle / groupe,
-- des paiements KkiaPay corrigés,
-- une meilleure responsivité mobile/web,
-- des reçus et documents plus lisibles.
+| Rôle      | Ancienne prime | Nouvelle prime | Δ      |
+|-----------|----------------|----------------|--------|
+| Principal | 20 877,65      | 21 325,89      | +2,15% |
+| Conjoint  | 20 877,65      | 21 325,89      | +2,15% |
+| Enfant    | 4 601,46       | 4 652,71       | +1,11% |
+| Ascendant | 28 090,12      | 28 714,27      | +2,22% |
+| **PTTC formule A** | **76 946,88** | **78 518,76** | +2,04% |
 
-## 1. Dashboard admin : logos, sidebar et responsive
+### Mise à jour de `src/lib/actuarial-engine.ts`
 
-### Corrections UI
-- Repositionner les logos SONAM VIE et AssurDignité dans le bloc blanc de la sidebar admin.
-- Supprimer définitivement le texte `ADMIN`.
-- Ajuster les tailles pour éviter le débordement visible dans les screenshots :
-  - desktop : logos alignés horizontalement, centrés, ratios préservés ;
-  - collapsed sidebar : afficher uniquement SONAM ou une version compacte propre ;
-  - mobile/tablette : padding réduit mais logos lisibles.
-- Harmoniser `AdminSidebar`, `ClientSidebar`, `AdminLayout`, `ClientLayout` pour les breakpoints 375px, 768px, 1105px, 1280px+.
+Recalibrer les facteurs `LOADING` pour refléter exactement les nouveaux primes Excel v2 :
 
-## 2. Reporting admin : données live et temps réel
+```ts
+const LOADING = {
+  principal: 2.06518,
+  conjoint:  2.06518,
+  enfant:   10.09274,
+  ascendant: 1.61309,
+};
+```
 
-### Problème actuel
-`src/pages/admin/Reporting.tsx` utilise encore des données hardcodées :
-- Jan 45, Fév 52, Mar 61, Avr 48 ;
-- répartition formules A/B/C/D en pourcentages fixes.
+Paramètres confirmés inchangés : `FC = 0.002`, `FA = 0.15`, `FRAIS_ANNUAL = 2500`, `v = 0.966184`.
 
-### Correction
-- Remplacer `monthlyData` et `formulaData` par des agrégations réelles depuis `contracts`.
-- Calculer :
-  - contrats actifs ;
-  - primes réelles encaissées ou primes des contrats selon contexte ;
-  - sinistres réels ;
-  - contrats par mois sur les 6 ou 12 derniers mois ;
-  - répartition réelle par formule A/B/C/D.
-- Ajouter une subscription realtime sur :
-  - `contracts`,
-  - `paiements`,
-  - `sinistres`,
-  - `profiles`,
-  - `user_roles`.
-- Améliorer les états vides : si un seul contrat existe, le graphique doit afficher 1 au bon mois, pas des valeurs fictives.
+Capitaux par formule (Excel `Options`) — inchangés (A 1.5M, B 2M, C 3M, D 5M ; conjoint = principal ; enfant 500k ; ascendant 1.05M / 1.4M / 2.1M / 3.5M).
 
-## 3. Utilisateurs & Rôles : affichage réel + actions admin
+Ce changement se propage automatiquement à :
+- Simulateur landing (`SimulateurSection.tsx`)
+- Adhésion client (`pages/client/Adhesion.tsx`, étape 1)
+- Outils admin
+- PDF police, reçu, conditions particulières
 
-### Problème actuel
-La requête `profiles.select('*, user_roles(role)')` n’est pas fiable car la relation n’est pas correctement exploitable côté client. Résultat : 0 utilisateurs malgré un compte admin actif.
+Tests de non-régression : valider que `simulatePrime({A, P=42, C=42, E=15, Asc=55})` renvoie ≈ 78 519 FCFA (Excel v2).
 
-### Backend à ajouter
-Créer une fonction backend sécurisée `admin-users` qui permet aux admins authentifiés de :
-- lister les utilisateurs inscrits ;
-- récupérer profile + email + téléphone + rôles + statut ;
-- désactiver un compte ;
-- réactiver un compte ;
-- supprimer un compte ;
-- ajouter/retirer un rôle.
+### Cohérence FormulesSection / SimulateurSection
 
-### Base de données
-- Ajouter à `profiles` :
-  - `status text default 'active'`,
-  - `disabled_at timestamptz`,
-  - `deleted_at timestamptz`.
-- Garder les rôles dans `user_roles` uniquement, conformément à la règle sécurité.
-- Créer ou corriger les politiques RLS nécessaires pour que seuls les admins puissent gérer ces données.
+Mettre à jour les primes affichées dans `FormulesSection.tsx` (cartes A/B/C/D) avec les nouveaux totaux Excel v2 (78 519 / 99 807 / 142 385 / 227 540 FCFA) en exemple de prime famille standard.
 
-### Interface admin
-Dans `src/pages/admin/Utilisateurs.tsx` :
-- afficher les vrais compteurs :
-  - total utilisateurs,
-  - admins,
-  - clients,
-  - désactivés ;
-- ajouter recherche par nom/email/téléphone ;
-- ajouter filtres rôle/statut ;
-- ajouter actions :
-  - désactiver,
-  - réactiver,
-  - supprimer,
-  - changer rôle client/admin ;
-- ajouter confirmations avant suppression/désactivation ;
-- afficher skeleton loader et messages d’erreur clairs.
+## 2. Suppression complète de KkiaPay
 
-## 4. Communication : FAQ chatbot administrable
+L'intégration KkiaPay ne fonctionne pas en production. Suppression complète :
 
-### Base de données
-Créer une table `chatbot_faqs` :
-- `id`,
-- `question`,
-- `answer`,
-- `category`,
-- `is_active`,
-- `sort_order`,
-- `created_at`,
-- `updated_at`.
-
-### Sécurité
-- Admins : CRUD complet.
-- Chatbot : lecture uniquement des FAQ actives.
-- Pas d’exposition inutile des données privées.
-
-### Interface admin
-Dans `src/pages/admin/Communication.tsx` :
-- liste des FAQ ;
-- bouton “Ajouter une question” ;
-- édition question/réponse ;
-- activation/désactivation ;
-- suppression ;
-- aperçu de la réponse ;
-- filtres actif/inactif.
-
-### Chatbot
-Mettre à jour `supabase/functions/chat-ai/index.ts` :
-- charger les FAQ actives ;
-- injecter ces FAQ dans le prompt système ;
-- garder le fallback IA si aucune FAQ ne correspond exactement.
-
-## 5. Outils : upload Excel pour changer les calculs
-
-### Objectif
-Permettre à l’admin d’uploader un fichier Excel validé qui met à jour les paramètres de calcul sans modifier le code.
-
-### Base de données
-Créer :
-- `actuarial_config_versions`
-  - `id`,
-  - `version_name`,
-  - `source_file_name`,
-  - `config_json`,
-  - `validation_report`,
-  - `is_active`,
-  - `created_by`,
-  - `created_at`.
-
-Optionnel :
-- bucket privé `actuarial-configs` pour archiver les fichiers Excel.
-
-### Validation
-Ajouter une validation stricte :
-- formules A/B/C/D présentes ;
-- capitaux principal/conjoint/enfant/ascendant valides ;
-- frais et chargements numériques ;
-- pas de valeurs négatives ;
-- cohérence enfants/ascendants ;
-- rejet du fichier si les colonnes attendues sont absentes.
-
-### Interface
-Dans `src/pages/admin/Outils.tsx` :
-- bloc “Importer un fichier Excel de tarification” ;
-- upload `.xlsx` uniquement ;
-- aperçu du rapport de validation ;
-- bouton “Activer cette version” ;
-- historique des versions ;
-- possibilité de revenir à une version précédente.
-
-### Calculs
-Refactorer `src/lib/actuarial-engine.ts` :
-- garder les constantes actuelles comme fallback ;
-- ajouter un moteur acceptant une configuration dynamique ;
-- créer un hook `useActuarialConfig()` qui charge la configuration active ;
-- utiliser cette config dans :
-  - simulateur landing,
-  - simulateur client,
-  - étape adhésion,
-  - outil admin.
-
-## 6. Revue des calculs et cohérences métier
-
-### Corrections prévues
-- Revalider les limites d’âge :
-  - principal : 18 à 64 ans ;
-  - conjoint : ≤ 64 ans ;
-  - enfant : ≤ 21 ans ;
-  - ascendant : ≤ 79 ans.
-- Clarifier le capital total affiché :
-  - capital principal,
-  - capital conjoint,
-  - capital enfants,
-  - capital ascendants,
-  - total garanties.
-- Corriger les incohérences entre :
-  - simulation,
-  - choix formule,
-  - reçu,
-  - police,
-  - conditions particulières.
-- Vérifier que la prime annuelle utilisée dans le paiement est exactement celle affichée dans la simulation.
-
-## 7. Souscription : séparer individuelle et groupe
-
-### Problème actuel
-La partie groupe est intégrée comme une étape dans le même parcours individuel.
-
-### Nouvelle logique
-Au début du parcours `Adhesion` :
-- ajouter un écran de choix :
-  - “Souscription individuelle personnelle” ;
-  - “Souscription groupe / entreprise / association”.
-
-### Parcours individuel
-Garder uniquement les étapes personnelles :
-1. Simulation
-2. Choix formule
-3. KYC principal
-4. Conjoint
-5. Assurés complémentaires
-6. Bénéficiaires
-7. Prestations nature
-8. Ayants-droits
-9. Questionnaire médical
-10. Conditions générales
-11. Paiement
-12. Conditions particulières
-13. Signature & reçu
-
-### Parcours groupe
-Créer un parcours dédié :
-- informations structure ;
-- représentant légal ;
-- responsable RH ;
-- effectif ;
-- liste du personnel ;
-- formules retenues ;
-- validation ;
-- paiement ou demande de devis.
-
-Cela peut rester dans `Adhesion.tsx` avec composants séparés, ou être extrait en composants :
-- `IndividualAdhesionFlow`,
-- `GroupAdhesionFlow`.
-
-## 8. Étape Conditions Générales : design amélioré
-
-Dans l’étape “Conditions Générales” :
-- remplacer le simple bloc texte par une carte professionnelle :
-  - header violet ;
-  - résumé des points clés ;
-  - accordéons par article ;
-  - bloc exclusions bien visible ;
-  - progression de lecture ;
-  - case d’acceptation claire ;
-  - bouton télécharger/imprimer les CG.
-- Améliorer lisibilité mobile :
-  - police plus grande ;
-  - meilleure hauteur ;
-  - padding ;
-  - contraste renforcé.
-
-## 9. KkiaPay : corriger les échecs de paiement
-
-### Vérifications et corrections
-- Vérifier la fonction `kkiapay-config` :
-  - sandbox bien détecté ;
-  - public key sandbox correcte ;
-  - réponse claire côté frontend.
-- Corriger `KkiapayWidget` :
-  - envoyer un payload `data` exploitable ;
-  - normaliser téléphone/email/nom ;
-  - afficher les erreurs techniques KkiaPay au lieu d’un message générique ;
-  - éviter les listeners doublons ;
-  - nettoyer les callbacks.
-- Mettre en place un flux fiable :
-  - créer un paiement `pending` avant ouverture du widget ;
-  - envoyer `paiement_id`, `user_id`, `contract_id` ou `draft_id` dans `data` ;
-  - webhook met à jour `paid` ou `failed` ;
-  - le client écoute le realtime du paiement ;
-  - le parcours avance seulement quand le paiement est confirmé.
-- Pour l’adhésion, créer un contrat `draft` ou une souscription temporaire avant paiement, puis activer après paiement/signature.
-- Améliorer les messages d’échec :
-  - clé API incorrecte ;
-  - mode sandbox/live incohérent ;
-  - transaction refusée ;
-  - popup bloquée ;
-  - réseau indisponible.
-
-## 10. Génération rapport admin PDF
-
-### Problème actuel
-Le bouton “Générer” redirige vers `/admin/reporting`, mais ne génère pas de rapport.
-
-### Correction
-Dans `src/pages/admin/Reporting.tsx` :
-- ajouter un bouton “Générer rapport PDF”.
-- Générer un rapport professionnel avec `jsPDF` et les helpers de `pdf-shared` :
-  - logos SONAM + AssurDignité alignés ;
-  - date de génération ;
-  - KPIs ;
-  - contrats par mois ;
-  - répartition formule ;
-  - encaissements ;
-  - sinistres ;
-  - synthèse finale.
-- Exporter :
-  - PDF ;
-  - CSV optionnel des données affichées.
-- Ajouter état loading et toast succès.
-
-## 11. Reçu et documents : visibilité “Non inclus” + montants
-
-### Corrections
-- Dans les reçus et documents :
-  - rendre “Non inclus” visible avec badge gris/rouge clair ;
-  - afficher “0 FCFA” ou “Non inclus” de manière cohérente ;
-  - ne pas mélanger capital disponible et garantie non souscrite ;
-  - ajouter bénéficiaires, options, assurés complémentaires, formule, prime, référence paiement.
-- Améliorer les tableaux PDF :
-  - meilleure hauteur de ligne ;
-  - texte multi-ligne ;
-  - contraste des headers ;
-  - pagination automatique si contenu long.
-- Harmoniser reçu de paiement, police, conditions particulières et attestation.
-
-## 12. Admin : autres pages à rendre live
-
-### Finances
-- Ajouter realtime sur `paiements`.
-- Afficher correctement :
-  - paid,
-  - pending,
-  - failed.
-- Ajouter filtres méthode/statut/date.
-- Corriger logos méthodes, notamment `simulation_mtn`, `simulation_orange`, `simulation_moov`, `simulation_wave`.
-
-### Contrats
-- Ajouter realtime.
-- Ajouter statut `draft`, `active`, `pending_payment`, `expired`, `cancelled`.
-- Ajouter actions admin : voir détail, changer statut, exporter.
-
-### Sinistres
-- Ajouter realtime.
-- Ajouter confirmation sur changement de statut.
-- Ajouter affichage documents si présents.
-
-## 13. Backend et sécurité
-
-### Migrations nécessaires
-- `profiles.status`, `disabled_at`, `deleted_at`.
-- Table `chatbot_faqs`.
-- Table `actuarial_config_versions`.
-- Éventuellement table `subscriptions_drafts` ou champ `contracts.status = draft/pending_payment`.
-- Triggers `updated_at` sur nouvelles tables.
-- Corriger le trigger `on_paiement_status_change` s’il n’est pas attaché à `paiements`.
-
-### Fonctions backend
-- `admin-users` :
-  - list,
-  - deactivate,
-  - reactivate,
-  - delete,
-  - role update.
-- `kkiapay-webhook` :
-  - validation payload,
-  - update fiable paiement,
-  - logs utiles.
-- `chat-ai` :
-  - FAQ active intégrée.
-
-## 14. Landing page et interface globale
-
-### Landing
-- Revoir incohérences visuelles restantes :
-  - tailles textes ;
-  - alignements ;
-  - spacing ;
-  - boutons ;
-  - cartes trop hautes ou désalignées ;
-  - images trop lourdes.
-- Optimiser les animations pour mobile :
-  - réduire animations trop coûteuses ;
-  - respecter `prefers-reduced-motion`.
-
-### Client
-- Vérifier :
-  - adhésion complète ;
-  - simulation ;
-  - paiement ;
-  - documents ;
-  - profil ;
-  - bénéficiaires ;
-  - sinistre ;
-  - paiements.
-- Fixer overflow mobile et boutons trop serrés.
-
-### Admin
-- Vérifier :
-  - dashboard ;
-  - reporting ;
-  - utilisateurs ;
-  - communication ;
-  - outils ;
-  - finances ;
-  - contrats ;
-  - sinistres ;
-  - anti-fraude.
-- Ajouter skeleton loaders et empty states professionnels.
-
-## 15. Tests et validation finale
-
-### Tests techniques
-- Build TypeScript.
-- Vérifier imports.
-- Vérifier erreurs console.
-- Vérifier erreurs réseau.
-- Vérifier fonctions backend.
-
-### Tests fonctionnels
-- Créer/voir un contrat.
-- Vérifier que reporting affiche ce contrat réellement.
-- Vérifier que la répartition formule utilise les vraies données.
-- Vérifier que Utilisateurs & Rôles affiche l’admin et les clients.
-- Tester désactivation/réactivation utilisateur.
-- Tester ajout/désactivation FAQ.
-- Tester upload Excel valide/invalide.
-- Tester paiement simulation.
-- Tester KkiaPay sandbox avec meilleure gestion d’erreur.
-- Générer rapport PDF admin.
-- Générer reçu/police côté client.
-
-### Tests responsive
-- Mobile 375px.
-- Tablette 768px.
-- Desktop 1105px.
-- Desktop large 1280px+.
-
-## Fichiers principaux impactés
-
-- `src/components/admin/AdminSidebar.tsx`
-- `src/layouts/AdminLayout.tsx`
-- `src/layouts/ClientLayout.tsx`
-- `src/pages/admin/Dashboard.tsx`
-- `src/pages/admin/Reporting.tsx`
-- `src/pages/admin/Utilisateurs.tsx`
-- `src/pages/admin/Communication.tsx`
-- `src/pages/admin/Outils.tsx`
-- `src/pages/admin/Finances.tsx`
-- `src/pages/admin/Contrats.tsx`
-- `src/pages/admin/Sinistres.tsx`
-- `src/pages/client/Adhesion.tsx`
-- `src/pages/client/Documents.tsx`
-- `src/pages/client/Paiements.tsx`
+**Fichiers à supprimer** :
 - `src/components/KkiapayWidget.tsx`
-- `src/components/ChatBot.tsx`
-- `src/lib/actuarial-engine.ts`
-- `src/lib/pdf-shared.ts`
-- `src/index.css`
-- `supabase/functions/chat-ai/index.ts`
 - `supabase/functions/kkiapay-config/index.ts`
 - `supabase/functions/kkiapay-webhook/index.ts`
-- nouvelle fonction `supabase/functions/admin-users/index.ts`
-- nouvelles migrations base de données
 
-## Ordre d’exécution
+**Fichiers à modifier** :
+- `src/pages/client/Adhesion.tsx` — étape "Paiement" : remplacer le widget par un écran de confirmation hors-ligne avec consigne d'appel commercial + bouton "Marquer comme à payer plus tard" qui crée le contrat en statut `pending_payment`.
+- `src/pages/client/Paiements.tsx` — retirer toute référence Kkiapay ; afficher uniquement les paiements existants en base.
 
-1. Migrations backend : profils statut, FAQ, versions Excel, triggers.
-2. Fonction `admin-users`.
-3. Fix Utilisateurs & Rôles.
-4. Fix Reporting live + realtime.
-5. Fix Dashboard admin et bouton rapport PDF.
-6. Fix logos/sidebar admin et responsive layout.
-7. FAQ administrable + intégration chatbot.
-8. Upload Excel + config actuarielle dynamique.
-9. Refactor simulation/calculs avec config active.
-10. Séparation souscription individuelle/groupe.
-11. Refonte étape Conditions Générales.
-12. Fix KkiaPay + flux pending/paid/failed.
-13. Reçu/documents : “Non inclus”, bénéficiaires, options, design.
-14. Améliorations UI landing/client/admin.
-15. Tests build, console, réseau, responsive et parcours complet.
+**Nouveau flux paiement** (étape adhésion 12) :
+- Affichage du montant total
+- Bloc instructions : virement bancaire SONAM VIE OU paiement en agence (Plateau, Trade Center) OU contact commercial (27 20 31 71 82)
+- Bouton "Confirmer ma souscription (paiement à régulariser)" → crée le contrat statut `pending_payment`, crée un paiement statut `pending` méthode `manual`
+- L'admin valide ensuite le paiement dans `Finances` admin (status → `paid`), ce qui déclenche le trigger DB existant `on_paiement_status_change` qui passe le contrat à `active`.
+
+Aucune migration de table nécessaire — les statuts existent déjà.
+
+## 3. Chatbot — corriger la logique et le rendre intelligent
+
+**Problème** : le bot répond systématiquement "Contactez le 27 20 31 71 82… venez nous voir au Plateau… je vous invite à nous contacter…" au lieu d'aider à la souscription en ligne.
+
+### Refonte du prompt système (`supabase/functions/chat-ai/index.ts`)
+
+Nouveau `BASE_PROMPT` :
+- Présenter AssurDignité comme une plateforme **100% digitale** où l'utilisateur peut souscrire en ligne en quelques minutes via "Mon Espace".
+- Expliquer le **processus d'inscription en 14 étapes** quand on demande "comment souscrire" :
+  1. Créer son compte → `/login`
+  2. Lancer la simulation et choisir une formule (A/B/C/D)
+  3. KYC : pièce d'identité + selfie biométrique
+  4. Renseigner conjoint(e), enfants (≤21 ans), ascendants (≤79 ans)
+  5. Désigner les bénéficiaires
+  6. Choisir les prestations en nature
+  7. Compléter le questionnaire médical
+  8. Lire et accepter les Conditions Générales
+  9. Régler la première prime annuelle (paiement en agence ou par virement, ou contact commercial)
+  10. Recevoir police d'assurance + reçu téléchargeables dans son espace
+- Donner des **réponses concrètes** sur formules, capitaux, exclusions, bonus fidélité, délai de paiement (<12h), répartition 70/30.
+- Ne renvoyer vers le téléphone/agence **qu'en dernier recours** (cas hors champ : sinistre en cours, demande de modification de contrat existant, problème technique grave).
+- Inclure systématiquement un lien d'action (`/login`, `/#simulateur`, `/#formules`) à la fin de chaque réponse.
+- Toujours utiliser la table FAQ active (`chatbot_faqs`) en priorité.
+
+### Améliorer le composant `src/components/ChatBot.tsx`
+
+- Ajouter des suggestions plus riches : "Comment souscrire ?", "Quelles formules ?", "Quel prix pour ma famille ?", "Délai de paiement", "Bonus fidélité", "Documents nécessaires".
+- Ajouter des **boutons d'action contextuels** dans la réponse : si le bot mentionne souscription → bouton "Commencer ma souscription" qui ouvre `/login`. Si simulation → bouton "Ouvrir le simulateur".
+- Optimiser le scroll mobile et les hauteurs (max-h responsive).
+
+## 4. Header mobile — toutes les infos visibles
+
+Dans `src/components/landing/Header.tsx`, la barre top contact tronque sur mobile. Refonte :
+- Sur mobile (< sm) : afficher téléphone + email sur 2 lignes condensées (icônes + valeurs cliquables `tel:`/`mailto:`), avec scroll horizontal supprimé.
+- Adresse Plateau visible dès `md` (déjà ok).
+- Layout : passer la top bar en `flex-col gap-1 py-1.5` sur mobile, `flex-row h-9` sur sm+.
+
+## 5. Hero section — descendre la box texte
+
+Dans `src/components/landing/HeroSection.tsx` :
+- Ajouter `mt-6 sm:mt-10` au bloc `<motion.div>` qui contient badge/titre/description (lignes 102-116) pour le descendre légèrement.
+- Augmenter le `pt-28 sm:pt-32` à `pt-32 sm:pt-40` sur la section pour libérer de la place sous le header.
+- Garder l'animation slider (4 slides existants).
+
+## 6. Responsive global — site + plateforme
+
+Audit et corrections sur tous les breakpoints (375, 414, 768, 1024, 1280) :
+
+### Landing
+- `FormulesSection` : aligner hauteur des cartes (`flex flex-col h-full` + bouton CTA collé en bas avec `mt-auto`).
+- `AvantagesSection` : grilles `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3` cohérentes.
+- `SimulateurSection` : passer le grid principal en `lg:grid-cols-2` (déjà ok), réduire padding mobile.
+- `Footer` : colonnes en `grid-cols-2 lg:grid-cols-4` avec gap consistant.
+
+### Espace client
+- `ClientLayout` : sidebar drawer mobile (Sheet) + topbar avec logo compact + menu hamburger.
+- `Adhesion.tsx` : la barre de progression (14 étapes) doit scroller horizontalement sur mobile sans casser la mise en page. Étapes en cartes empilées.
+- `Documents.tsx`, `Paiements.tsx`, `Sinistre.tsx` : tableaux responsifs (`overflow-x-auto` + version cards mobile).
+
+### Espace admin
+- `AdminLayout` / `AdminSidebar` : drawer mobile, logos compactés à l'icône SONAM seule en collapsed.
+- `Reporting.tsx` : graphiques Recharts en `ResponsiveContainer` (déjà), KPIs en `grid-cols-2 lg:grid-cols-4`.
+- `Utilisateurs.tsx`, `Contrats.tsx`, `Finances.tsx`, `Sinistres.tsx` : tables avec wrapper `overflow-x-auto`, colonnes secondaires cachées sur mobile (`hidden md:table-cell`).
+
+### Polissage design global
+- Boutons : tailles homogènes (`h-10 sm:h-11`).
+- Cartes : ombres et radius cohérents (`rounded-xl shadow-md hover:shadow-lg transition`).
+- Inputs : déjà 16px sur mobile (anti-zoom iOS) — vérifier sélecteurs.
+- Animations Framer Motion respectent `prefers-reduced-motion`.
+
+## 7. Améliorations dashboard utilisateur
+
+- `pages/client/Dashboard.tsx` : carte "Prochaine prime" avec date et montant ; carte "État du contrat" avec badge couleur ; raccourcis "Déclarer un sinistre", "Mes bénéficiaires", "Télécharger ma police".
+- Ajouter compteur "Bonus fidélité" (années sans sinistre / 3 ans).
+- Notifications panel (utilise table `notifications` existante) avec realtime.
+
+## 8. Améliorations dashboard admin
+
+- `pages/admin/Dashboard.tsx` : KPIs live (contrats actifs, primes encaissées du mois, sinistres en cours, taux de transformation).
+- Ajouter graphique "Évolution mensuelle des contrats" (12 mois glissants) à partir de `contracts.created_at`.
+- Liste "Derniers contrats" + "Derniers paiements en attente" avec actions rapides.
+- Bouton "Valider paiement" sur les paiements `pending` qui passe en `paid` (le trigger DB activera le contrat).
+- Quick action : générer rapport PDF (déjà dans `Reporting.tsx`, ajouter raccourci dashboard).
+
+## 9. Suppression mémoire / config
+
+- Supprimer la mention "KkiaPay" du chatbot et des FAQ par défaut.
+- Mettre à jour la mémoire projet (`mem://features/structure`) pour refléter la suppression de KkiaPay et le flux paiement manuel.
+
+## Détails techniques
+
+### Fichiers principaux modifiés
+- `src/lib/actuarial-engine.ts` — nouveaux LOADING
+- `src/components/landing/Header.tsx` — top bar mobile
+- `src/components/landing/HeroSection.tsx` — décalage box
+- `src/components/landing/FormulesSection.tsx` — primes mises à jour, alignement
+- `src/components/landing/SimulateurSection.tsx` — micro-ajustements UI
+- `src/components/ChatBot.tsx` — suggestions + boutons d'action
+- `src/pages/client/Adhesion.tsx` — étape paiement réécrite, retire KkiapayWidget
+- `src/pages/client/Paiements.tsx` — retire KkiaPay
+- `src/pages/client/Dashboard.tsx` — refonte cartes + bonus fidélité
+- `src/pages/admin/Dashboard.tsx` — KPIs live + actions rapides
+- `src/layouts/ClientLayout.tsx`, `src/layouts/AdminLayout.tsx` — responsive
+- `src/components/admin/AdminSidebar.tsx`, `src/components/client/ClientSidebar.tsx` — drawer mobile
+- `src/index.css` — ajustements responsive
+
+### Fichiers supprimés
+- `src/components/KkiapayWidget.tsx`
+- `supabase/functions/kkiapay-config/index.ts`
+- `supabase/functions/kkiapay-webhook/index.ts`
+
+### Fonctions edge mises à jour
+- `supabase/functions/chat-ai/index.ts` — nouveau prompt + boutons d'action côté client
+
+### Aucune migration DB requise
+Les statuts `pending_payment` / `pending` / `paid` existent déjà, le trigger `on_paiement_status_change` fonctionne déjà.
+
+## Ordre d'exécution
+1. Mise à jour `actuarial-engine.ts` (nouveau barème) + `FormulesSection`
+2. Suppression KkiaPay (fichiers + références)
+3. Réécriture étape paiement Adhésion (mode manuel)
+4. Refonte chatbot (prompt + UI suggestions/actions)
+5. Header mobile + Hero box
+6. Responsive landing (Formules, Avantages, Footer, Simulateur)
+7. Responsive espace client (layout, Adhésion, Documents, Paiements)
+8. Responsive espace admin (layout, sidebars, tables)
+9. Refonte Dashboard client + admin
+10. Build + vérification console
