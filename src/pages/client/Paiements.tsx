@@ -1,12 +1,15 @@
 import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { History, Loader2 } from 'lucide-react';
+import { History, Loader2, Banknote, Check } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatCFA } from '@/lib/actuarial-engine';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { KkiapayWidget } from '@/components/KkiapayWidget';
 import { toast as sonnerToast } from 'sonner';
 
 export default function PaiementsPage() {
@@ -14,6 +17,9 @@ export default function PaiementsPage() {
   const [paiements, setPaiements] = useState<any[]>([]);
   const [contract, setContract] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [methode, setMethode] = useState<string>('');
+  const [reference, setReference] = useState<string>('');
+  const [submitting, setSubmitting] = useState(false);
   const knownIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -57,8 +63,8 @@ export default function PaiementsPage() {
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
-              <p className="text-sm text-muted-foreground">Paiement sécurisé via <strong>KkiaPay</strong></p>
-              <p className="text-xs text-muted-foreground mt-1">Mobile Money (Wave, Orange, MTN, Moov), carte bancaire, virement.</p>
+              <p className="text-sm text-muted-foreground">Paiement annuel — Mobile Money, virement bancaire ou agence.</p>
+              <p className="text-xs text-muted-foreground mt-1">Indiquez la référence après votre paiement, validation sous 24h.</p>
             </div>
             {renewAmount > 0 && (
               <div className="text-right">
@@ -68,37 +74,81 @@ export default function PaiementsPage() {
             )}
           </div>
           {renewAmount > 0 ? (
-            <div className="flex justify-center py-2">
-              <KkiapayWidget
-                amount={renewAmount}
-                email={user?.email}
-                name={user?.user_metadata?.full_name || user?.email}
-                onSuccess={async (resp: any) => {
-                  const ref = resp?.transactionId || `KKP-${Date.now()}`;
-                  const { error } = await supabase.from('paiements').insert({
-                    user_id: user!.id,
-                    contract_id: contract?.id || null,
-                    montant: renewAmount,
-                    methode: 'kkiapay',
-                    status: 'paid',
-                    reference: ref,
-                  });
-                  if (error) {
-                    sonnerToast.error('Erreur enregistrement', { description: error.message });
-                  } else {
-                    sonnerToast.success('Paiement réussi 🎉', { description: `Référence ${ref} — Contrat actif.` });
+            <div className="space-y-4">
+              <div className="rounded-xl border-2 border-primary/30 p-4 sm:p-5 bg-accent/30 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Banknote className="w-5 h-5 text-primary" />
+                  <p className="font-semibold text-primary">Coordonnées bancaires SONAM VIE</p>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-3 text-sm">
+                  <div className="bg-white rounded-lg p-3 border border-border">
+                    <p className="text-xs text-muted-foreground">Banque</p>
+                    <p className="font-semibold">SGBCI – SONAM VIE</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-border">
+                    <p className="text-xs text-muted-foreground">RIB</p>
+                    <p className="font-mono text-xs sm:text-sm break-all">CI93 CI108 01001 1234567890 12</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-border">
+                    <p className="text-xs text-muted-foreground">Mobile Money</p>
+                    <p className="font-semibold">+225 27 20 31 71 82</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-border">
+                    <p className="text-xs text-muted-foreground">Référence à indiquer</p>
+                    <p className="font-semibold">AD-{(user?.id || '').slice(0, 8).toUpperCase()}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-xl border border-border p-4 space-y-3 bg-card">
+                <Label>Méthode utilisée</Label>
+                <Select value={methode} onValueChange={setMethode}>
+                  <SelectTrigger><SelectValue placeholder="Choisir un mode de paiement" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="virement">Virement bancaire</SelectItem>
+                    <SelectItem value="wave">Wave</SelectItem>
+                    <SelectItem value="orange_money">Orange Money</SelectItem>
+                    <SelectItem value="mtn_momo">MTN MoMo</SelectItem>
+                    <SelectItem value="moov_money">Moov Money</SelectItem>
+                    <SelectItem value="especes">Espèces (agence)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Label>Référence / numéro de transaction</Label>
+                <Input value={reference} onChange={e => setReference(e.target.value)} placeholder="Ex : TXN-987654" />
+                <Button
+                  className="w-full gap-2"
+                  disabled={!methode || !reference.trim() || submitting}
+                  onClick={async () => {
+                    if (!user) return;
+                    setSubmitting(true);
+                    const ref = reference.trim();
+                    const { error } = await supabase.from('paiements').insert({
+                      user_id: user.id,
+                      contract_id: contract?.id || null,
+                      montant: renewAmount,
+                      methode,
+                      status: 'pending',
+                      reference: ref,
+                    });
+                    setSubmitting(false);
+                    if (error) {
+                      sonnerToast.error('Erreur', { description: error.message });
+                      return;
+                    }
                     await supabase.from('notifications').insert({
-                      user_id: user!.id,
-                      title: 'Paiement confirmé',
-                      message: `Votre paiement de ${formatCFA(renewAmount)} a été reçu.`,
-                      type: 'success',
+                      user_id: user.id,
+                      title: 'Paiement déclaré',
+                      message: `Référence ${ref} — ${formatCFA(renewAmount)}. En attente de validation.`,
+                      type: 'info',
                       link: '/client/paiements',
                       contract_id: contract?.id || null,
                     });
-                  }
-                }}
-                onFailed={() => sonnerToast.error('Paiement échoué', { description: 'Veuillez réessayer.' })}
-              />
+                    sonnerToast.success('Paiement enregistré ✓', { description: 'Validation sous 24h ouvrées.' });
+                    setMethode(''); setReference('');
+                  }}
+                >
+                  <Check className="w-4 h-4" /> Déclarer mon paiement
+                </Button>
+              </div>
             </div>
           ) : (
             <p className="text-center text-sm text-muted-foreground py-4">Aucun contrat actif. Souscrivez d'abord pour effectuer un paiement.</p>

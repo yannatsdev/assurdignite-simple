@@ -80,7 +80,7 @@ export function HeroSection() {
   const slide = slides[index];
 
   return (
-    <section id="accueil" className="relative min-h-screen flex items-center overflow-hidden pt-28 sm:pt-32">
+    <section id="accueil" className="relative min-h-screen flex items-center overflow-hidden pt-40 sm:pt-36 md:pt-32">
       <div className="absolute inset-0">
         <AnimatePresence mode="wait">
           <motion.div
