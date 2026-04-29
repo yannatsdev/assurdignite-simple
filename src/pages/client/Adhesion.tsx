@@ -395,9 +395,13 @@ export default function AdhesionPage() {
     if (hasConjoint || enfants.length || ascendants.length) {
       y = pdfSection(doc, 'Assurés complémentaires', y);
       const rows: string[][] = [];
-      if (hasConjoint) rows.push([`${conjoint.prenom} ${conjoint.nom}`.trim(), 'Conjoint(e)', fmt(conjoint.dob)]);
-      enfants.forEach((e: any, i: number) => rows.push([`${e.prenom} ${e.nom}`.trim() || `Enfant ${i + 1}`, 'Enfant', fmt(e.dob)]));
-      ascendants.forEach((a: any, i: number) => rows.push([`${a.prenom} ${a.nom}`.trim() || `Ascendant ${i + 1}`, 'Ascendant', fmt(a.dob)]));
+      const fullName = (p: any, fallback: string) => {
+        const n = `${p?.prenom ?? ''} ${p?.nom ?? ''}`.replace(/\s+/g, ' ').trim();
+        return n || fallback;
+      };
+      if (hasConjoint) rows.push([fullName(conjoint, 'Conjoint(e)'), 'Conjoint(e)', fmt(conjoint.dob)]);
+      enfants.forEach((e: any, i: number) => rows.push([fullName(e, `Enfant ${i + 1}`), 'Enfant', fmt(e.dob)]));
+      ascendants.forEach((a: any, i: number) => rows.push([fullName(a, `Ascendant ${i + 1}`), a.lien || 'Ascendant', fmt(a.dob)]));
       y = pdfTable(doc, ['Nom & prénom', 'Lien', 'Né(e) le'], rows, y, [85, 50, 45]);
     }
 
