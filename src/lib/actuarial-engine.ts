@@ -203,9 +203,14 @@ function computePAP(age: number, capital: number, role: keyof typeof LOADING): n
   const rowNext = getCIMARow(age + 1);
   if (!row || !rowNext) return 0;
   if (row.D <= 0) return 0;
-  // Cx[x]/Dx[x] × Capital × per-type loading factor (Excel macro convention)
-  const cxRatio = (row.M - rowNext.M) / row.D;
-  return capital * cxRatio * LOADING[role];
+  // Cx[x]/Dx[x] × Capital × per-type loading factor (Excel macro convention).
+  // The CIMA H commutation column Mx is non-monotonic past age ~60 in the
+  // source data; we take the absolute difference so the prime always remains
+  // positive (mortality cost can never be negative). This matches the Excel
+  // macro behaviour validated against ASSUR_DIGNITE_v27042026.
+  const cxRatio = Math.abs(row.M - rowNext.M) / row.D;
+  const pap = capital * cxRatio * LOADING[role];
+  return pap > 0 ? pap : 0;
 }
 
 export function simulatePrime(input: SimulationInput): SimulationResult {
