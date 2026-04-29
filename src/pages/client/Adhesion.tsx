@@ -314,6 +314,8 @@ export default function AdhesionPage() {
     setVerifying(null);
     toast({ title: 'Identité vérifiée ✓', description: `Score de présence : ${(r.livenessScore * 100).toFixed(0)}%` });
   };
+
+  const handleSimulate = () => {
     if (!simPrincipalDob) return;
     const res = simulatePrime({
       quoteDate,
