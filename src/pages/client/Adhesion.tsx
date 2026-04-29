@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DateInput } from '@/components/ui/date-input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -31,7 +32,7 @@ Article 1 – Objet : Le présent contrat a pour objet la garantie par SONAM VIE
 
 Article 2 – Conditions d'adhésion : L'adhésion est ouverte à toute personne physique résidant en Côte d'Ivoire ou dans la zone CIMA, âgée de 18 à 64 ans (principal), 0 à 21 ans (enfants) et 0 à 79 ans (ascendants).
 
-Article 3 – Prestations : En cas de décès, SONAM VIE fournit : cercueil extérieur, conservation du corps, transport funéraire, cérémonie d'inhumation (70%) et versement de 30% en espèces au(x) bénéficiaire(s), en moins de 12 heures.
+Article 3 – Prestations : En cas de décès, SONAM VIE fournit : cercueil extérieur, conservation du corps, transport funéraire, cérémonie d'inhumation (70%) et versement de 30% en espèces au(x) bénéficiaire(s), en moins de 12 heures après dépôt et analyse des pièces justificatives.
 
 Article 4 – Exclusions : Suicide dans les 2 premières années, faits de guerre, actes terroristes, participation volontaire à des actes criminels, fausses déclarations.
 
@@ -557,7 +558,7 @@ export default function AdhesionPage() {
                 <div className="space-y-5">
                   <p className="text-sm text-muted-foreground">Renseignez les informations pour estimer votre prime annuelle.</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div><Label>Date de naissance de l'assuré principal *</Label><Input type="date" value={simPrincipalDob} onChange={e => setSimPrincipalDob(e.target.value)} /></div>
+                    <div><Label>Date de naissance de l'assuré principal *</Label><DateInput value={simPrincipalDob} onChange={e => setSimPrincipalDob(e)} /></div>
                     <div>
                       <Label>Formule</Label>
                       <Select value={formule} onValueChange={v => setFormule(v as OptionKey)}><SelectTrigger><SelectValue /></SelectTrigger>
@@ -575,7 +576,7 @@ export default function AdhesionPage() {
                     <Switch checked={hasConjoint} onCheckedChange={setHasConjoint} />
                   </div>
                   {hasConjoint && (
-                    <div className="pl-4"><Label className="text-xs">Date de naissance conjoint</Label><Input type="date" value={conjoint.dob} onChange={e => setConjoint({...conjoint, dob: e.target.value})} /></div>
+                    <div className="pl-4"><Label className="text-xs">Date de naissance conjoint</Label><DateInput value={conjoint.dob} onChange={e => setConjoint({...conjoint, dob: e})} /></div>
                   )}
 
                   <div className="flex items-center justify-between p-3 rounded-lg bg-accent/30">
@@ -584,7 +585,7 @@ export default function AdhesionPage() {
                   </div>
                   {enfants.map((e, i) => (
                     <div key={i} className="flex gap-2 items-center pl-4">
-                      <Input type="date" value={e.dob} onChange={ev => { const n = [...enfants]; n[i].dob = ev.target.value; setEnfants(n); }} className="flex-1" />
+                      <DateInput value={e.dob} onChange={ev => { const n = [...enfants]; n[i].dob = ev; setEnfants(n); }} className="flex-1" />
                       <Button size="icon" variant="ghost" onClick={() => setEnfants(enfants.filter((_, j) => j !== i))}><Minus className="w-3 h-3" /></Button>
                     </div>
                   ))}
@@ -595,7 +596,7 @@ export default function AdhesionPage() {
                   </div>
                   {ascendants.map((a, i) => (
                     <div key={i} className="flex gap-2 items-center pl-4">
-                      <Input type="date" value={a.dob} onChange={ev => { const n = [...ascendants]; n[i].dob = ev.target.value; setAscendants(n); }} className="flex-1" />
+                      <DateInput value={a.dob} onChange={ev => { const n = [...ascendants]; n[i].dob = ev; setAscendants(n); }} className="flex-1" />
                       <Button size="icon" variant="ghost" onClick={() => setAscendants(ascendants.filter((_, j) => j !== i))}><Minus className="w-3 h-3" /></Button>
                     </div>
                   ))}
@@ -670,7 +671,7 @@ export default function AdhesionPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div><Label>Nom *</Label><Input value={kyc.nom} onChange={e => setKyc({ ...kyc, nom: e.target.value })} /></div>
                     <div><Label>Prénom *</Label><Input value={kyc.prenom} onChange={e => setKyc({ ...kyc, prenom: e.target.value })} /></div>
-                    <div><Label>Date de naissance *</Label><Input type="date" value={kyc.dob || simPrincipalDob} onChange={e => setKyc({ ...kyc, dob: e.target.value })} /></div>
+                    <div><Label>Date de naissance *</Label><DateInput value={kyc.dob || simPrincipalDob} onChange={e => setKyc({ ...kyc, dob: e })} /></div>
                     <div><Label>Email</Label><Input type="email" value={kyc.email} onChange={e => setKyc({ ...kyc, email: e.target.value })} /></div>
                     <div><Label>Téléphone *</Label><Input value={kyc.phone} onChange={e => setKyc({ ...kyc, phone: e.target.value })} /></div>
                     <div><Label>N° CNI / Passeport *</Label><Input value={kyc.cni} onChange={e => setKyc({ ...kyc, cni: e.target.value })} /></div>
@@ -753,7 +754,7 @@ export default function AdhesionPage() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-accent/50">
                         <div><Label>Nom</Label><Input value={conjoint.nom} onChange={e => setConjoint({ ...conjoint, nom: e.target.value })} /></div>
                         <div><Label>Prénom</Label><Input value={conjoint.prenom} onChange={e => setConjoint({ ...conjoint, prenom: e.target.value })} /></div>
-                        <div><Label>Date de naissance</Label><Input type="date" value={conjoint.dob} onChange={e => setConjoint({ ...conjoint, dob: e.target.value })} /></div>
+                        <div><Label>Date de naissance</Label><DateInput value={conjoint.dob} onChange={e => setConjoint({ ...conjoint, dob: e })} /></div>
                       </div>
                       {/* Conjoint CNI */}
                       <div className="space-y-2">
@@ -796,7 +797,7 @@ export default function AdhesionPage() {
                       <div className="flex items-center justify-between"><span className="text-sm font-medium">Enfant {i + 1}</span><Button size="icon" variant="ghost" onClick={() => setEnfants(enfants.filter((_, j) => j !== i))}><Minus className="w-4 h-4" /></Button></div>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <Input placeholder="Nom" value={e.nom} onChange={ev => { const n = [...enfants]; n[i].nom = ev.target.value; setEnfants(n); }} />
-                        <Input type="date" value={e.dob} onChange={ev => { const n = [...enfants]; n[i].dob = ev.target.value; setEnfants(n); }} />
+                        <DateInput value={e.dob} onChange={ev => { const n = [...enfants]; n[i].dob = ev; setEnfants(n); }} />
                         <Select value={e.prestation} onValueChange={v => { const n = [...enfants]; n[i].prestation = v; setEnfants(n); }}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent><SelectItem value="Cercueil">Cercueil</SelectItem><SelectItem value="Transport">Transport</SelectItem><SelectItem value="Inhumation">Inhumation</SelectItem></SelectContent>
@@ -813,7 +814,7 @@ export default function AdhesionPage() {
                       <div className="flex items-center justify-between"><span className="text-sm font-medium">{a.lien || `Ascendant ${i + 1}`}</span><Button size="icon" variant="ghost" onClick={() => setAscendants(ascendants.filter((_, j) => j !== i))}><Minus className="w-4 h-4" /></Button></div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                         <Input placeholder="Nom" value={a.nom} onChange={ev => { const n = [...ascendants]; n[i].nom = ev.target.value; setAscendants(n); }} />
-                        <Input type="date" value={a.dob} onChange={ev => { const n = [...ascendants]; n[i].dob = ev.target.value; setAscendants(n); }} />
+                        <DateInput value={a.dob} onChange={ev => { const n = [...ascendants]; n[i].dob = ev; setAscendants(n); }} />
                         <Select value={a.lien} onValueChange={v => { const n = [...ascendants]; n[i].lien = v; setAscendants(n); }}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent><SelectItem value="Père/Mère">Père/Mère</SelectItem><SelectItem value="Oncle/Tante">Oncle/Tante</SelectItem></SelectContent>
@@ -1011,7 +1012,7 @@ export default function AdhesionPage() {
                               </SelectContent>
                             </Select>
                           </div>
-                          <div><Label>Date souhaitée de prise d'effet</Label><Input type="date" value={groupeData.dateEffet} onChange={e => setGroupeData({...groupeData, dateEffet: e.target.value})} /></div>
+                          <div><Label>Date souhaitée de prise d'effet</Label><DateInput value={groupeData.dateEffet} onChange={e => setGroupeData({...groupeData, dateEffet: e})} /></div>
                           <div>
                             <Label>Durée / renouvellement</Label>
                             <Select value={groupeData.duree} onValueChange={v => setGroupeData({...groupeData, duree: v})}>
@@ -1113,7 +1114,7 @@ export default function AdhesionPage() {
                             <div className="flex items-center justify-between"><span className="text-xs font-medium">Membre {i + 1}</span><Button size="icon" variant="ghost" onClick={() => setGroupeMembers(groupeMembers.filter((_, j) => j !== i))}><Minus className="w-3 h-3" /></Button></div>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                               <Input placeholder="Nom & Prénoms" value={m.nom} onChange={e => { const n = [...groupeMembers]; n[i].nom = e.target.value; setGroupeMembers(n); }} className="col-span-2" />
-                              <Input type="date" value={m.dob} onChange={e => { const n = [...groupeMembers]; n[i].dob = e.target.value; setGroupeMembers(n); }} />
+                              <DateInput value={m.dob} onChange={e => { const n = [...groupeMembers]; n[i].dob = e; setGroupeMembers(n); }} />
                               <Select value={m.sexe} onValueChange={v => { const n = [...groupeMembers]; n[i].sexe = v; setGroupeMembers(n); }}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent><SelectItem value="M">Masculin</SelectItem><SelectItem value="F">Féminin</SelectItem></SelectContent>
