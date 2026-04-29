@@ -240,8 +240,12 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
                           {p.eligible ? <p className="font-semibold text-sm text-primary">{formatCFA(Math.round(p.pap))}</p> : <Badge variant="destructive" className="text-xs">Non éligible</Badge>}
                         </div>
                       ))}
+                      <div className="flex justify-between items-center py-2 border-b border-border text-sm">
+                        <div><p className="font-medium">Frais accessoires</p><p className="text-xs text-muted-foreground">Forfait annuel</p></div>
+                        <p className="font-semibold text-primary">{formatCFA(result.accessoires)}</p>
+                      </div>
                       <div className="border-t pt-3 flex justify-between font-bold text-primary text-base">
-                        <span>Prime annuelle</span><span>{formatCFA(result.primeAnnuelle)}</span>
+                        <span>PRIME ANNUELLE TOTALE (PTTC)</span><span>{formatCFA(result.primeAnnuelle)}</span>
                       </div>
                     </CardContent></Card>
                   </TabsContent>
