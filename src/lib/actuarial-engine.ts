@@ -182,10 +182,11 @@ export function simulatePrime(input: SimulationInput): SimulationResult {
   });
   const zMoyen = ascAges.length ? Math.round(ascAges.reduce((s,a)=>s+a,0)/ascAges.length) : undefined;
 
-  // Sum of pure commercial primes (PC) — without accessoire
+  // Per Excel reference table: each member's displayed prime = PC + ENC_A,
+  // and total PTTC = Σ(displayed) + ENC_A (one global accessoire line).
+  const sumDisplayed = persons.reduce((s, p) => s + (p.eligible ? p.primeAffichee : 0), 0);
   const sumPC = persons.reduce((s, p) => s + p.pap, 0);
-  // Total PTTC = sum(PC) + accessoire annuel (one global 2500)
-  const primeAnnuelle = sumPC + ENC_A;
+  const primeAnnuelle = sumDisplayed + ENC_A;
 
   const engagementGlobal = persons.reduce((s, p) => s + (p.eligible ? p.capital : 0), 0);
 
