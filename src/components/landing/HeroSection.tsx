@@ -40,7 +40,7 @@ const slides = [
 
 const stats = [
   { value: 15000, suffix: '+', label: 'Familles protégées' },
-  { value: 12, prefix: '< ', suffix: 'h', label: 'Délai de paiement' },
+  { value: 12, prefix: '< ', suffix: 'h', label: 'Délai de paiement', sub: 'après dépôt & analyse' },
   { value: 30, suffix: '%', label: 'Bonus Fidélité' },
   { value: 25, suffix: '+', label: "Années d'expérience" },
 ];
