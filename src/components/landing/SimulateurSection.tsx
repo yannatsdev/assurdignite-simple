@@ -237,7 +237,7 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
                       {result.persons.map((p, i) => (
                         <div key={i} className="flex justify-between items-center py-2 border-b border-border last:border-0">
                           <div><p className="font-medium text-sm">{p.label}</p><p className="text-xs text-muted-foreground">{p.age} ans – Capital : {formatCFA(p.capital)}</p></div>
-                          {p.eligible ? <p className="font-semibold text-sm text-primary">{formatCFA(Math.round(p.pap))}</p> : <Badge variant="destructive" className="text-xs">Non éligible</Badge>}
+                          {p.eligible ? <p className="font-semibold text-sm text-primary">{formatCFA(Math.round(p.primeAffichee))}</p> : <Badge variant="destructive" className="text-xs">Non éligible</Badge>}
                         </div>
                       ))}
                       <div className="flex justify-between items-center py-2 border-b border-border text-sm">
