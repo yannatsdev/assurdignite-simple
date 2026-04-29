@@ -1,6 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DateInput } from '@/components/ui/date-input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Upload, CheckCircle } from 'lucide-react';
@@ -68,7 +69,7 @@ export default function SinistrePage() {
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div><Label>Nom de l'assuré décédé</Label><Input value={form.nom_decede} onChange={e => setForm({ ...form, nom_decede: e.target.value })} placeholder="Nom complet" /></div>
-                <div><Label>Date du décès</Label><Input type="date" value={form.date_deces} onChange={e => setForm({ ...form, date_deces: e.target.value })} /></div>
+                <div><Label>Date du décès</Label><DateInput value={form.date_deces} onChange={e => setForm({ ...form, date_deces: e })} /></div>
               </div>
               <div><Label>Lieu du décès</Label><Input value={form.lieu_deces} onChange={e => setForm({ ...form, lieu_deces: e.target.value })} placeholder="Ville, quartier" /></div>
               <div><Label>Circonstances</Label><Textarea value={form.circonstances} onChange={e => setForm({ ...form, circonstances: e.target.value })} placeholder="Décrivez brièvement..." rows={3} /></div>
