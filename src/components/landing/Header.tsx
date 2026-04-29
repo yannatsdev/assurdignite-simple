@@ -30,13 +30,13 @@ export function Header() {
     <header className={`fixed top-0 left-0 right-0 z-50 transition-shadow duration-300 bg-background ${scrolled ? 'shadow-lg' : 'shadow-sm'}`}>
       {/* Top contact bar */}
       <div className="bg-primary text-white text-[11px] sm:text-sm">
-        <div className="container mx-auto px-3 sm:px-4 py-1.5 sm:py-0 sm:h-9 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
-            <a href="tel:+2252720317182" className="flex items-center gap-1.5 hover:text-secondary transition-colors">
+        <div className="container mx-auto px-3 sm:px-4 py-1.5 sm:py-0 sm:h-9 flex flex-col sm:flex-row items-center sm:justify-between gap-1 sm:gap-4 text-center sm:text-left">
+          <div className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-4">
+            <a href="tel:+2252720317182" className="flex items-center justify-center gap-1.5 hover:text-secondary transition-colors">
               <Phone className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
               <span className="truncate">+225 27 20 31 71 82</span>
             </a>
-            <a href="mailto:servicecommercialsonamvie@sonam.ci" className="flex items-center gap-1.5 hover:text-secondary transition-colors">
+            <a href="mailto:servicecommercialsonamvie@sonam.ci" className="flex items-center justify-center gap-1.5 hover:text-secondary transition-colors">
               <Mail className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
               <span className="truncate">servicecommercialsonamvie@sonam.ci</span>
             </a>

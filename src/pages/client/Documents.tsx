@@ -144,7 +144,7 @@ export default function DocumentsPage() {
       ['Méthode', (paiement.methode || '—').toString().replace('simulation_', 'Simulation ')],
       ['Date de paiement', formatDateFR(paiement.date_paiement)],
       ['Statut', paiement.status === 'paid' ? 'Payé' : (paiement.status || '—')],
-      ['Période couverte', `${formatDateFR(contract.date_effet)} → ${formatDateFR(contract.date_expiration)}`],
+      ['Période couverte', `Du ${formatDateFR(contract.date_effet)} au ${formatDateFR(contract.date_expiration)}`],
     ], y);
 
     y = pdfSection(doc, 'Bénéficiaires désignés', y);
@@ -192,7 +192,7 @@ export default function DocumentsPage() {
 
     y = pdfSection(doc, 'Détails du contrat', y);
     y = pdfKeyValueGrid(doc, [
-      ['Période de validité', `${formatDateFR(contract.date_effet)} → ${formatDateFR(contract.date_expiration)}`],
+      ['Période de validité', `Du ${formatDateFR(contract.date_effet)} au ${formatDateFR(contract.date_expiration)}`],
       ['Capital garanti', formatCFA(contract.capital_total)],
       ['Prime annuelle', formatCFA(contract.prime_annuelle)],
       ['Statut', 'Actif'],
@@ -328,7 +328,7 @@ export default function DocumentsPage() {
           <p>Souscripteur : {profile?.full_name || '—'}</p>
           <p>Formule : {contract.formule} — {FORMULE_NAMES[contract.formule]}</p>
           <p>Capital : {formatCFA(contract.capital_total)} — Prime : {formatCFA(contract.prime_annuelle)}</p>
-          <p>Période : {formatDateFR(contract.date_effet)} → {formatDateFR(contract.date_expiration)}</p>
+          <p>Période : du {formatDateFR(contract.date_effet)} au {formatDateFR(contract.date_expiration)}</p>
         </div>
       )}
     </div>

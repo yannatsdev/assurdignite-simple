@@ -233,6 +233,8 @@ export default function AdhesionPage() {
   // Step 13: Signature
   const [signed, setSigned] = useState(false);
   const [contractId, setContractId] = useState('');
+  const [policeNumber, setPoliceNumber] = useState('');
+  const [paymentRef, setPaymentRef] = useState('');
 
   const quoteDate = new Date().toISOString().slice(0, 10);
 
@@ -327,9 +329,10 @@ export default function AdhesionPage() {
 
   const handleSign = async () => {
     if (!user || !simResult) return;
-    const policeNumber = `POL-AD-${Date.now().toString(36).toUpperCase()}`;
+    const newPolice = `POL-AD-${Date.now().toString(36).toUpperCase()}`;
+    setPoliceNumber(newPolice);
     const { data, error } = await supabase.from('contracts').insert({
-      user_id: user.id, police_number: policeNumber, formule,
+      user_id: user.id, police_number: newPolice, formule,
       date_effet: quoteDate,
       date_expiration: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().slice(0, 10),
       prime_annuelle: simResult.primeAnnuelle,
@@ -354,10 +357,12 @@ export default function AdhesionPage() {
     for (const a of ascendants) {
       await supabase.from('assures_complementaires').insert({ contract_id: data.id, nom: a.nom, dob: a.dob || null, lien_parente: a.lien, prestation_nature: a.prestation, type_assure: 'ascendant' });
     }
-    await supabase.from('paiements').insert({ user_id: user.id, contract_id: data.id, montant: simResult.primeAnnuelle, methode: paymentMethod, status: 'paid', reference: `PAY-${Date.now().toString(36).toUpperCase()}` });
+    const newPayRef = `PAY-${Date.now().toString(36).toUpperCase()}`;
+    setPaymentRef(newPayRef);
+    await supabase.from('paiements').insert({ user_id: user.id, contract_id: data.id, montant: simResult.primeAnnuelle, methode: paymentMethod, status: 'paid', reference: newPayRef });
 
     setSigned(true);
-    toast({ title: 'Contrat signé !', description: `Votre contrat ${policeNumber} a été créé avec succès.` });
+    toast({ title: 'Contrat signé !', description: `Votre contrat ${newPolice} a été créé avec succès.` });
   };
 
   const formatDateFR = (d: string) => {
@@ -395,9 +400,13 @@ export default function AdhesionPage() {
     if (hasConjoint || enfants.length || ascendants.length) {
       y = pdfSection(doc, 'Assurés complémentaires', y);
       const rows: string[][] = [];
-      if (hasConjoint) rows.push([`${conjoint.prenom} ${conjoint.nom}`.trim(), 'Conjoint(e)', fmt(conjoint.dob)]);
-      enfants.forEach((e: any, i: number) => rows.push([`${e.prenom} ${e.nom}`.trim() || `Enfant ${i + 1}`, 'Enfant', fmt(e.dob)]));
-      ascendants.forEach((a: any, i: number) => rows.push([`${a.prenom} ${a.nom}`.trim() || `Ascendant ${i + 1}`, 'Ascendant', fmt(a.dob)]));
+      const fullName = (p: any, fallback: string) => {
+        const n = `${p?.prenom ?? ''} ${p?.nom ?? ''}`.replace(/\s+/g, ' ').trim();
+        return n || fallback;
+      };
+      if (hasConjoint) rows.push([fullName(conjoint, 'Conjoint(e)'), 'Conjoint(e)', fmt(conjoint.dob)]);
+      enfants.forEach((e: any, i: number) => rows.push([fullName(e, `Enfant ${i + 1}`), 'Enfant', fmt(e.dob)]));
+      ascendants.forEach((a: any, i: number) => rows.push([fullName(a, `Ascendant ${i + 1}`), a.lien || 'Ascendant', fmt(a.dob)]));
       y = pdfTable(doc, ['Nom & prénom', 'Lien', 'Né(e) le'], rows, y, [85, 50, 45]);
     }
 
@@ -422,6 +431,94 @@ export default function AdhesionPage() {
 
     pdfFooter(doc);
     doc.save(`AssurDignite_Recu_${quoteDate}.pdf`);
+  };
+
+  const generatePolicePDF = async () => {
+    if (!simResult) return;
+    const { newPdf, pdfHeader, pdfTitle, pdfSection, pdfKeyValueGrid, pdfTable, pdfFooter, formatDateFR: fmt, FORMULE_NAMES, SONAM_BRAND } = await import('@/lib/pdf-shared');
+    const doc = newPdf();
+    pdfHeader(doc, "Police d'assurance obsèques");
+    let y = 52;
+    y = pdfTitle(doc, "POLICE D'ASSURANCE", y, `N° ${policeNumber}`);
+    y = pdfSection(doc, '1. Souscripteur', y);
+    y = pdfKeyValueGrid(doc, [
+      ['Nom & prénom', `${kyc.prenom} ${kyc.nom}`.trim() || '—'],
+      ['Email', user?.email || '—'],
+      ['Téléphone', kyc.phone || '—'],
+      ['Date de naissance', fmt(kyc.dob || simPrincipalDob)],
+      ['CNI', kyc.cni || '—'],
+      ['Adresse', kyc.adresse || '—'],
+    ], y);
+    y = pdfSection(doc, '2. Formule & garanties', y);
+    y = pdfKeyValueGrid(doc, [
+      ['Formule', `${formule} — ${FORMULE_NAMES[formule] || ''}`],
+      ['Capital garanti', formatCFA(simResult.capitaux.principal)],
+      ['Prime annuelle', formatCFA(simResult.primeAnnuelle)],
+      ['Date d\u2019effet', fmt(quoteDate)],
+      ['Date d\u2019expiration', fmt(new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().slice(0, 10))],
+      ['Couverture', '70% prestations en nature + 30% capital espèces'],
+    ], y);
+    if (hasConjoint || enfants.length || ascendants.length) {
+      y = pdfSection(doc, '3. Assurés complémentaires', y);
+      const fullName = (p: any, fb: string) => (`${p?.prenom ?? ''} ${p?.nom ?? ''}`.replace(/\s+/g, ' ').trim() || fb);
+      const rows: string[][] = [];
+      if (hasConjoint) rows.push([fullName(conjoint, 'Conjoint(e)'), 'Conjoint(e)', fmt(conjoint.dob)]);
+      enfants.forEach((e: any, i: number) => rows.push([fullName(e, `Enfant ${i + 1}`), 'Enfant', fmt(e.dob)]));
+      ascendants.forEach((a: any, i: number) => rows.push([fullName(a, `Ascendant ${i + 1}`), a.lien || 'Ascendant', fmt(a.dob)]));
+      y = pdfTable(doc, ['Nom & prénom', 'Lien', 'Né(e) le'], rows, y, [85, 50, 45]);
+    }
+    if (beneficiaires.filter((b: any) => b.nom).length) {
+      y = pdfSection(doc, '4. Bénéficiaires désignés', y);
+      y = pdfTable(doc, ['Nom', 'Lien', 'Téléphone'],
+        beneficiaires.filter((b: any) => b.nom).map((b: any) => [b.nom, b.lien || '—', b.telephone || '—']),
+        y, [80, 60, 40]);
+    }
+    if (y > 235) { doc.addPage(); pdfHeader(doc); y = 52; }
+    y = pdfSection(doc, '5. Signatures', y);
+    doc.setFontSize(9); doc.setTextColor(110);
+    doc.text('Fait à Abidjan, le ' + new Date().toLocaleDateString('fr-FR'), 18, y); y += 14;
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(74, 14, 120);
+    doc.text('Le Souscripteur', 30, y);
+    doc.text('La Direction Générale', 140, y);
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(33, 24, 48);
+    doc.text(`${kyc.prenom} ${kyc.nom}`.trim() || '—', 30, y + 18);
+    doc.text(SONAM_BRAND.name, 140, y + 18);
+    if (canvasRef.current && hasSignature) {
+      try { doc.addImage(canvasRef.current.toDataURL('image/png'), 'PNG', 25, y + 4, 50, 18); } catch {}
+    }
+    pdfFooter(doc);
+    doc.save(`Police_AssurDignite_${policeNumber}.pdf`);
+  };
+
+  const generateAttestationPDF = async () => {
+    if (!simResult) return;
+    const { newPdf, pdfHeader, pdfTitle, pdfSection, pdfKeyValueGrid, pdfFooter, formatDateFR: fmt, FORMULE_NAMES, SONAM_BRAND } = await import('@/lib/pdf-shared');
+    const doc = newPdf();
+    pdfHeader(doc, "Attestation d'assurance");
+    let y = 56;
+    y = pdfTitle(doc, "ATTESTATION D'ASSURANCE", y, `Police N° ${policeNumber}`);
+    doc.setFontSize(11); doc.setFont('helvetica', 'normal'); doc.setTextColor(33, 24, 48);
+    const txt = `Nous, SONAM VIE S.A., attestons par la présente que ${`${kyc.prenom} ${kyc.nom}`.trim() || "l'assuré"} est titulaire du contrat d'assurance obsèques AssurDignité, Formule ${formule} — ${FORMULE_NAMES[formule] || ''}, sous le numéro de police ${policeNumber}.`;
+    const split = doc.splitTextToSize(txt, 175);
+    doc.text(split, 18, y); y += split.length * 6 + 6;
+    y = pdfSection(doc, 'Détails du contrat', y);
+    const expiry = new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().slice(0, 10);
+    y = pdfKeyValueGrid(doc, [
+      ['Période de validité', `Du ${fmt(quoteDate)} au ${fmt(expiry)}`],
+      ['Capital garanti', formatCFA(simResult.capitaux.principal)],
+      ['Prime annuelle', formatCFA(simResult.primeAnnuelle)],
+      ['Statut', 'Actif'],
+    ], y);
+    y += 8;
+    doc.setFontSize(10);
+    doc.text('Fait à Abidjan, le ' + new Date().toLocaleDateString('fr-FR'), 18, y);
+    y += 18;
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(74, 14, 120);
+    doc.text('La Direction Générale', 130, y);
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(33, 24, 48);
+    doc.text(SONAM_BRAND.name, 130, y + 6);
+    pdfFooter(doc);
+    doc.save(`Attestation_AssurDignite_${policeNumber}.pdf`);
   };
 
   const next = () => setStep(Math.min(step + 1, STEPS.length - 1));
@@ -1204,8 +1301,12 @@ export default function AdhesionPage() {
                         </div>
                       </motion.div>
                       <h3 className="text-2xl font-bold font-display text-secondary">Contrat signé avec succès !</h3>
-                      <p className="text-muted-foreground">Votre contrat AssurDignité a été créé. Téléchargez votre reçu ci-dessous.</p>
-                      <Button onClick={generatePDF} className="gap-2"><Download className="w-4 h-4" /> Télécharger le reçu PDF</Button>
+                      <p className="text-muted-foreground">Votre contrat AssurDignité a été créé. Téléchargez vos documents officiels ci-dessous.</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 max-w-2xl mx-auto">
+                        <Button onClick={generatePolicePDF} className="gap-2"><Download className="w-4 h-4" /> Police PDF</Button>
+                        <Button onClick={generateAttestationPDF} variant="secondary" className="gap-2"><Download className="w-4 h-4" /> Attestation PDF</Button>
+                        <Button onClick={generatePDF} variant="outline" className="gap-2"><Download className="w-4 h-4" /> Reçu PDF</Button>
+                      </div>
                     </div>
                   )}
                 </div>
