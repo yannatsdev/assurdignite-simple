@@ -444,7 +444,7 @@ export default function AdhesionPage() {
     y = pdfKeyValueGrid(doc, [
       ['Nom & prénom', `${kyc.prenom} ${kyc.nom}`.trim() || '—'],
       ['Email', user?.email || '—'],
-      ['Téléphone', kyc.telephone || '—'],
+      ['Téléphone', kyc.phone || '—'],
       ['Date de naissance', fmt(kyc.dob || simPrincipalDob)],
       ['CNI', kyc.cni || '—'],
       ['Adresse', kyc.adresse || '—'],
