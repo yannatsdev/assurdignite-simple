@@ -129,6 +129,7 @@ export function HeroSection() {
               <motion.div key={i} whileHover={{ scale: 1.05 }} className="text-center bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/10">
                 <AnimatedCounter value={stat.value} prefix={stat.prefix} suffix={stat.suffix} />
                 <p className="text-white/80 text-sm sm:text-base mt-1">{stat.label}</p>
+                {(stat as any).sub && <p className="text-white/60 text-[11px] sm:text-xs mt-0.5">{(stat as any).sub}</p>}
               </motion.div>
             ))}
           </motion.div>
