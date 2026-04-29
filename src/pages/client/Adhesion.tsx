@@ -233,6 +233,8 @@ export default function AdhesionPage() {
   // Step 13: Signature
   const [signed, setSigned] = useState(false);
   const [contractId, setContractId] = useState('');
+  const [policeNumber, setPoliceNumber] = useState('');
+  const [paymentRef, setPaymentRef] = useState('');
 
   const quoteDate = new Date().toISOString().slice(0, 10);
 
@@ -327,9 +329,10 @@ export default function AdhesionPage() {
 
   const handleSign = async () => {
     if (!user || !simResult) return;
-    const policeNumber = `POL-AD-${Date.now().toString(36).toUpperCase()}`;
+    const newPolice = `POL-AD-${Date.now().toString(36).toUpperCase()}`;
+    setPoliceNumber(newPolice);
     const { data, error } = await supabase.from('contracts').insert({
-      user_id: user.id, police_number: policeNumber, formule,
+      user_id: user.id, police_number: newPolice, formule,
       date_effet: quoteDate,
       date_expiration: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().slice(0, 10),
       prime_annuelle: simResult.primeAnnuelle,
@@ -354,10 +357,12 @@ export default function AdhesionPage() {
     for (const a of ascendants) {
       await supabase.from('assures_complementaires').insert({ contract_id: data.id, nom: a.nom, dob: a.dob || null, lien_parente: a.lien, prestation_nature: a.prestation, type_assure: 'ascendant' });
     }
-    await supabase.from('paiements').insert({ user_id: user.id, contract_id: data.id, montant: simResult.primeAnnuelle, methode: paymentMethod, status: 'paid', reference: `PAY-${Date.now().toString(36).toUpperCase()}` });
+    const newPayRef = `PAY-${Date.now().toString(36).toUpperCase()}`;
+    setPaymentRef(newPayRef);
+    await supabase.from('paiements').insert({ user_id: user.id, contract_id: data.id, montant: simResult.primeAnnuelle, methode: paymentMethod, status: 'paid', reference: newPayRef });
 
     setSigned(true);
-    toast({ title: 'Contrat signé !', description: `Votre contrat ${policeNumber} a été créé avec succès.` });
+    toast({ title: 'Contrat signé !', description: `Votre contrat ${newPolice} a été créé avec succès.` });
   };
 
   const formatDateFR = (d: string) => {
