@@ -219,7 +219,7 @@ export default function DocumentsPage() {
     const articles: [string, string][] = [
       ['Article 1 — Objet', "Le présent contrat a pour objet la garantie par SONAM VIE du versement d'un capital décès en cas de décès de l'assuré principal ou de l'un des assurés complémentaires. La garantie se décompose en 70% de prestations en nature et 30% en capital espèces."],
       ["Article 2 — Conditions d'adhésion", "L'adhésion est ouverte à toute personne physique résidant en Côte d'Ivoire ou dans la zone CIMA, âgée de 18 à 64 ans (principal), 0 à 21 ans (enfants) et 0 à 79 ans (ascendants)."],
-      ['Article 3 — Prestations', "En cas de décès, SONAM VIE fournit : cercueil, conservation du corps, transport funéraire, cérémonie d'inhumation (70%) et versement de 30% en espèces aux bénéficiaires, en moins de 12 heures."],
+      ['Article 3 — Prestations', "En cas de décès, SONAM VIE fournit : cercueil, conservation du corps, transport funéraire, cérémonie d'inhumation (70%) et versement de 30% en espèces aux bénéficiaires, en moins de 12 heures après dépôt et analyse des pièces justificatives."],
       ['Article 4 — Exclusions', 'Suicide dans les 2 premières années, faits de guerre, actes terroristes, participation volontaire à des actes criminels, fausses déclarations.'],
       ['Article 5 — Obligations', "Payer la prime annuelle, déclarer tout changement familial, fournir des informations exactes. Toute fausse déclaration entraîne la nullité du contrat."],
       ['Article 6 — Bonus Fidélité-Santé', "Aucun sinistre pendant 3 ans = bonus de 30% des primes nettes cumulées."],
