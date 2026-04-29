@@ -11,12 +11,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, ArrowRight, Check, Calculator, Users, FileText, Heart, Shield, CreditCard, PenTool, Download, Plus, Minus, AlertCircle, Building2, Upload, X, Camera, Banknote } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Calculator, Users, FileText, Heart, Shield, CreditCard, PenTool, Download, Plus, Minus, AlertCircle, Building2, Upload, X, Camera, Banknote, ScanFace, ShieldCheck } from 'lucide-react';
 import { simulatePrime, formatCFA, OPTIONS_CAPITALS, type OptionKey, type SimulationResult } from '@/lib/actuarial-engine';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
+import { KycWizard, type KycResult } from '@/components/kyc/KycWizard';
 
 const STEPS = [
   'Simulation', 'Choix Formule', 'KYC Principal', 'Conjoint', 'Assurés Complémentaires',
@@ -180,8 +181,17 @@ export default function AdhesionPage() {
 
   // Step 2: KYC
   const [kyc, setKyc] = useState({ nom: '', prenom: '', dob: '', email: '', phone: '', adresse: '', cni: '' });
-  const [kycFiles, setKycFiles] = useState<{ cni?: string; photo?: string; domicile?: string; cniConjoint?: string; photoConjoint?: string }>({});
+  const [kycFiles, setKycFiles] = useState<{
+    cni?: string; cniVerso?: string; photo?: string; domicile?: string;
+    cniConjoint?: string; cniVersoConjoint?: string; photoConjoint?: string;
+    livenessFrames?: string[]; livenessFramesConjoint?: string[];
+    docType?: string; livenessScore?: number; verifiedAt?: string;
+    docTypeConjoint?: string; livenessScoreConjoint?: number; verifiedAtConjoint?: string;
+  }>({});
   const [uploadingFile, setUploadingFile] = useState<string | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardConjointOpen, setWizardConjointOpen] = useState(false);
+  const [verifying, setVerifying] = useState<'principal' | 'conjoint' | null>(null);
 
   // Step 3: Conjoint
   const [hasConjoint, setHasConjoint] = useState(false);
@@ -250,6 +260,59 @@ export default function AdhesionPage() {
     if (error) { toast({ title: 'Erreur upload', description: error.message, variant: 'destructive' }); }
     else { setKycFiles(prev => ({ ...prev, [type]: path })); toast({ title: 'Document uploadé ✓' }); }
     setUploadingFile(null);
+  };
+
+  // Upload a single Blob silently (used by wizard) and return path
+  const uploadBlob = async (blob: Blob, type: string): Promise<string | null> => {
+    if (!user) return null;
+    const path = `${user.id}/${type}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.jpg`;
+    const { error } = await supabase.storage.from('kyc-documents').upload(path, blob, {
+      contentType: 'image/jpeg',
+      upsert: false,
+    });
+    if (error) {
+      toast({ title: 'Erreur upload', description: error.message, variant: 'destructive' });
+      return null;
+    }
+    return path;
+  };
+
+  const handleWizardComplete = async (r: KycResult, target: 'principal' | 'conjoint') => {
+    setVerifying(target);
+    const prefix = target === 'conjoint' ? 'conjoint_' : '';
+    const [recto, verso, selfie, ...frames] = await Promise.all([
+      uploadBlob(r.cniRecto, `${prefix}cni_recto`),
+      uploadBlob(r.cniVerso, `${prefix}cni_verso`),
+      uploadBlob(r.selfie, `${prefix}selfie`),
+      ...r.livenessFrames.map((f, i) => uploadBlob(f, `${prefix}liveness_${i}`)),
+    ]);
+    const okFrames = frames.filter(Boolean) as string[];
+
+    setKycFiles(prev =>
+      target === 'conjoint'
+        ? {
+            ...prev,
+            cniConjoint: recto || prev.cniConjoint,
+            cniVersoConjoint: verso || prev.cniVersoConjoint,
+            photoConjoint: selfie || prev.photoConjoint,
+            livenessFramesConjoint: okFrames,
+            docTypeConjoint: r.docType,
+            livenessScoreConjoint: r.livenessScore,
+            verifiedAtConjoint: new Date().toISOString(),
+          }
+        : {
+            ...prev,
+            cni: recto || prev.cni,
+            cniVerso: verso || prev.cniVerso,
+            photo: selfie || prev.photo,
+            livenessFrames: okFrames,
+            docType: r.docType,
+            livenessScore: r.livenessScore,
+            verifiedAt: new Date().toISOString(),
+          },
+    );
+    setVerifying(null);
+    toast({ title: 'Identité vérifiée ✓', description: `Score de présence : ${(r.livenessScore * 100).toFixed(0)}%` });
   };
 
   const handleSimulate = () => {
@@ -678,64 +741,68 @@ export default function AdhesionPage() {
                   </div>
                   <div><Label>Adresse complète</Label><Input value={kyc.adresse} onChange={e => setKyc({ ...kyc, adresse: e.target.value })} /></div>
 
-                  <div className="border-t pt-4 mt-4">
-                    <h4 className="font-semibold font-display mb-3 flex items-center gap-2"><Upload className="w-4 h-4" /> Documents justificatifs</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {/* CNI upload */}
-                      <div className="space-y-2">
-                        <Label className="text-sm">Pièce d'identité (CNI/Passeport) *</Label>
-                        <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${kycFiles.cni ? 'border-sonam-green bg-sonam-green/5' : 'border-border hover:border-primary/50'}`}>
-                          {kycFiles.cni ? (
-                            <div className="flex items-center justify-center gap-2">
-                              <Check className="w-4 h-4 text-sonam-green" />
-                              <span className="text-sm text-sonam-green font-medium">Uploadé</span>
-                              <button onClick={() => setKycFiles(prev => { const n = { ...prev }; delete n.cni; return n; })} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button>
-                            </div>
-                          ) : (
-                            <label className="cursor-pointer">
-                              {uploadingFile === 'cni' ? (
-                                <div className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /><span className="text-xs">Upload...</span></div>
-                              ) : (
-                                <><Upload className="w-6 h-6 mx-auto text-muted-foreground mb-1" /><p className="text-xs text-muted-foreground">Cliquez pour uploader</p><p className="text-xs text-muted-foreground/60">PNG, JPG ou PDF (max 5 Mo)</p></>
-                              )}
-                              <input type="file" accept="image/*,.pdf" className="hidden" onChange={e => e.target.files?.[0] && handleKycUpload(e.target.files[0], 'cni')} />
-                            </label>
-                          )}
+                  <div className="border-t pt-5 mt-2">
+                    <div className="rounded-3xl overflow-hidden bg-gradient-to-br from-primary/95 via-primary to-[hsl(var(--sonam-blue))] p-6 sm:p-7 text-white relative">
+                      <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 80% 0%, white 0%, transparent 45%)' }} />
+                      <div className="relative">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center animate-pulse-glow">
+                            <ShieldCheck className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <h4 className="font-display text-xl font-bold">Vérification d'identité</h4>
+                            <p className="text-xs text-white/80">Scan sécurisé de votre CNI + vérification de présence</p>
+                          </div>
                         </div>
-                      </div>
-
-                      {/* Photo — Camera selfie */}
-                      <div className="space-y-2">
-                        <Label className="text-sm">Prendre une photo (selfie) *</Label>
-                        <CameraSelfie
-                          existingFile={kycFiles.photo}
-                          uploading={uploadingFile === 'photo'}
-                          onCapture={blob => handleKycUpload(blob, 'photo')}
-                          onRemove={() => setKycFiles(prev => { const n = { ...prev }; delete n.photo; return n; })}
-                        />
-                      </div>
-
-                      {/* Domicile upload */}
-                      <div className="space-y-2">
-                        <Label className="text-sm">Justificatif de domicile</Label>
-                        <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${kycFiles.domicile ? 'border-sonam-green bg-sonam-green/5' : 'border-border hover:border-primary/50'}`}>
-                          {kycFiles.domicile ? (
-                            <div className="flex items-center justify-center gap-2">
-                              <Check className="w-4 h-4 text-sonam-green" />
-                              <span className="text-sm text-sonam-green font-medium">Uploadé</span>
-                              <button onClick={() => setKycFiles(prev => { const n = { ...prev }; delete n.domicile; return n; })} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button>
+                        {kycFiles.cni && kycFiles.photo ? (
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-sm bg-white/10 rounded-xl px-4 py-3">
+                              <Check className="w-5 h-5 text-[hsl(var(--sonam-green))]" />
+                              <div className="flex-1">
+                                <p className="font-medium">Identité vérifiée</p>
+                                <p className="text-xs text-white/70">
+                                  Score de présence : {kycFiles.livenessScore ? `${(kycFiles.livenessScore * 100).toFixed(0)}%` : '—'}
+                                </p>
+                              </div>
+                              <Button size="sm" variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20" onClick={() => setWizardOpen(true)}>
+                                Refaire
+                              </Button>
                             </div>
-                          ) : (
-                            <label className="cursor-pointer">
-                              {uploadingFile === 'domicile' ? (
-                                <div className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /><span className="text-xs">Upload...</span></div>
-                              ) : (
-                                <><Upload className="w-6 h-6 mx-auto text-muted-foreground mb-1" /><p className="text-xs text-muted-foreground">Cliquez pour uploader</p><p className="text-xs text-muted-foreground/60">PNG, JPG ou PDF (max 5 Mo)</p></>
-                              )}
-                              <input type="file" accept="image/*,.pdf" className="hidden" onChange={e => e.target.files?.[0] && handleKycUpload(e.target.files[0], 'domicile')} />
-                            </label>
-                          )}
-                        </div>
+                          </div>
+                        ) : (
+                          <Button
+                            onClick={() => setWizardOpen(true)}
+                            disabled={verifying === 'principal'}
+                            size="lg"
+                            className="w-full h-14 rounded-2xl text-base font-semibold bg-white text-primary hover:bg-white/90 gap-2"
+                          >
+                            <ScanFace className="w-5 h-5" />
+                            {verifying === 'principal' ? 'Téléversement…' : 'Démarrer la vérification'}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Justificatif de domicile (still classique) */}
+                    <div className="mt-4 space-y-2">
+                      <Label className="text-sm">Justificatif de domicile (facultatif)</Label>
+                      <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${kycFiles.domicile ? 'border-sonam-green bg-sonam-green/5' : 'border-border hover:border-primary/50'}`}>
+                        {kycFiles.domicile ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <Check className="w-4 h-4 text-sonam-green" />
+                            <span className="text-sm text-sonam-green font-medium">Uploadé</span>
+                            <button onClick={() => setKycFiles(prev => { const n = { ...prev }; delete n.domicile; return n; })} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button>
+                          </div>
+                        ) : (
+                          <label className="cursor-pointer">
+                            {uploadingFile === 'domicile' ? (
+                              <div className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /><span className="text-xs">Upload...</span></div>
+                            ) : (
+                              <><Upload className="w-6 h-6 mx-auto text-muted-foreground mb-1" /><p className="text-xs text-muted-foreground">Cliquez pour uploader</p><p className="text-xs text-muted-foreground/60">PNG, JPG ou PDF (max 5 Mo)</p></>
+                            )}
+                            <input type="file" accept="image/*,.pdf" className="hidden" onChange={e => e.target.files?.[0] && handleKycUpload(e.target.files[0], 'domicile')} />
+                          </label>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -756,29 +823,28 @@ export default function AdhesionPage() {
                         <div><Label>Prénom</Label><Input value={conjoint.prenom} onChange={e => setConjoint({ ...conjoint, prenom: e.target.value })} /></div>
                         <div><Label>Date de naissance</Label><DateInput value={conjoint.dob} onChange={e => setConjoint({ ...conjoint, dob: e })} /></div>
                       </div>
-                      {/* Conjoint CNI */}
-                      <div className="space-y-2">
-                        <Label className="text-sm">Pièce d'identité du conjoint (CNI/Passeport) *</Label>
-                        <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${kycFiles.cniConjoint ? 'border-sonam-green bg-sonam-green/5' : 'border-border hover:border-primary/50'}`}>
-                          {kycFiles.cniConjoint ? (
-                            <div className="flex items-center justify-center gap-2"><Check className="w-4 h-4 text-sonam-green" /><span className="text-sm text-sonam-green font-medium">Uploadé</span><button onClick={() => setKycFiles(prev => { const n = { ...prev }; delete n.cniConjoint; return n; })} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button></div>
-                          ) : (
-                            <label className="cursor-pointer">
-                              {uploadingFile === 'cniConjoint' ? <div className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /><span className="text-xs">Upload...</span></div> : <><Upload className="w-6 h-6 mx-auto text-muted-foreground mb-1" /><p className="text-xs text-muted-foreground">Cliquez pour uploader (PNG, JPG, PDF)</p></>}
-                              <input type="file" accept="image/*,.pdf" className="hidden" onChange={e => e.target.files?.[0] && handleKycUpload(e.target.files[0], 'cniConjoint')} />
-                            </label>
-                          )}
+                      <div className="rounded-3xl overflow-hidden bg-gradient-to-br from-primary/95 via-primary to-[hsl(var(--sonam-blue))] p-5 text-white relative">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center"><ShieldCheck className="w-5 h-5" /></div>
+                          <div>
+                            <h4 className="font-display font-bold">Vérification d'identité du conjoint</h4>
+                            <p className="text-xs text-white/80">Scan CNI + vérification de présence</p>
+                          </div>
                         </div>
-                      </div>
-                      {/* Conjoint Photo selfie */}
-                      <div className="space-y-2">
-                        <Label className="text-sm">Photo du conjoint (selfie) *</Label>
-                        <CameraSelfie
-                          existingFile={kycFiles.photoConjoint}
-                          uploading={uploadingFile === 'photoConjoint'}
-                          onCapture={blob => handleKycUpload(blob, 'photoConjoint')}
-                          onRemove={() => setKycFiles(prev => { const n = { ...prev }; delete n.photoConjoint; return n; })}
-                        />
+                        {kycFiles.cniConjoint && kycFiles.photoConjoint ? (
+                          <div className="flex items-center gap-2 text-sm bg-white/10 rounded-xl px-4 py-3">
+                            <Check className="w-5 h-5 text-[hsl(var(--sonam-green))]" />
+                            <div className="flex-1">
+                              <p className="font-medium">Identité vérifiée</p>
+                              <p className="text-xs text-white/70">Score : {kycFiles.livenessScoreConjoint ? `${(kycFiles.livenessScoreConjoint * 100).toFixed(0)}%` : '—'}</p>
+                            </div>
+                            <Button size="sm" variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20" onClick={() => setWizardConjointOpen(true)}>Refaire</Button>
+                          </div>
+                        ) : (
+                          <Button onClick={() => setWizardConjointOpen(true)} disabled={verifying === 'conjoint'} size="lg" className="w-full h-12 rounded-2xl font-semibold bg-white text-primary hover:bg-white/90 gap-2">
+                            <ScanFace className="w-5 h-5" /> {verifying === 'conjoint' ? 'Téléversement…' : 'Démarrer la vérification'}
+                          </Button>
+                        )}
                       </div>
                     </div>
                   )}
@@ -1332,6 +1398,19 @@ export default function AdhesionPage() {
           </Button>
         )}
       </div>
+
+      <KycWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        onComplete={(r) => handleWizardComplete(r, 'principal')}
+        title="Vérification d'identité"
+      />
+      <KycWizard
+        open={wizardConjointOpen}
+        onOpenChange={setWizardConjointOpen}
+        onComplete={(r) => handleWizardComplete(r, 'conjoint')}
+        title="Vérification du conjoint"
+      />
     </div>
   );
 }
