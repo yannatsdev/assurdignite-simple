@@ -32,7 +32,7 @@ const testimonials = [
 
 const statsItems = [
   { value: '15 000+', label: 'Familles protégées' },
-  { value: '< 12h', label: 'Délai de paiement', sub: 'après dépôt & analyse des pièces' },
+  { value: '< 12h', label: 'Délai de paiement' },
   { value: '25+', label: 'Années d\'expérience' },
   { value: '98%', label: 'Taux de satisfaction' },
 ];
@@ -82,7 +82,6 @@ const Index = () => {
                 className="text-center">
                 <p className="text-4xl sm:text-5xl font-bold font-display">{stat.value}</p>
                 <p className="text-base text-white/80 mt-2">{stat.label}</p>
-                {(stat as any).sub && <p className="text-xs text-white/60 mt-1">{(stat as any).sub}</p>}
               </motion.div>
             ))}
           </div>

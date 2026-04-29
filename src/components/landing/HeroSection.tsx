@@ -13,7 +13,7 @@ const slides = [
     badge: "Assurance Obsèques par SONAM VIE",
     title: "Votre Assurance Obsèques",
     highlight: "SONAM VIE",
-    desc: "Choisissez votre niveau de protection. Chaque formule offre une répartition de 70 % en prestations en nature et 30 % en capital espèces, avec un paiement en moins de 12 heures après dépôt et analyse des pièces.",
+    desc: "Choisissez votre niveau de protection. Chaque formule offre une répartition de 70 % en prestations en nature et 30 % en capital espèces, avec un paiement en moins de 12 heures.",
   },
   {
     img: heroImg2,
@@ -34,13 +34,13 @@ const slides = [
     badge: "L'héritage qui rassure",
     title: "Préservez la dignité",
     highlight: "de vos proches",
-    desc: "70 % en prestations funéraires complètes et 30 % en capital espèces versé aux bénéficiaires en moins de 12 heures après dépôt et analyse des pièces.",
+    desc: "70 % en prestations funéraires complètes et 30 % en capital espèces versé en moins de 12 heures aux bénéficiaires.",
   },
 ];
 
 const stats = [
   { value: 15000, suffix: '+', label: 'Familles protégées' },
-  { value: 12, prefix: '< ', suffix: 'h', label: 'Délai de paiement', sub: 'après dépôt & analyse' },
+  { value: 12, prefix: '< ', suffix: 'h', label: 'Délai de paiement' },
   { value: 30, suffix: '%', label: 'Bonus Fidélité' },
   { value: 25, suffix: '+', label: "Années d'expérience" },
 ];
@@ -80,7 +80,7 @@ export function HeroSection() {
   const slide = slides[index];
 
   return (
-    <section id="accueil" className="relative min-h-screen flex items-center overflow-hidden pt-44 sm:pt-44 md:pt-52 lg:pt-60">
+    <section id="accueil" className="relative min-h-screen flex items-center overflow-hidden pt-40 sm:pt-36 md:pt-32">
       <div className="absolute inset-0">
         <AnimatePresence mode="wait">
           <motion.div
@@ -98,7 +98,7 @@ export function HeroSection() {
       </div>
 
       <div className="container mx-auto px-4 relative z-10 pb-16">
-        <div className="max-w-3xl mt-4 md:mt-10 lg:mt-14">
+        <div className="max-w-3xl">
           <AnimatePresence mode="wait">
             <motion.div key={index} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.7 }}>
               <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm text-white/90 text-base font-semibold mb-6">
@@ -129,7 +129,6 @@ export function HeroSection() {
               <motion.div key={i} whileHover={{ scale: 1.05 }} className="text-center bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/10">
                 <AnimatedCounter value={stat.value} prefix={stat.prefix} suffix={stat.suffix} />
                 <p className="text-white/80 text-sm sm:text-base mt-1">{stat.label}</p>
-                {(stat as any).sub && <p className="text-white/60 text-[11px] sm:text-xs mt-0.5">{(stat as any).sub}</p>}
               </motion.div>
             ))}
           </motion.div>

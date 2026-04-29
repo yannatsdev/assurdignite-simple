@@ -6,7 +6,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { DateInput } from '@/components/ui/date-input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
@@ -239,11 +238,11 @@ export default function AdminFraude() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-3 rounded-lg bg-muted/40 border border-border">
             <div className="space-y-1">
               <Label className="text-xs">Du</Label>
-              <DateInput value={filterFrom} onChange={(e) => setFilterFrom(e)} className="h-9" />
+              <Input type="date" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} className="h-9" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Au</Label>
-              <DateInput value={filterTo} onChange={(e) => setFilterTo(e)} className="h-9" />
+              <Input type="date" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} className="h-9" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Type d'alerte</Label>

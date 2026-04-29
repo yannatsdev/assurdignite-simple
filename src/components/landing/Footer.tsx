@@ -22,10 +22,9 @@ export function Footer() {
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 mb-12">
           <div>
-            <div className="inline-flex items-center gap-3 mb-4 bg-white rounded-xl px-4 py-3 shadow-md">
-              <img src={logoSonam} alt="SONAM VIE" className="h-12 w-auto object-contain" loading="eager" decoding="async" />
-              <span className="h-10 w-px bg-border" aria-hidden />
-              <img src={logoAssurDignite} alt="AssurDignité" className="h-10 w-auto object-contain" loading="eager" decoding="async" />
+            <div className="flex items-center gap-3 mb-4">
+              <img src={logoSonam} alt="SONAM VIE" className="h-10 object-contain" />
+              <img src={logoAssurDignite} alt="AssurDignité" className="h-8 object-contain" />
             </div>
             <p className="text-white/70 text-sm leading-relaxed">AssurDignité est un produit d'assurance obsèques de SONAM VIE, offrant une couverture complète pour protéger votre famille dans les moments difficiles.</p>
           </div>
