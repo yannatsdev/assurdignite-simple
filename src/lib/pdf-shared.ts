@@ -99,28 +99,29 @@ export function pdfKeyValueGrid(
   options: { columns?: 1 | 2; rowHeight?: number } = {}
 ) {
   const cols = options.columns ?? 2;
-  const rowHeight = options.rowHeight ?? 8;
+  const rowHeight = options.rowHeight ?? 13;
   const colWidth = (PAGE_W - 30) / cols;
-  doc.setFontSize(9.5);
   rows.forEach((row, i) => {
     const colIndex = i % cols;
     const rowIndex = Math.floor(i / cols);
     const x = 15 + colIndex * colWidth;
-    const yy = y + rowIndex * rowHeight;
+    const yy = y + rowIndex * rowHeight + 4.5;
     if (rowIndex % 2 === 0) {
       doc.setFillColor(248, 245, 252);
-      doc.rect(x, yy - 4.5, colWidth - 2, rowHeight, 'F');
+      doc.rect(x, yy - 4.5, colWidth - 2, rowHeight - 1, 'F');
     }
     doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
     doc.setTextColor(...MUTED);
-    doc.text(row[0], x + 3, yy);
+    doc.text(String(row[0] ?? '').toUpperCase(), x + 3, yy);
     doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
     doc.setTextColor(...TEXT);
     const value = doc.splitTextToSize(row[1] ?? '—', colWidth - 6);
-    doc.text(value[0] ?? '—', x + 3, yy + 4);
+    doc.text(value[0] ?? '—', x + 3, yy + 5.5);
   });
   const totalRows = Math.ceil(rows.length / cols);
-  return y + totalRows * rowHeight + 4;
+  return y + totalRows * rowHeight + 6;
 }
 
 export function pdfTable(
