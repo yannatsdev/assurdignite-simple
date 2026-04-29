@@ -112,7 +112,7 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div><Label>Date de souscription</Label><DateInput value={quoteDate} onChange={e => setQuoteDate(e.target.value)} /></div>
+                <div><Label>Date de souscription</Label><DateInput value={quoteDate} onChange={e => setQuoteDate(e)} /></div>
                 <div>
                   <Label>Formule</Label>
                   <Select value={option} onValueChange={v => setOption(v as OptionKey)}>
@@ -128,7 +128,7 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
 
               <div className="p-4 rounded-xl bg-accent/50 space-y-3">
                 <Label className="text-base font-semibold flex items-center gap-2"><Shield className="w-4 h-4" /> Assuré Principal *</Label>
-                <DateInput value={principalDob} onChange={e => setPrincipalDob(e.target.value)} />
+                <DateInput value={principalDob} onChange={e => setPrincipalDob(e)} />
               </div>
 
               <div className="p-4 rounded-xl bg-accent/50 space-y-3">
@@ -136,7 +136,7 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
                   <Label className="text-base font-semibold flex items-center gap-2"><Users className="w-4 h-4" /> Conjoint(e)</Label>
                   <Switch checked={conjointIncluded} onCheckedChange={setConjointIncluded} />
                 </div>
-                {conjointIncluded && <DateInput value={conjointDob} onChange={e => setConjointDob(e.target.value)} />}
+                {conjointIncluded && <DateInput value={conjointDob} onChange={e => setConjointDob(e)} />}
               </div>
 
               <div className="space-y-3">
@@ -146,7 +146,7 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
                 </div>
                 {enfants.map((e, i) => (
                   <div key={i} className="flex gap-2 items-end">
-                    <div className="flex-1"><Label className="text-xs">Enfant {i + 1}</Label><DateInput value={e.dob} onChange={ev => { const n = [...enfants]; n[i].dob = ev.target.value; setEnfants(n); }} /></div>
+                    <div className="flex-1"><Label className="text-xs">Enfant {i + 1}</Label><DateInput value={e.dob} onChange={ev => { const n = [...enfants]; n[i].dob = ev; setEnfants(n); }} /></div>
                     <Button type="button" size="icon" variant="ghost" onClick={() => setEnfants(enfants.filter((_, j) => j !== i))}><Minus className="w-4 h-4" /></Button>
                   </div>
                 ))}
@@ -159,7 +159,7 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
                 </div>
                 {ascendants.map((a, i) => (
                   <div key={i} className="flex gap-2 items-end">
-                    <div className="flex-1"><Label className="text-xs">{a.label}</Label><DateInput value={a.dob} onChange={ev => { const n = [...ascendants]; n[i].dob = ev.target.value; setAscendants(n); }} /></div>
+                    <div className="flex-1"><Label className="text-xs">{a.label}</Label><DateInput value={a.dob} onChange={ev => { const n = [...ascendants]; n[i].dob = ev; setAscendants(n); }} /></div>
                     <Button type="button" size="icon" variant="ghost" onClick={() => setAscendants(ascendants.filter((_, j) => j !== i))}><Minus className="w-4 h-4" /></Button>
                   </div>
                 ))}
