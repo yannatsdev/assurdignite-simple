@@ -55,7 +55,7 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
 
   const barData = result?.persons.filter(p => p.eligible).map(p => ({
     name: p.label.length > 12 ? p.label.slice(0, 12) + '…' : p.label,
-    prime: Math.round(p.pap),
+    prime: Math.round(p.primeAffichee),
   })) || [];
 
   return (
@@ -237,11 +237,15 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
                       {result.persons.map((p, i) => (
                         <div key={i} className="flex justify-between items-center py-2 border-b border-border last:border-0">
                           <div><p className="font-medium text-sm">{p.label}</p><p className="text-xs text-muted-foreground">{p.age} ans – Capital : {formatCFA(p.capital)}</p></div>
-                          {p.eligible ? <p className="font-semibold text-sm text-primary">{formatCFA(Math.round(p.pap))}</p> : <Badge variant="destructive" className="text-xs">Non éligible</Badge>}
+                          {p.eligible ? <p className="font-semibold text-sm text-primary">{formatCFA(Math.round(p.primeAffichee))}</p> : <Badge variant="destructive" className="text-xs">Non éligible</Badge>}
                         </div>
                       ))}
+                      <div className="flex justify-between items-center py-2 border-b border-border text-sm">
+                        <div><p className="font-medium">Frais accessoires</p><p className="text-xs text-muted-foreground">Forfait annuel</p></div>
+                        <p className="font-semibold text-primary">{formatCFA(result.accessoires)}</p>
+                      </div>
                       <div className="border-t pt-3 flex justify-between font-bold text-primary text-base">
-                        <span>Prime annuelle</span><span>{formatCFA(result.primeAnnuelle)}</span>
+                        <span>PRIME ANNUELLE TOTALE (PTTC)</span><span>{formatCFA(result.primeAnnuelle)}</span>
                       </div>
                     </CardContent></Card>
                   </TabsContent>
@@ -253,13 +257,13 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
                             <Lock className="w-3 h-3" /> Section visible uniquement par les administrateurs SONAM VIE
                           </div>
                           <div className="space-y-1 text-sm">
-                            <div className="flex justify-between"><span>PAP Total (Prime Actuarielle Pure)</span><span className="font-mono">{formatCFA(result.papTotal)}</span></div>
-                            <div className="flex justify-between"><span>PAI = PAP × 1,002 (frais gestion)</span><span className="font-mono">{formatCFA(result.pai)}</span></div>
-                            <div className="flex justify-between"><span>PAC = PAI ÷ 0,85 (frais acquisition 15%)</span><span className="font-mono">{formatCFA(result.pac)}</span></div>
-                            <div className="flex justify-between"><span>Frais fixes accessoires</span><span className="font-mono">{formatCFA(2500)}</span></div>
-                            <div className="flex justify-between font-bold text-primary pt-2 border-t border-amber-200"><span>= Prime annuelle TTC</span><span>{formatCFA(result.primeAnnuelle)}</span></div>
+                            <div className="flex justify-between"><span>Σ PC (Prime Annuelle Commerciale, sans accessoire)</span><span className="font-mono">{formatCFA(result.papTotal)}</span></div>
+                            <div className="flex justify-between"><span>Frais accessoires annuels</span><span className="font-mono">{formatCFA(result.accessoires)}</span></div>
+                            <div className="flex justify-between font-bold text-primary pt-2 border-t border-amber-200"><span>= Prime annuelle TTC (PTTC)</span><span className="font-mono">{formatCFA(result.primeAnnuelle)}</span></div>
+                            <div className="flex justify-between text-xs text-muted-foreground pt-1"><span>Engagement global Assureur</span><span className="font-mono">{formatCFA(result.engagementGlobal)}</span></div>
+                            <div className="flex justify-between text-xs text-muted-foreground"><span>Durée du contrat</span><span className="font-mono">{result.duree} an(s)</span></div>
                           </div>
-                          <p className="text-[11px] text-muted-foreground italic pt-2">Calcul basé sur la table CIMA H et la commutation actuarielle officielle.</p>
+                          <p className="text-[11px] text-muted-foreground italic pt-2">Modèle CIMA H · taux 3,5% · fc=0,1% · fa=15% · fi=3% · accessoire annuel 2 500 FCFA (Excel Module_TD).</p>
                         </CardContent>
                       </Card>
                     </TabsContent>

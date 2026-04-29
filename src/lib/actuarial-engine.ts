@@ -1,159 +1,43 @@
-// CIMA H Commutation Table (ages 0-106)
-const CIMA_H_TABLE = [
-  { age: 0, D: 1000000.0, N: 26565815.978934, M: 103402.460019 },
-  { age: 1, D: 960997.346924, N: 25565815.978934, M: 98126.253615 },
-  { age: 2, D: 927822.046635, N: 24604818.63201, M: 97436.688565 },
-  { age: 3, D: 895945.442135, N: 23676996.585375, M: 96927.017084 },
-  { age: 4, D: 865235.560217, N: 22781051.14324, M: 96507.655486 },
-  { age: 5, D: 835636.107609, N: 21915815.583024, M: 96161.472742 },
-  { age: 6, D: 807078.143365, N: 21080179.475414, M: 95856.534048 },
-  { age: 7, D: 779524.847783, N: 20273101.332049, M: 95591.211354 },
-  { age: 8, D: 752926.379229, N: 19493576.484267, M: 95349.362037 },
-  { age: 9, D: 727235.463785, N: 18740650.105038, M: 95115.741033 },
-  { age: 10, D: 702434.607413, N: 18013414.641253, M: 94903.773451 },
-  { age: 11, D: 678466.500602, N: 17310980.03384, M: 94685.776302 },
-  { age: 12, D: 655316.199811, N: 16632513.533238, M: 94475.195968 },
-  { age: 13, D: 632920.515928, N: 15977197.333427, M: 94235.882117 },
-  { age: 14, D: 611246.822792, N: 15344276.817499, M: 93960.603721 },
-  { age: 15, D: 590255.70476, N: 14733029.994707, M: 93634.10003 },
-  { age: 16, D: 569886.81084, N: 14142774.289947, M: 93218.45571 },
-  { age: 17, D: 550097.637688, N: 13572887.479107, M: 92677.423668 },
-  { age: 18, D: 530854.42155, N: 13022789.841419, M: 92001.627523 },
-  { age: 19, D: 512132.636735, N: 12491935.419869, M: 91218.137025 },
-  { age: 20, D: 493904.47299, N: 11979802.783134, M: 90363.746854 },
-  { age: 21, D: 476161.299422, N: 11485898.310144, M: 89461.849069 },
-  { age: 22, D: 458892.785037, N: 11009737.010722, M: 88530.263889 },
-  { age: 23, D: 442087.82261, N: 10550844.225685, M: 87573.858363 },
-  { age: 24, D: 425737.775822, N: 10108756.403075, M: 86604.040654 },
-  { age: 25, D: 409838.095424, N: 9683018.627253, M: 85632.07853 },
-  { age: 26, D: 394385.773117, N: 9273180.531829, M: 84667.949671 },
-  { age: 27, D: 379377.116724, N: 8878794.758712, M: 83720.59283 },
-  { age: 28, D: 364808.1289, N: 8499417.641988, M: 82797.459271 },
-  { age: 29, D: 350672.770499, N: 8134609.513088, M: 81903.28866 },
-  { age: 30, D: 336963.145825, N: 7783936.742589, M: 81041.266779 },
-  { age: 31, D: 323669.761725, N: 7446973.596764, M: 80213.210698 },
-  { age: 32, D: 310782.638439, N: 7123303.835039, M: 79420.117389 },
-  { age: 33, D: 298290.534624, N: 6812521.1966, M: 78661.860159 },
-  { age: 34, D: 286181.262629, N: 6514230.661976, M: 77938.147753 },
-  { age: 35, D: 274441.877137, N: 6228049.399347, M: 77247.571561 },
-  { age: 36, D: 263058.85397, N: 5953607.52221, M: 76588.580685 },
-  { age: 37, D: 252018.356974, N: 5690548.668241, M: 75959.539538 },
-  { age: 38, D: 241306.328459, N: 5438530.311267, M: 75358.69267 },
-  { age: 39, D: 230908.689455, N: 5197223.982807, M: 74784.223889 },
-  { age: 40, D: 220811.545606, N: 4966315.293353, M: 74234.376779 },
-  { age: 41, D: 211001.339442, N: 4745503.747746, M: 73707.605685 },
-  { age: 42, D: 201464.91893, N: 4534502.408304, M: 73202.530786 },
-  { age: 43, D: 192189.686489, N: 4333037.489374, M: 72718.007927 },
-  { age: 44, D: 183163.580966, N: 4140847.802885, M: 72253.120166 },
-  { age: 45, D: 174375.072753, N: 3957684.221919, M: 71807.183126 },
-  { age: 46, D: 165813.146479, N: 3783309.149166, M: 71379.832773 },
-  { age: 47, D: 157467.286474, N: 3617496.002687, M: 70971.00774 },
-  { age: 48, D: 149327.445974, N: 3460028.716213, M: 70580.84628 },
-  { age: 49, D: 141384.016527, N: 3310701.270239, M: 70209.741662 },
-  { age: 50, D: 133627.789478, N: 3169317.253712, M: 69858.315818 },
-  { age: 51, D: 126050.024408, N: 3035689.464234, M: 69527.383263 },
-  { age: 52, D: 118642.407782, N: 2909639.439826, M: 69217.917654 },
-  { age: 53, D: 111397.015414, N: 2790997.032044, M: 68931.064929 },
-  { age: 54, D: 104306.282389, N: 2679600.01663, M: 68668.132723 },
-  { age: 55, D: 97363.063741, N: 2575293.734241, M: 68430.562268 },
-  { age: 56, D: 90560.602818, N: 2477930.6705, M: 68219.991067 },
-  { age: 57, D: 83892.598538, N: 2387370.067682, M: 68038.18766 },
-  { age: 58, D: 77353.176862, N: 2303477.469145, M: 67887.061561 },
-  { age: 59, D: 70936.862534, N: 2226124.292283, M: 67768.652287 },
-  { age: 60, D: 64638.542153, N: 2155187.429749, M: 67685.095564 },
-  { age: 61, D: 58453.437756, N: 2090548.887596, M: 67638.57439 },
-  { age: 62, D: 52377.068862, N: 2032095.44984, M: 67631.256611 },
-  { age: 63, D: 46405.199001, N: 1979718.380978, M: 67665.218092 },
-  { age: 64, D: 40533.889025, N: 1933313.181977, M: 67742.348427 },
-  { age: 65, D: 34759.408855, N: 1892779.292952, M: 67864.350831 },
-  { age: 66, D: 29078.273012, N: 1858019.884096, M: 68032.662099 },
-  { age: 67, D: 23487.206993, N: 1828941.611084, M: 68248.489877 },
-  { age: 68, D: 17982.963085, N: 1805454.404091, M: 68512.762756 },
-  { age: 69, D: 12562.042117, N: 1787471.441006, M: 68826.147069 },
-  { age: 70, D: 8220.654709, N: 1774909.398889, M: 69189.040547 },
-  { age: 71, D: 5089.012091, N: 1766688.74418, M: 69601.573453 },
-  { age: 72, D: 2979.974093, N: 1761599.732089, M: 70063.611773 },
-  { age: 73, D: 1649.42977, N: 1758619.757996, M: 70574.868247 },
-  { age: 74, D: 864.15636, N: 1756970.328226, M: 71134.936131 },
-  { age: 75, D: 428.502553, N: 1756106.171866, M: 71743.383488 },
-  { age: 76, D: 201.173389, N: 1755677.669313, M: 72399.797666 },
-  { age: 77, D: 89.543694, N: 1755476.495924, M: 73103.828279 },
-  { age: 78, D: 37.81534, N: 1755386.95223, M: 73855.241775 },
-  { age: 79, D: 15.162247, N: 1755349.136891, M: 74653.962362 },
-  { age: 80, D: 5.779476, N: 1755333.974644, M: 75500.133427 },
-  { age: 81, D: 2.097094, N: 1755328.195168, M: 76394.154654 },
-  { age: 82, D: 0.724085, N: 1755326.098074, M: 77336.717635 },
-  { age: 83, D: 0.238232, N: 1755325.373989, M: 78328.845651 },
-  { age: 84, D: 0.074762, N: 1755325.135757, M: 79371.932403 },
-  { age: 85, D: 0.02239, N: 1755325.060995, M: 80467.783506 },
-  { age: 86, D: 0.006399, N: 1755325.038605, M: 81618.656437 },
-  { age: 87, D: 0.001748, N: 1755325.032206, M: 82827.302174 },
-  { age: 88, D: 0.000457, N: 1755325.030458, M: 84097.017893 },
-  { age: 89, D: 0.000114, N: 1755325.030001, M: 85431.713063 },
-  { age: 90, D: 0.000027, N: 1755325.029887, M: 86835.993428 },
-  { age: 91, D: 0.000006, N: 1755325.02986, M: 88314.255459 },
-  { age: 92, D: 0.000001, N: 1755325.029853, M: 89871.7048 },
-  { age: 93, D: 0.0, N: 1755325.029852, M: 91513.494039 },
-  { age: 94, D: 0.0, N: 1755325.029852, M: 93244.764449 },
-  { age: 95, D: 0.0, N: 1755325.029852, M: 95070.687675 },
-  { age: 96, D: 0.0, N: 1755325.029852, M: 96996.408783 },
-  { age: 97, D: 0.0, N: 1755325.029852, M: 99028.011966 },
-  { age: 98, D: 0.0, N: 1755325.029852, M: 101171.488648 },
-  { age: 99, D: 0.0, N: 1755325.029852, M: 103432.803866 },
-  { age: 100, D: 0.0, N: 1755325.029852, M: 105818.860741 },
-  { age: 101, D: 40.474437, N: 51.352997, M: 39.343783 },
-  { age: 102, D: 9.944834, N: 12.613366, M: 9.683432 },
-  { age: 103, D: 2.251023, N: 2.668532, M: 2.198271 },
-  { age: 104, D: 0.374579, N: 0.417509, M: 0.366714 },
-  { age: 105, D: 0.04293, N: 0.04293, M: 0.042198 },
-  { age: 106, D: 0.0, N: 0.0, M: 0.0 },
-];
+// CIMA H Commutation Table (ages 0-106) — recomputed from official lx,dx with v=1/1.035
+// Source: ASSUR_DIGNITE Excel macro (Module_TD.bas)
+const CIMA_H_TABLE: { age: number; D: number; N: number; M: number }[] = [{age:0,D:1000000.0,N:26565815.978933837,M:103402.46001895212},{age:1,D:960997.3469237671,N:25565815.978933837,M:98126.25361470634},{age:2,D:927822.0466348749,N:24604818.63201007,M:97436.68856511709},{age:3,D:895945.4421351147,N:23676996.585375194,M:96927.0170841547},{age:4,D:865235.5602165774,N:22781051.14324008,M:96507.6554861801},{age:5,D:835636.1076092726,N:21915815.583023503,M:96161.47274184627},{age:6,D:807078.1433647503,N:21080179.47541423,M:95856.53404818407},{age:7,D:779524.8477828511,N:20273101.33204948,M:95591.21135409402},{age:8,D:752926.379228906,N:19493576.48426663,M:95349.36203727068},{age:9,D:727235.4637848985,N:18740650.105037726,M:95115.741032761},{age:10,D:702434.6074127663,N:18013414.641252827,M:94903.77345109705},{age:11,D:678466.5006019995,N:17310980.03384006,M:94685.77630237995},{age:12,D:655316.1998110942,N:16632513.533238059,M:94475.19596784406},{age:13,D:632920.5159281014,N:15977197.333426965,M:94235.8821173776},{age:14,D:611246.8227919625,N:15344276.817498865,M:93960.60372080204},{age:15,D:590255.7047597757,N:14733029.994706903,M:93634.10003016156},{age:16,D:569886.8108404727,N:14142774.289947126,M:93218.45571034958},{age:17,D:550115.8586702683,N:13572887.479106653,M:92710.37356352489},{age:18,D:530913.5934439776,N:13022771.620436385,M:92100.6622919364},{age:19,D:512274.1650287289,N:12491858.026992407,M:91402.93487278567},{age:20,D:494214.0213976614,N:11979583.861963678,M:90653.28798737715},{age:21,D:476748.126579007,N:11485369.840566017,M:89886.8744880545},{age:22,D:459874.2274585083,N:11008621.71398701,M:89121.84618520732},{age:23,D:443583.33850778954,N:10548747.4865285,M:88369.42815693814},{age:24,D:427859.09911793587,N:10105164.14802071,M:87633.03331663016},{age:25,D:412679.03036654025,N:9677305.048902774,M:86909.28725846755},{age:26,D:398024.78023114137,N:9264626.018536234,M:86198.24073108558},{age:27,D:383872.7264931505,N:8866601.238305094,M:85493.95148484987},{age:28,D:370206.33616742544,N:8482728.511811944,M:84796.87682011595},{age:29,D:357009.5952433848,N:8112522.175644519,M:84107.43322942541},{age:30,D:344264.93049504014,N:7755512.580401134,M:83423.90000633098},{age:31,D:331960.06245300686,N:7411247.649906093,M:82749.33747114957},{age:32,D:320081.0885388102,N:7079287.587453086,M:82084.73222288379},{age:33,D:308605.32089730864,N:6759206.498914275,M:81421.65487161546},{age:34,D:297511.9092763888,N:6450601.178016967,M:80752.76497887025},{age:35,D:286777.9005193782,N:6153089.268740579,M:80067.86540348736},{age:36,D:276393.6334863307,N:5866311.3682212,M:79369.4919705681},{age:37,D:266342.6116558221,N:5589917.73473487,M:78652.89415991533},{age:38,D:256613.032798896,N:5323575.123079048,M:77917.52965555759},{age:39,D:247190.62101867827,N:5066962.090280152,M:77159.93352317471},{age:40,D:238059.32979812715,N:4819771.469261474,M:76374.34835347129},{age:41,D:229204.76518271258,N:4581712.139463346,M:75556.1459204916},{age:42,D:220608.7340078895,N:4352507.374280633,M:74696.33767689063},{age:43,D:212265.3996932904,N:4131898.640272744,M:73797.88013834746},{age:44,D:204164.29709039468,N:3919633.2405794538,M:72858.82015246367},{age:45,D:196298.20619045652,N:3715468.943489059,M:71880.14597436713},{age:46,D:188660.35817048186,N:3519170.7372986022,M:70863.05648193383},{age:47,D:181248.3638124986,N:3330510.3791281204,M:69812.97327335725},{age:48,D:174061.3091003803,N:3149262.0153156216,M:68736.73654612717},{age:49,D:167097.58629833302,N:2975200.7062152415,M:67640.44929736889},{age:50,D:160353.29738017512,N:2808103.1199169084,M:66527.82918730046},{age:51,D:153824.35833553944,N:2647749.8225367335,M:65402.27056094751},{age:52,D:147501.89653565062,N:2493925.4642011942,M:64262.155562093234},{age:53,D:141379.2206511444,N:2346423.5676655434,M:63107.78023224036},{age:54,D:135450.01274594024,N:2205044.3470143992,M:61939.59028173349},{age:55,D:129706.96286039763,N:2069594.3342684591,M:60756.80482951419},{age:56,D:124145.83929866731,N:1939887.3714080616,M:59561.52317920376},{age:57,D:118762.00274044833,N:1815741.5321093942,M:58355.284354339215},{age:58,D:113530.19615081564,N:1696979.5293689459,M:57118.4923497383},{age:59,D:108438.79153744804,N:1583449.3332181303,M:55844.547738981084},{age:60,D:103466.64995900342,N:1475010.5416806822,M:54516.77509718948},{age:61,D:98615.62136708821,N:1371543.891721679,M:53141.15949257268},{age:62,D:93869.07103469278,N:1272928.2703545906,M:51704.94425895183},{age:63,D:89230.36322643518,N:1179059.199319898,M:50215.146407669294},{age:64,D:84702.699668972,N:1089828.8360934628,M:48678.7333333638},{age:65,D:80272.95092000808,N:1005126.1364244907,M:47086.168073544286},{age:66,D:75946.41404175555,N:924853.1855044826,M:45446.20816700069},{age:67,D:71724.23364955685,N:848906.771462727,M:43763.56889827019},{age:68,D:67624.29584540139,N:777182.5378131701,M:42060.036873259705},{age:69,D:63644.437435022104,N:709558.2419677688,M:40337.61689417353},{age:70,D:59783.43128244345,N:645913.8045327467,M:38599.191641009835},{age:71,D:56039.30688352611,N:586130.3732503032,M:36846.845311228884},{age:72,D:52410.885604765215,N:530091.066366777,M:35083.39991998648},{age:73,D:48899.522584925544,N:477680.1807620118,M:33314.21466571009},{age:74,D:45505.99046754299,N:428780.65817708627,M:31544.102766604552},{age:75,D:42230.53283767438,N:383274.66770954325,M:29777.36578484754},{age:76,D:39071.80298454186,N:341044.1348718689,M:28016.69577603525},{age:77,D:36028.216825515934,N:301972.331887327,M:26264.496974573165},{age:78,D:33099.94674484318,N:265944.11506181106,M:24524.90605817078},{age:79,D:30285.606982819554,N:232844.16831696784,M:22800.48045812887},{age:80,D:27580.708732933894,N:202558.56133414828,M:21090.573048176728},{age:81,D:24980.835113597892,N:174977.8526012144,M:19394.45544586473},{age:82,D:22485.202287237636,N:149997.0174876165,M:17714.943389724598},{age:83,D:20098.853353744056,N:127511.81520037889,M:16060.75368372912},{age:84,D:17831.672131079406,N:107412.96184663483,M:14445.701332334727},{age:85,D:15695.556110658346,N:89581.28971555542,M:12885.989983878793},{age:86,D:13698.883464655084,N:73885.73360489708,M:11394.652219899723},{age:87,D:11847.496962413128,N:60186.850140241986,M:9982.429466428935},{age:88,D:10146.55488977089,N:48339.35317782886,M:8659.567800060895},{age:89,D:8599.652881692957,N:38192.79828805797,M:7434.90099645154},{age:90,D:7209.119910619878,N:29593.145406365016,M:6316.097893846874},{age:91,D:5974.482030688547,N:22384.02549574514,M:5308.055906890769},{age:92,D:4845.368319165412,N:16409.543465056595,M:4364.893480664889},{age:93,D:3786.468178597313,N:11564.175145891182,M:3454.317757551},{age:94,D:2828.821700345203,N:7777.706967293869,M:2610.3229250216127},{age:95,D:2001.238735642731,N:4948.885266948665,M:1865.702112960695},{age:96,D:1325.240089467569,N:2947.6465313059343,M:1246.824092565239},{age:97,D:810.044103267719,N:1622.4064418383655,M:768.2821128456148},{age:98,D:449.3321647403528,N:812.3623385706466,M:429.18005045722964},{age:99,D:221.58184794701992,N:363.03017383029373,M:212.93680989678876},{age:100,D:94.74954662893434,N:141.4483258832738,M:91.52713948029351},{age:101,D:34.08541318999599,N:46.69877925433946,M:33.07019412842055},{age:102,D:9.944833606796669,N:12.613366064343476,M:9.683432286832922},{age:103,D:2.251023207246851,N:2.6685324575468066,M:2.198271478042343},{age:104,D:0.374579199902838,N:0.41750925029995595,M:0.3667143386487828},{age:105,D:0.04293005039711795,N:0.04293005039711795,M:0.04219793738919592},{age:106,D:0.0,N:0.0,M:0.0}];
 
-// Parameters from ASSUR_DIGNITE_v25032026 Excel
-const FC = 0.002; // Chargement gestion
-const FA = 0.15;  // Chargement acquisition
-const FRAIS_ANNUAL = 2500;
+// Actuarial parameters from Excel VBA Module_TD.bas
+const TAUX = 0.035;            // taux garanti
+const FC = 0.001;              // chargement de gestion (fc)
+const FA = 0.15;               // chargement d'acquisition (fa)
+const FI = 0.03;               // chargement d'incitation (fi)
+const ENC_A = 2500;            // accessoire annuel
+const ENC_S = 1500;            // accessoire semestriel
+const ENC_T = 1000;            // accessoire trimestriel
+const ENC_M = 500;             // accessoire mensuel
 
-// Per-type loading factors derived from Excel macro outputs (calibrated to match
-// reference: principal 40, conj 40, 2 enfants 15, 2 asc 55, formule A → updated v2 (Excel ASSUR_DIGNITE_v27042026)
-const LOADING = {
-  principal: 2.06518,
-  conjoint: 2.06518,
-  enfant: 10.09274,
-  ascendant: 1.61309,
-} as const;
-
-// Periodicity coefficients (per-period vs annual) — extracted from Excel J19/J25/J31
+// Periodicity coefficients (Excel macro PCP_TD)
 export const PERIODICITY = {
-  annuel: { coef: 1, periods: 1, label: 'Annuel' },
-  semestriel: { coef: 0.387620, periods: 2, label: 'Semestriel' },
-  trimestriel: { coef: 0.233180, periods: 4, label: 'Trimestriel' },
-  mensuel: { coef: 0.117654, periods: 12, label: 'Mensuel' },
-  unique: { coef: 1, periods: 1, label: 'Unique' },
+  annuel:      { coef: 1,    enc: ENC_A, periods: 1,  label: 'Annuel' },
+  semestriel:  { coef: 0.51, enc: ENC_S, periods: 2,  label: 'Semestriel' },
+  trimestriel: { coef: 0.26, enc: ENC_T, periods: 4,  label: 'Trimestriel' },
+  mensuel:     { coef: 0.09, enc: ENC_M, periods: 12, label: 'Mensuel' },
+  unique:      { coef: 1,    enc: ENC_A, periods: 1,  label: 'Unique' },
 } as const;
 export type PeriodicityKey = keyof typeof PERIODICITY;
 
-// Option capitals
+// Option capitals (ascendant = principal × 0.7)
 export const OPTIONS_CAPITALS = {
   A: { principal: 1500000, conjoint: 1500000, enfant: 500000, ascendant: 1050000 },
   B: { principal: 2000000, conjoint: 2000000, enfant: 500000, ascendant: 1400000 },
   C: { principal: 3000000, conjoint: 3000000, enfant: 500000, ascendant: 2100000 },
   D: { principal: 5000000, conjoint: 5000000, enfant: 500000, ascendant: 3500000 },
 } as const;
-
 export type OptionKey = keyof typeof OPTIONS_CAPITALS;
 
-export interface InsuredPerson {
-  role: 'principal' | 'conjoint' | 'enfant' | 'ascendant';
-  label: string;
-  dob: string;
-  included: boolean;
-  lienParente?: string;
-}
+// Default contract duration (years)
+export const DEFAULT_DUREE = 2;
 
 export interface SimulationInput {
   quoteDate: string;
   option: OptionKey;
+  duree?: number; // années — défaut 2
   principal: { dob: string };
   conjoint?: { dob: string; included: boolean };
   enfants: { dob: string; included: boolean }[];
@@ -165,7 +49,8 @@ export interface PersonResult {
   label: string;
   age: number;
   capital: number;
-  pap: number;
+  pap: number;       // prime annuelle commerciale (PC) — sans accessoire
+  primeAffichee: number; // PC + accessoire annuel (comme dans le tableau Excel)
   eligible: boolean;
   reason?: string;
 }
@@ -175,10 +60,13 @@ export interface SimulationResult {
   nbEnfants: number;
   nbAscendants: number;
   agesMoyens: { e?: number; z?: number };
-  papTotal: number;
-  pai: number;
-  pac: number;
-  primeAnnuelle: number;
+  papTotal: number;       // somme PC pure (sans accessoires)
+  pai: number;            // = papTotal × (1+fc) — kept for compat
+  pac: number;            // = pai/(1-fa-fi) — kept for compat
+  primeAnnuelle: number;  // PRIME TOTALE PTTC = somme(PC) + accessoire (encA)
+  accessoires: number;    // 2500 FCFA
+  engagementGlobal: number; // somme des capitaux assurés
+  duree: number;
   eligibilityErrors: string[];
   capitaux: { principal: number; conjoint: number; enfant: number; ascendant: number };
 }
@@ -192,91 +80,128 @@ function getAge(dob: string, quoteDate: string): number {
   return age;
 }
 
-function getCIMARow(age: number) {
-  if (age < 0) return null;
-  if (age > 106) return null;
+function row(age: number) {
+  if (age < 0 || age >= CIMA_H_TABLE.length) return null;
   return CIMA_H_TABLE[age];
 }
+const Dx  = (x: number) => row(x)?.D ?? 0;
+const Nx  = (x: number) => row(x)?.N ?? 0;
+const Mx  = (x: number) => row(x)?.M ?? 0;
+const Mxn = (x: number, n: number) => row(x + n)?.M ?? 0;
+const Nxn = (x: number, n: number) => row(x + n)?.N ?? 0;
 
-function computePAP(age: number, capital: number, role: keyof typeof LOADING): number {
-  const row = getCIMARow(age);
-  const rowNext = getCIMARow(age + 1);
-  if (!row || !rowNext) return 0;
-  if (row.D <= 0) return 0;
-  // Cx[x]/Dx[x] × Capital × per-type loading factor (Excel macro convention).
-  // The CIMA H commutation column Mx is non-monotonic past age ~60 in the
-  // source data; we take the absolute difference so the prime always remains
-  // positive (mortality cost can never be negative). This matches the Excel
-  // macro behaviour validated against ASSUR_DIGNITE_v27042026.
-  const cxRatio = Math.abs(row.M - rowNext.M) / row.D;
-  const pap = capital * cxRatio * LOADING[role];
-  return pap > 0 ? pap : 0;
+// Excel Module_TD.bas exact formulas
+const A_xn    = (x: number, n: number) => (Mx(x) - Mxn(x, n)) / Dx(x);
+const na_x2p  = (x: number, n: number) => (Nx(x) - Nxn(x, n)) / Dx(x);
+
+/** Prime Unique Pure */
+export function PUP(x: number, n: number, C: number): number {
+  if (Dx(x) <= 0) return 0;
+  return C * A_xn(x, n);
+}
+/** Prime Unique d'Inventaire */
+export function PUI(x: number, n: number, C: number): number {
+  if (Dx(x) <= 0) return 0;
+  return PUP(x, n, C) + FC * na_x2p(x, n) * C;
+}
+/** Prime Unique Commerciale */
+export function PUC(x: number, n: number, C: number): number {
+  return PUI(x, n, C) / (1 - FA - FI);
+}
+/** Prime Annuelle Commerciale (sans accessoire) — PC dans le VBA */
+export function PC(x: number, n: number, C: number): number {
+  const a = na_x2p(x, n);
+  if (a <= 0) return 0;
+  return PUC(x, n, C) / a;
+}
+/** Prime Annuelle Pure */
+export function PAP(x: number, n: number, C: number): number {
+  const a = na_x2p(x, n);
+  if (a <= 0) return 0;
+  return PUP(x, n, C) / a;
+}
+/** Prime Annuelle d'Inventaire */
+export function PAI(x: number, n: number, C: number): number {
+  const a = na_x2p(x, n);
+  if (a <= 0) return 0;
+  return PUI(x, n, C) / a;
 }
 
 export function simulatePrime(input: SimulationInput): SimulationResult {
   const cap = OPTIONS_CAPITALS[input.option];
+  const n = Math.max(1, Math.floor(input.duree ?? DEFAULT_DUREE));
   const persons: PersonResult[] = [];
   const errors: string[] = [];
 
+  const buildPerson = (
+    role: string,
+    label: string,
+    dob: string,
+    capital: number,
+    maxAge: number,
+  ): PersonResult => {
+    const age = getAge(dob, input.quoteDate);
+    const elig = age >= 0 && age <= maxAge;
+    if (!elig) errors.push(`${label} (${age} ans) doit avoir ≤ ${maxAge} ans`);
+    const pc = elig ? PC(age, n, capital) : 0;
+    return {
+      role, label, age, capital,
+      pap: pc,
+      primeAffichee: pc + ENC_A,
+      eligible: elig,
+      reason: elig ? undefined : `Âge > ${maxAge} ans`,
+    };
+  };
+
   // Principal
-  const agePrincipal = getAge(input.principal.dob, input.quoteDate);
-  const eligPrincipal = agePrincipal >= 0 && agePrincipal <= 64;
-  if (!eligPrincipal) errors.push(`Assuré principal (${agePrincipal} ans) doit avoir ≤ 64 ans`);
-  const papPrincipal = eligPrincipal ? computePAP(agePrincipal, cap.principal, 'principal') : 0;
-  persons.push({ role: 'Principal', label: 'Assuré principal', age: agePrincipal, capital: cap.principal, pap: papPrincipal, eligible: eligPrincipal, reason: eligPrincipal ? undefined : 'Âge > 64 ans' });
+  const pPrinc = buildPerson('Principal', 'Assuré principal', input.principal.dob, cap.principal, 64);
+  persons.push(pPrinc);
 
   // Conjoint
-  let papConjoint = 0;
   if (input.conjoint?.included && input.conjoint.dob) {
-    const ageC = getAge(input.conjoint.dob, input.quoteDate);
-    const eligC = ageC >= 0 && ageC <= 64;
-    if (!eligC) errors.push(`Conjoint(e) (${ageC} ans) doit avoir ≤ 64 ans`);
-    papConjoint = eligC ? computePAP(ageC, cap.conjoint, 'conjoint') : 0;
-    persons.push({ role: 'Conjoint', label: 'Conjoint(e)', age: ageC, capital: cap.conjoint, pap: papConjoint, eligible: eligC, reason: eligC ? undefined : 'Âge > 64 ans' });
+    persons.push(buildPerson('Conjoint', 'Conjoint(e)', input.conjoint.dob, cap.conjoint, 64));
   }
 
   // Enfants
   const includedEnfants = input.enfants.filter(e => e.included && e.dob);
-  const enfantAges = includedEnfants.map(e => getAge(e.dob, input.quoteDate));
-  const eMoyen = enfantAges.length > 0 ? Math.round(enfantAges.reduce((s, a) => s + a, 0) / enfantAges.length) : undefined;
-  let papEnfantsTotal = 0;
-  includedEnfants.forEach((enfant, i) => {
-    const age = enfantAges[i];
-    const elig = age >= 0 && age <= 21;
-    if (!elig) errors.push(`Enfant ${i + 1} (${age} ans) doit avoir ≤ 21 ans`);
-    const pap = elig ? computePAP(age, cap.enfant, 'enfant') : 0;
-    papEnfantsTotal += pap;
-    persons.push({ role: 'Enfant', label: `Enfant ${i + 1}`, age, capital: cap.enfant, pap, eligible: elig, reason: elig ? undefined : 'Âge > 21 ans' });
+  const enfantAges: number[] = [];
+  includedEnfants.forEach((e, i) => {
+    const p = buildPerson('Enfant', `Enfant ${i + 1}`, e.dob, cap.enfant, 21);
+    enfantAges.push(p.age);
+    persons.push(p);
   });
+  const eMoyen = enfantAges.length ? Math.round(enfantAges.reduce((s,a)=>s+a,0)/enfantAges.length) : undefined;
 
   // Ascendants
   const includedAsc = input.ascendants.filter(a => a.included && a.dob);
-  const ascAges = includedAsc.map(a => getAge(a.dob, input.quoteDate));
-  const zMoyen = ascAges.length > 0 ? Math.round(ascAges.reduce((s, a) => s + a, 0) / ascAges.length) : undefined;
-  let papAscTotal = 0;
-  includedAsc.forEach((asc, i) => {
-    const age = ascAges[i];
-    const elig = age >= 0 && age <= 79;
-    if (!elig) errors.push(`Ascendant ${i + 1} (${age} ans) doit avoir ≤ 79 ans`);
-    const pap = elig ? computePAP(age, cap.ascendant, 'ascendant') : 0;
-    papAscTotal += pap;
-    persons.push({ role: 'Ascendant', label: asc.label || `Ascendant ${i + 1}`, age, capital: cap.ascendant, pap, eligible: elig, reason: elig ? undefined : 'Âge > 79 ans' });
+  const ascAges: number[] = [];
+  includedAsc.forEach((a, i) => {
+    const p = buildPerson('Ascendant', a.label || `Ascendant ${i + 1}`, a.dob, cap.ascendant, 79);
+    ascAges.push(p.age);
+    persons.push(p);
   });
+  const zMoyen = ascAges.length ? Math.round(ascAges.reduce((s,a)=>s+a,0)/ascAges.length) : undefined;
 
-  const papTotal = papPrincipal + papConjoint + papEnfantsTotal + papAscTotal;
-  const pai = papTotal * (1 + FC);
-  const pac = pai / (1 - FA);
-  const primeAnnuelle = pac + FRAIS_ANNUAL;
+  // Per Excel reference table: each member's displayed prime = PC + ENC_A,
+  // and total PTTC = Σ(displayed) + ENC_A (one global accessoire line).
+  const sumDisplayed = persons.reduce((s, p) => s + (p.eligible ? p.primeAffichee : 0), 0);
+  const sumPC = persons.reduce((s, p) => s + p.pap, 0);
+  const primeAnnuelle = sumDisplayed + ENC_A;
+
+  const engagementGlobal = persons.reduce((s, p) => s + (p.eligible ? p.capital : 0), 0);
 
   return {
     persons,
     nbEnfants: includedEnfants.length,
     nbAscendants: includedAsc.length,
     agesMoyens: { e: eMoyen, z: zMoyen },
-    papTotal: Math.round(papTotal),
-    pai: Math.round(pai),
-    pac: Math.round(pac),
+    papTotal: Math.round(sumPC),
+    pai: Math.round(sumPC * (1 + FC)),
+    pac: Math.round((sumPC * (1 + FC)) / (1 - FA - FI)),
     primeAnnuelle: Math.round(primeAnnuelle),
+    accessoires: ENC_A,
+    engagementGlobal,
+    duree: n,
     eligibilityErrors: errors,
     capitaux: cap,
   };
@@ -286,12 +211,11 @@ export function formatCFA(amount: number): string {
   return Math.round(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' FCFA';
 }
 
+/** Prime périodique (par échéance) selon la macro Excel PCP_TD */
 export function primeForPeriodicity(annualPrime: number, key: PeriodicityKey): number {
   const cfg = PERIODICITY[key];
-  // Excel coefficient already encodes per-period amount (×coef = montant par échéance)
-  if (key === 'unique') {
-    // Single premium ≈ sum of present values; approx with annuity factor for whole portfolio life
-    return Math.round(annualPrime * 14.118); // empirical from Excel L13/L14 ratio
-  }
-  return Math.round(annualPrime * cfg.coef);
+  // annualPrime déjà = PC_total + ENC_A. On retire l'accessoire annuel pour appliquer le coef puis on ajoute l'accessoire de la période.
+  const pcOnly = annualPrime - ENC_A;
+  if (key === 'unique') return Math.round(pcOnly + ENC_A);
+  return Math.round(pcOnly * cfg.coef + cfg.enc);
 }
