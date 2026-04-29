@@ -823,29 +823,28 @@ export default function AdhesionPage() {
                         <div><Label>Prénom</Label><Input value={conjoint.prenom} onChange={e => setConjoint({ ...conjoint, prenom: e.target.value })} /></div>
                         <div><Label>Date de naissance</Label><DateInput value={conjoint.dob} onChange={e => setConjoint({ ...conjoint, dob: e })} /></div>
                       </div>
-                      {/* Conjoint CNI */}
-                      <div className="space-y-2">
-                        <Label className="text-sm">Pièce d'identité du conjoint (CNI/Passeport) *</Label>
-                        <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${kycFiles.cniConjoint ? 'border-sonam-green bg-sonam-green/5' : 'border-border hover:border-primary/50'}`}>
-                          {kycFiles.cniConjoint ? (
-                            <div className="flex items-center justify-center gap-2"><Check className="w-4 h-4 text-sonam-green" /><span className="text-sm text-sonam-green font-medium">Uploadé</span><button onClick={() => setKycFiles(prev => { const n = { ...prev }; delete n.cniConjoint; return n; })} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button></div>
-                          ) : (
-                            <label className="cursor-pointer">
-                              {uploadingFile === 'cniConjoint' ? <div className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /><span className="text-xs">Upload...</span></div> : <><Upload className="w-6 h-6 mx-auto text-muted-foreground mb-1" /><p className="text-xs text-muted-foreground">Cliquez pour uploader (PNG, JPG, PDF)</p></>}
-                              <input type="file" accept="image/*,.pdf" className="hidden" onChange={e => e.target.files?.[0] && handleKycUpload(e.target.files[0], 'cniConjoint')} />
-                            </label>
-                          )}
+                      <div className="rounded-3xl overflow-hidden bg-gradient-to-br from-primary/95 via-primary to-[hsl(var(--sonam-blue))] p-5 text-white relative">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center"><ShieldCheck className="w-5 h-5" /></div>
+                          <div>
+                            <h4 className="font-display font-bold">Vérification d'identité du conjoint</h4>
+                            <p className="text-xs text-white/80">Scan CNI + vérification de présence</p>
+                          </div>
                         </div>
-                      </div>
-                      {/* Conjoint Photo selfie */}
-                      <div className="space-y-2">
-                        <Label className="text-sm">Photo du conjoint (selfie) *</Label>
-                        <CameraSelfie
-                          existingFile={kycFiles.photoConjoint}
-                          uploading={uploadingFile === 'photoConjoint'}
-                          onCapture={blob => handleKycUpload(blob, 'photoConjoint')}
-                          onRemove={() => setKycFiles(prev => { const n = { ...prev }; delete n.photoConjoint; return n; })}
-                        />
+                        {kycFiles.cniConjoint && kycFiles.photoConjoint ? (
+                          <div className="flex items-center gap-2 text-sm bg-white/10 rounded-xl px-4 py-3">
+                            <Check className="w-5 h-5 text-[hsl(var(--sonam-green))]" />
+                            <div className="flex-1">
+                              <p className="font-medium">Identité vérifiée</p>
+                              <p className="text-xs text-white/70">Score : {kycFiles.livenessScoreConjoint ? `${(kycFiles.livenessScoreConjoint * 100).toFixed(0)}%` : '—'}</p>
+                            </div>
+                            <Button size="sm" variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20" onClick={() => setWizardConjointOpen(true)}>Refaire</Button>
+                          </div>
+                        ) : (
+                          <Button onClick={() => setWizardConjointOpen(true)} disabled={verifying === 'conjoint'} size="lg" className="w-full h-12 rounded-2xl font-semibold bg-white text-primary hover:bg-white/90 gap-2">
+                            <ScanFace className="w-5 h-5" /> {verifying === 'conjoint' ? 'Téléversement…' : 'Démarrer la vérification'}
+                          </Button>
+                        )}
                       </div>
                     </div>
                   )}
