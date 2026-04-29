@@ -262,7 +262,58 @@ export default function AdhesionPage() {
     setUploadingFile(null);
   };
 
-  const handleSimulate = () => {
+  // Upload a single Blob silently (used by wizard) and return path
+  const uploadBlob = async (blob: Blob, type: string): Promise<string | null> => {
+    if (!user) return null;
+    const path = `${user.id}/${type}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.jpg`;
+    const { error } = await supabase.storage.from('kyc-documents').upload(path, blob, {
+      contentType: 'image/jpeg',
+      upsert: false,
+    });
+    if (error) {
+      toast({ title: 'Erreur upload', description: error.message, variant: 'destructive' });
+      return null;
+    }
+    return path;
+  };
+
+  const handleWizardComplete = async (r: KycResult, target: 'principal' | 'conjoint') => {
+    setVerifying(target);
+    const prefix = target === 'conjoint' ? 'conjoint_' : '';
+    const [recto, verso, selfie, ...frames] = await Promise.all([
+      uploadBlob(r.cniRecto, `${prefix}cni_recto`),
+      uploadBlob(r.cniVerso, `${prefix}cni_verso`),
+      uploadBlob(r.selfie, `${prefix}selfie`),
+      ...r.livenessFrames.map((f, i) => uploadBlob(f, `${prefix}liveness_${i}`)),
+    ]);
+    const okFrames = frames.filter(Boolean) as string[];
+
+    setKycFiles(prev =>
+      target === 'conjoint'
+        ? {
+            ...prev,
+            cniConjoint: recto || prev.cniConjoint,
+            cniVersoConjoint: verso || prev.cniVersoConjoint,
+            photoConjoint: selfie || prev.photoConjoint,
+            livenessFramesConjoint: okFrames,
+            docTypeConjoint: r.docType,
+            livenessScoreConjoint: r.livenessScore,
+            verifiedAtConjoint: new Date().toISOString(),
+          }
+        : {
+            ...prev,
+            cni: recto || prev.cni,
+            cniVerso: verso || prev.cniVerso,
+            photo: selfie || prev.photo,
+            livenessFrames: okFrames,
+            docType: r.docType,
+            livenessScore: r.livenessScore,
+            verifiedAt: new Date().toISOString(),
+          },
+    );
+    setVerifying(null);
+    toast({ title: 'Identité vérifiée ✓', description: `Score de présence : ${(r.livenessScore * 100).toFixed(0)}%` });
+  };
     if (!simPrincipalDob) return;
     const res = simulatePrime({
       quoteDate,
