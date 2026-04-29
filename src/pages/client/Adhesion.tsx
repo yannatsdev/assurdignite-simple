@@ -1398,6 +1398,19 @@ export default function AdhesionPage() {
           </Button>
         )}
       </div>
+
+      <KycWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        onComplete={(r) => handleWizardComplete(r, 'principal')}
+        title="Vérification d'identité"
+      />
+      <KycWizard
+        open={wizardConjointOpen}
+        onOpenChange={setWizardConjointOpen}
+        onComplete={(r) => handleWizardComplete(r, 'conjoint')}
+        title="Vérification du conjoint"
+      />
     </div>
   );
 }
