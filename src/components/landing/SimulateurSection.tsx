@@ -55,7 +55,7 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
 
   const barData = result?.persons.filter(p => p.eligible).map(p => ({
     name: p.label.length > 12 ? p.label.slice(0, 12) + '…' : p.label,
-    prime: Math.round(p.pap),
+    prime: Math.round(p.primeAffichee),
   })) || [];
 
   return (
