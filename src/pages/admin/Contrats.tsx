@@ -1,18 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCFA } from '@/lib/actuarial-engine';
-import { FileText, Search, Loader2 } from 'lucide-react';
+import { FileText, Search, Loader2, ShieldCheck } from 'lucide-react';
+import { KycViewerDialog } from '@/components/admin/KycViewerDialog';
 
 export default function AdminContrats() {
   const [contracts, setContracts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterFormule, setFilterFormule] = useState('all');
+  const [kycContract, setKycContract] = useState<any>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -32,6 +35,11 @@ export default function AdminContrats() {
     const matchFormule = filterFormule === 'all' || c.formule === filterFormule;
     return matchSearch && matchFormule;
   });
+
+  const hasKyc = (c: any) => {
+    const k = c?.kyc_documents;
+    return k && typeof k === 'object' && Object.keys(k).length > 0;
+  };
 
   return (
     <div className="space-y-6">
@@ -77,6 +85,7 @@ export default function AdminContrats() {
                     <TableHead>Prime</TableHead>
                     <TableHead>Statut</TableHead>
                     <TableHead>Date effet</TableHead>
+                    <TableHead className="text-right">KYC</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -88,6 +97,17 @@ export default function AdminContrats() {
                       <TableCell>{formatCFA(c.prime_annuelle)}</TableCell>
                       <TableCell><Badge className={c.status === 'active' ? 'bg-secondary' : ''}>{c.status}</Badge></TableCell>
                       <TableCell className="text-sm">{c.date_effet}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant={hasKyc(c) ? 'default' : 'outline'}
+                          onClick={() => setKycContract(c)}
+                          className="gap-1"
+                        >
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                          {hasKyc(c) ? 'Voir KYC' : 'Aucun'}
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -96,6 +116,8 @@ export default function AdminContrats() {
           )}
         </CardContent>
       </Card>
+
+      <KycViewerDialog open={!!kycContract} onOpenChange={(v) => !v && setKycContract(null)} contract={kycContract} />
     </div>
   );
 }
