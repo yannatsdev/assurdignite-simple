@@ -1301,8 +1301,12 @@ export default function AdhesionPage() {
                         </div>
                       </motion.div>
                       <h3 className="text-2xl font-bold font-display text-secondary">Contrat signé avec succès !</h3>
-                      <p className="text-muted-foreground">Votre contrat AssurDignité a été créé. Téléchargez votre reçu ci-dessous.</p>
-                      <Button onClick={generatePDF} className="gap-2"><Download className="w-4 h-4" /> Télécharger le reçu PDF</Button>
+                      <p className="text-muted-foreground">Votre contrat AssurDignité a été créé. Téléchargez vos documents officiels ci-dessous.</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 max-w-2xl mx-auto">
+                        <Button onClick={generatePolicePDF} className="gap-2"><Download className="w-4 h-4" /> Police PDF</Button>
+                        <Button onClick={generateAttestationPDF} variant="secondary" className="gap-2"><Download className="w-4 h-4" /> Attestation PDF</Button>
+                        <Button onClick={generatePDF} variant="outline" className="gap-2"><Download className="w-4 h-4" /> Reçu PDF</Button>
+                      </div>
                     </div>
                   )}
                 </div>
