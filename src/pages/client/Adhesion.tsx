@@ -433,6 +433,94 @@ export default function AdhesionPage() {
     doc.save(`AssurDignite_Recu_${quoteDate}.pdf`);
   };
 
+  const generatePolicePDF = async () => {
+    if (!simResult) return;
+    const { newPdf, pdfHeader, pdfTitle, pdfSection, pdfKeyValueGrid, pdfTable, pdfFooter, formatDateFR: fmt, FORMULE_NAMES, SONAM_BRAND } = await import('@/lib/pdf-shared');
+    const doc = newPdf();
+    pdfHeader(doc, "Police d'assurance obsèques");
+    let y = 52;
+    y = pdfTitle(doc, "POLICE D'ASSURANCE", y, `N° ${policeNumber}`);
+    y = pdfSection(doc, '1. Souscripteur', y);
+    y = pdfKeyValueGrid(doc, [
+      ['Nom & prénom', `${kyc.prenom} ${kyc.nom}`.trim() || '—'],
+      ['Email', user?.email || '—'],
+      ['Téléphone', kyc.telephone || '—'],
+      ['Date de naissance', fmt(kyc.dob || simPrincipalDob)],
+      ['CNI', kyc.cni || '—'],
+      ['Adresse', kyc.adresse || '—'],
+    ], y);
+    y = pdfSection(doc, '2. Formule & garanties', y);
+    y = pdfKeyValueGrid(doc, [
+      ['Formule', `${formule} — ${FORMULE_NAMES[formule] || ''}`],
+      ['Capital garanti', formatCFA(simResult.capitaux.principal)],
+      ['Prime annuelle', formatCFA(simResult.primeAnnuelle)],
+      ['Date d\u2019effet', fmt(quoteDate)],
+      ['Date d\u2019expiration', fmt(new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().slice(0, 10))],
+      ['Couverture', '70% prestations en nature + 30% capital espèces'],
+    ], y);
+    if (hasConjoint || enfants.length || ascendants.length) {
+      y = pdfSection(doc, '3. Assurés complémentaires', y);
+      const fullName = (p: any, fb: string) => (`${p?.prenom ?? ''} ${p?.nom ?? ''}`.replace(/\s+/g, ' ').trim() || fb);
+      const rows: string[][] = [];
+      if (hasConjoint) rows.push([fullName(conjoint, 'Conjoint(e)'), 'Conjoint(e)', fmt(conjoint.dob)]);
+      enfants.forEach((e: any, i: number) => rows.push([fullName(e, `Enfant ${i + 1}`), 'Enfant', fmt(e.dob)]));
+      ascendants.forEach((a: any, i: number) => rows.push([fullName(a, `Ascendant ${i + 1}`), a.lien || 'Ascendant', fmt(a.dob)]));
+      y = pdfTable(doc, ['Nom & prénom', 'Lien', 'Né(e) le'], rows, y, [85, 50, 45]);
+    }
+    if (beneficiaires.filter((b: any) => b.nom).length) {
+      y = pdfSection(doc, '4. Bénéficiaires désignés', y);
+      y = pdfTable(doc, ['Nom', 'Lien', 'Téléphone'],
+        beneficiaires.filter((b: any) => b.nom).map((b: any) => [b.nom, b.lien || '—', b.telephone || '—']),
+        y, [80, 60, 40]);
+    }
+    if (y > 235) { doc.addPage(); pdfHeader(doc); y = 52; }
+    y = pdfSection(doc, '5. Signatures', y);
+    doc.setFontSize(9); doc.setTextColor(110);
+    doc.text('Fait à Abidjan, le ' + new Date().toLocaleDateString('fr-FR'), 18, y); y += 14;
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(74, 14, 120);
+    doc.text('Le Souscripteur', 30, y);
+    doc.text('La Direction Générale', 140, y);
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(33, 24, 48);
+    doc.text(`${kyc.prenom} ${kyc.nom}`.trim() || '—', 30, y + 18);
+    doc.text(SONAM_BRAND.name, 140, y + 18);
+    if (canvasRef.current && hasSignature) {
+      try { doc.addImage(canvasRef.current.toDataURL('image/png'), 'PNG', 25, y + 4, 50, 18); } catch {}
+    }
+    pdfFooter(doc);
+    doc.save(`Police_AssurDignite_${policeNumber}.pdf`);
+  };
+
+  const generateAttestationPDF = async () => {
+    if (!simResult) return;
+    const { newPdf, pdfHeader, pdfTitle, pdfSection, pdfKeyValueGrid, pdfFooter, formatDateFR: fmt, FORMULE_NAMES, SONAM_BRAND } = await import('@/lib/pdf-shared');
+    const doc = newPdf();
+    pdfHeader(doc, "Attestation d'assurance");
+    let y = 56;
+    y = pdfTitle(doc, "ATTESTATION D'ASSURANCE", y, `Police N° ${policeNumber}`);
+    doc.setFontSize(11); doc.setFont('helvetica', 'normal'); doc.setTextColor(33, 24, 48);
+    const txt = `Nous, SONAM VIE S.A., attestons par la présente que ${`${kyc.prenom} ${kyc.nom}`.trim() || "l'assuré"} est titulaire du contrat d'assurance obsèques AssurDignité, Formule ${formule} — ${FORMULE_NAMES[formule] || ''}, sous le numéro de police ${policeNumber}.`;
+    const split = doc.splitTextToSize(txt, 175);
+    doc.text(split, 18, y); y += split.length * 6 + 6;
+    y = pdfSection(doc, 'Détails du contrat', y);
+    const expiry = new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().slice(0, 10);
+    y = pdfKeyValueGrid(doc, [
+      ['Période de validité', `Du ${fmt(quoteDate)} au ${fmt(expiry)}`],
+      ['Capital garanti', formatCFA(simResult.capitaux.principal)],
+      ['Prime annuelle', formatCFA(simResult.primeAnnuelle)],
+      ['Statut', 'Actif'],
+    ], y);
+    y += 8;
+    doc.setFontSize(10);
+    doc.text('Fait à Abidjan, le ' + new Date().toLocaleDateString('fr-FR'), 18, y);
+    y += 18;
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(74, 14, 120);
+    doc.text('La Direction Générale', 130, y);
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(33, 24, 48);
+    doc.text(SONAM_BRAND.name, 130, y + 6);
+    pdfFooter(doc);
+    doc.save(`Attestation_AssurDignite_${policeNumber}.pdf`);
+  };
+
   const next = () => setStep(Math.min(step + 1, STEPS.length - 1));
   const prev = () => setStep(Math.max(step - 1, 0));
   const progress = ((step + 1) / STEPS.length) * 100;
