@@ -80,7 +80,7 @@ export function HeroSection() {
   const slide = slides[index];
 
   return (
-    <section id="accueil" className="relative min-h-screen flex items-center overflow-hidden pt-40 sm:pt-36 md:pt-32">
+    <section id="accueil" className="relative min-h-screen flex items-center overflow-hidden pt-44 sm:pt-44 md:pt-52 lg:pt-60">
       <div className="absolute inset-0">
         <AnimatePresence mode="wait">
           <motion.div
@@ -98,7 +98,7 @@ export function HeroSection() {
       </div>
 
       <div className="container mx-auto px-4 relative z-10 pb-16">
-        <div className="max-w-3xl">
+        <div className="max-w-3xl mt-4 md:mt-10 lg:mt-14">
           <AnimatePresence mode="wait">
             <motion.div key={index} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.7 }}>
               <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm text-white/90 text-base font-semibold mb-6">
