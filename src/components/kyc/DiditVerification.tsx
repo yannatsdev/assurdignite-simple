@@ -134,17 +134,43 @@ export function DiditVerification({
     (async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('kyc_status')
+        .select('kyc_status, kyc_payload')
         .eq('id', user.id)
         .maybeSingle();
       if (!cancelled && data?.kyc_status) {
         setStatus(data.kyc_status as KycStatus);
+        if (data.kyc_status === 'approved' && data.kyc_payload) {
+          fireExtracted(data.kyc_payload);
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
   }, [user, vendorDataSuffix]);
+
+  // Realtime subscription on profile row
+  useEffect(() => {
+    if (!user || vendorDataSuffix) return;
+    const channel = supabase
+      .channel(`kyc-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+        (payload) => {
+          const row = payload.new as any;
+          const next = row?.kyc_status as KycStatus | undefined;
+          if (next) {
+            setStatus(next);
+            if (next === 'approved') {
+              onApproved?.();
+              if (row?.kyc_payload) fireExtracted(row.kyc_payload);
+              toast({ title: 'Identité vérifiée ✓', description: 'Vos informations ont été récupérées automatiquement.' });
+            }
+          }
+        },
+      )
+      .subscribe();
 
   // Realtime subscription on profile row
   useEffect(() => {
