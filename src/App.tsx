@@ -18,6 +18,7 @@ import ContratsPage from "./pages/client/Contrats";
 import PaiementsPage from "./pages/client/Paiements";
 import BeneficiairesPage from "./pages/client/Beneficiaires";
 import SinistrePage from "./pages/client/Sinistre";
+import SinistreSuivi from "./pages/client/SinistreSuivi";
 import AssistancePage from "./pages/client/Assistance";
 import DocumentsPage from "./pages/client/Documents";
 import ProfilPage from "./pages/client/Profil";
@@ -76,6 +77,7 @@ const App = () => (
               <Route path="paiements" element={<PaiementsPage />} />
               <Route path="beneficiaires" element={<BeneficiairesPage />} />
               <Route path="sinistre" element={<SinistrePage />} />
+              <Route path="sinistre/:id" element={<SinistreSuivi />} />
               <Route path="assistance" element={<AssistancePage />} />
               <Route path="documents" element={<DocumentsPage />} />
               <Route path="profil" element={<ProfilPage />} />
