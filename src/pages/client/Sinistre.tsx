@@ -4,9 +4,11 @@ import { Input } from '@/components/ui/input';
 import { DateInput } from '@/components/ui/date-input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, CheckCircle, FileCheck2, Loader2, X } from 'lucide-react';
+import { Upload, CheckCircle, FileCheck2, Loader2, X, Clock } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import { ClientHeroBanner } from '@/components/client/ClientHeroBanner';
+import fastPayout from '@/assets/banners/fast-payout.jpg';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -119,17 +121,53 @@ export default function SinistrePage() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl sm:text-3xl font-bold font-display">Sinistre Fast-Track</h1>
-        <p className="text-muted-foreground">Déclarez un sinistre en moins de 5 minutes</p>
-      </motion.div>
+      <ClientHeroBanner
+        image={fastPayout}
+        title="Sinistre Fast-Track"
+        subtitle="Déclarez un sinistre en moins de 5 minutes — versement express en moins de 12h après analyse."
+        height="h-36 sm:h-44"
+        cta={
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/95 backdrop-blur px-3 py-1.5 text-xs font-semibold text-white shadow">
+            <Clock className="w-3.5 h-3.5" /> Versement &lt; 12h
+          </span>
+        }
+      />
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
-        {steps.map((step, i) => (
-          <div key={i} className={`text-center py-2.5 rounded-xl text-xs font-medium transition-all ${i <= currentStep ? 'bg-gradient-to-br from-primary to-[hsl(var(--sonam-blue))] text-white shadow-md' : 'bg-muted text-muted-foreground'}`}>
-            {step}
-          </div>
-        ))}
+      {/* Premium stepper with connectors */}
+      <div className="relative px-2">
+        <div className="absolute top-4 left-0 right-0 h-0.5 bg-muted -z-0" />
+        <motion.div
+          className="absolute top-4 left-0 h-0.5 bg-gradient-to-r from-primary to-secondary -z-0"
+          initial={{ width: 0 }}
+          animate={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}
+          transition={{ duration: 0.5 }}
+        />
+        <div className="relative grid grid-cols-4 gap-1">
+          {steps.map((step, i) => (
+            <div key={i} className="flex flex-col items-center gap-1.5">
+              <motion.div
+                initial={false}
+                animate={{ scale: i === currentStep ? 1.1 : 1 }}
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold border-2 transition-colors ${
+                  i < currentStep
+                    ? 'bg-secondary border-secondary text-white'
+                    : i === currentStep
+                    ? 'bg-primary border-primary text-white shadow-lg shadow-primary/30'
+                    : 'bg-background border-muted text-muted-foreground'
+                }`}
+              >
+                {i < currentStep ? <CheckCircle className="w-4 h-4" /> : i + 1}
+              </motion.div>
+              <span
+                className={`text-[10px] sm:text-xs text-center leading-tight font-medium ${
+                  i <= currentStep ? 'text-foreground' : 'text-muted-foreground'
+                }`}
+              >
+                {step}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
 
       <Card className="border-border/40 shadow-sm">
