@@ -1,128 +1,178 @@
-## Contexte important — écran Google "Lovable"
+## Overview
 
-L'écran de connexion Google (logo cœur Lovable + texte "Accéder à l'application Lovable") est **l'écran de consentement OAuth de Google**, contrôlé côté Google Cloud Console — il n'est pas modifiable depuis le code de l'app. Pour afficher "AssurDignité" + logo SONAM, il faut **utiliser tes propres identifiants Google OAuth (BYOC)** :
-
-1. Créer un projet Google Cloud → écran de consentement OAuth → nom de l'app "AssurDignité", logo SONAM, domaine autorisé.
-2. Générer un Client ID + Client Secret OAuth.
-3. Les coller dans Lovable Cloud → Users → Authentication Settings → Sign In Methods → Google → "Use your own credentials".
-
-Je peux préparer le code et te guider, mais cette étape de configuration Google + collage des secrets dans Cloud doit être faite par toi (5 min). Sans cela, l'écran Google restera "Lovable".
-
-Je vais malgré tout traiter **tout le reste** maintenant.
+Major upgrade across payments, KYC/OCR, simulators, dashboard polish, and full responsiveness. Includes 4 new SVG operator logos, an interactive premium "Wave-style" payment page, vision-OCR ID scanning, and a generated 3D African woman face image for the KYC scan animation.
 
 ---
 
-## Plan d'implémentation
+## 1. New operator SVG logos
 
-### 1. Nouvelle page Paiement simulée (Mobile Money + OTP)
+Copy the 4 uploaded SVGs to `src/assets/operators/`:
+- `orange-money.svg` (from ORANGE-2.svg)
+- `wave.svg` (from WAVE-2.svg)
+- `mtn-momo.svg` (from MTN-2.svg)
+- `moov-money.svg` (from MOOV-2.svg)
 
-- Créer `src/pages/client/PaiementCheckout.tsx` (route `/client/paiement/:contractId?`).
-- Étape 1 — Sélection opérateur : 4 cartes cliquables avec les SVG `orange.svg`, `wave.svg`, `mtn.svg`, `moov.svg` déjà présents dans `src/assets`. Bandeau jaune "Mode test : paiements simulés, aucun débit réel".
-- Étape 2 — Saisie numéro Mobile Money (validation +225 / 10 chiffres).
-- Étape 3 — OTP simulé : afficher un code à 6 chiffres généré client-side (ex. `123456`) directement dans l'UI avec mention "Code de test : XXXXXX". Champ OTP, validation, animation de confirmation.
-- Étape 4 — Confirmation biométrique (avec le nouveau fallback gracieux, voir §3).
-- Étape 5 — Insertion `paiements` (status `paid` direct en mode simulé), notification, redirection succès.
-- Refonte de `Paiements.tsx` : bouton principal "Payer ma prime" → ouvre cette page au lieu du formulaire actuel.
-
-### 2. Résumé de transaction pour paiements en attente
-
-Dans `Paiements.tsx` colonne Historique :
-- Bouton "Voir le résumé" sur les lignes `pending`.
-- Modal avec : montant, méthode, référence, date, contrat lié, statut → 2 actions : **"Reprendre le paiement"** (relance le checkout) et **"Annuler et recommencer"** (UPDATE status='cancelled', puis ouvre checkout vierge).
-
-### 3. Fix biométrie "non disponible"
-
-Dans `src/lib/webauthn.ts` → `verifyBiometricForUser` : la détection actuelle rejette dès qu'`isUserVerifyingPlatformAuthenticatorAvailable()` renvoie `false` (ce qui arrive même avec biométrie présente, ex. iframe preview, contexte non-HTTPS local, navigateur restrictif).
-
-Améliorations :
-- Détection plus tolérante : try/catch séparés, fallback sur `navigator.credentials.create` réel si la pré-check échoue mais le navigateur supporte WebAuthn.
-- Distinguer 3 cas : (a) WebAuthn supporté + capteur OK → biométrie obligatoire ; (b) WebAuthn supporté mais capteur indéterminé → tenter quand même ; (c) pas de WebAuthn du tout → afficher carte "Biométrie non disponible sur cet appareil" + bouton **"Continuer sans biométrie"** (avec confirmation par mot de passe en fallback).
-- Dans `Adhesion.tsx` étape Signature : remplacer le toast d'erreur rouge par un encart info + bouton "Continuer sans biométrie" si cas (c). Si cas (a/b) qui échoue après tentative → toast d'erreur + retry.
-
-### 4. Composants premium réutilisables
-
-Créer dans `src/components/ui/` :
-- `premium-card.tsx` — Card avec gradient subtil violet→blanc, bordure 1px, ombre douce, padding cohérent, variant `gradient` / `outline` / `glass`.
-- `section-header.tsx` — Titre H2 Playfair + sous-titre DM Sans + slot action à droite.
-- `status-pill.tsx` — Pastille colorée typée (`active` vert, `pending` ambre, `paid` vert, `failed` rouge, `cancelled` gris) avec icône.
-
-Appliquer sur : `Dashboard.tsx`, `Paiements.tsx`, `Sinistre.tsx`, `SinistreSuivi.tsx`, `Documents.tsx`, `Contrats.tsx`, `Beneficiaires.tsx`, `Profil.tsx`.
-
-### 5. Refonte Dashboard premium (inspiration mockup image 9)
-
-- Header avec avatar circulaire + "Hello 👋 {Prénom}" + cloche notifications.
-- Barre de recherche globale (filtre actions rapides + contrats).
-- **Carte contrat hero** : gradient violet, photo/icône, formule en grand, dates clés, bouton "Renouveler" si proche échéance, ID Card avec QR (deep-link vers `/client/contrats/:id`).
-- Grille **Quick Actions** colorée (4 tuiles : Sinistre / Documents / Bénéficiaires / Simuler) — version chips arrondies premium.
-- Section **Live & Rewards** : carte "Bonus Fidélité-Santé" avec progression circulaire + carte "Chat avec expert" → ouvre chatbot.
-- Bottom-nav mobile sticky (Home / Contrats / Sinistres / Profil) avec FAB central violet "+" → menu rapide (déclarer sinistre / payer / souscrire).
-- Animations Framer Motion sur entrée des cartes.
-
-### 6. Section Historique des sinistres
-
-Nouvelle section dans `Dashboard.tsx` + page dédiée `src/pages/client/SinistresHistorique.tsx` :
-- Liste de tous les sinistres de l'utilisateur (`sinistres` filtrés `user_id`).
-- Colonnes : Référence, Date déclaration, Nom du défunt, Statut (`status-pill`), Action → "Suivre" qui pointe vers `SinistreSuivi` `/client/sinistre/:id`.
-- Filtres par statut, recherche par référence/nom.
-
-### 7. Suivi des pièces — recherche, tri, prévisualisation
-
-Dans `SinistreSuivi.tsx` (et `Documents.tsx`) :
-- Barre de recherche par nom de fichier.
-- Select de tri par type (`acte_deces`, `cni`, `acte_naissance`, `bulletin_pharmacie`, etc.).
-- Prévisualisation : Dialog plein écran qui ouvre PDF dans `<iframe>` (signed URL) ou image dans `<img>` selon le mime/extension.
-- Badge type + taille du fichier sur chaque carte.
-
-### 8. Chatbot contextuel avec actions rapides
-
-Dans `src/components/ChatBot.tsx` :
-- Au mount, charger contexte : contrat actif ? paiement dû ? sinistre en cours ? attestation dispo ?
-- Afficher chips d'**actions rapides contextuelles** au-dessus du champ de saisie :
-  - Si contrat actif sans paiement annuel → "💳 Payer ma prime" (→ `/client/paiement`)
-  - Toujours → "🚨 Déclarer un sinistre" (→ `/client/sinistre`)
-  - Si contrat actif → "📄 Télécharger mon attestation" (génère PDF jsPDF)
-  - Si sinistre en cours → "🔍 Suivre mon sinistre" (→ `/client/sinistre/:id`)
-- Côté edge function `chat-ai` : injecter le contexte utilisateur (contrat, dernière prime, sinistres) dans le system prompt.
-
-### 9. Nettoyage cohérence générale
-
-- Vérifier toutes les routes dans `App.tsx` (ajouter `/client/paiement`, `/client/historique-sinistres`).
-- Uniformiser tous les badges de statut → `status-pill`.
-- Uniformiser tous les en-têtes de page → `section-header`.
-- Vérifier que `methode` affichée dans historique paiements est lisible (`Orange Money` au lieu de `orange_money`).
-- Corriger les imports `lucide-react` cassés éventuels.
+Update `src/components/payment/OperatorPicker.tsx` to import the new logos (replace the old basic ones).
 
 ---
 
-## Détails techniques
+## 2. Premium payment simulation page (Wave/CinetPay-inspired)
 
-**Fichiers créés**
-- `src/pages/client/PaiementCheckout.tsx`
-- `src/pages/client/SinistresHistorique.tsx`
-- `src/components/ui/premium-card.tsx`
-- `src/components/ui/section-header.tsx`
-- `src/components/ui/status-pill.tsx`
-- `src/components/payment/OperatorPicker.tsx`
-- `src/components/payment/OtpVerification.tsx`
-- `src/components/payment/TransactionSummaryDialog.tsx`
-- `src/components/documents/DocumentPreviewDialog.tsx`
+**New file: `src/pages/client/PaiementCheckoutV2.tsx`** (replaces `PaiementCheckout.tsx` route `/client/paiement`).
 
-**Fichiers modifiés**
-- `src/lib/webauthn.ts` — détection robuste + flag `unsupported` retourné
-- `src/pages/client/Adhesion.tsx` — fallback "Continuer sans biométrie"
-- `src/pages/client/Paiements.tsx` — refonte + bouton checkout + résumé pending
-- `src/pages/client/Dashboard.tsx` — refonte premium
-- `src/pages/client/Sinistre.tsx` & `SinistreSuivi.tsx` — recherche/tri/preview pièces
-- `src/pages/client/Documents.tsx` — recherche/tri/preview
-- `src/components/ChatBot.tsx` — chips contextuelles
-- `supabase/functions/chat-ai/index.ts` — contexte utilisateur dans prompt
-- `src/App.tsx` — nouvelles routes
-- `src/layouts/ClientLayout.tsx` — bottom-nav mobile premium
+Layout inspired by uploaded screenshot:
+- **Top blue gradient banner** with the amount in large bold + a small "(*) 1.5% de frais simulés ajoutés au montant. Mode test" footnote.
+- **Tabs**: `Mobile Money` | `Cartes Bancaires` (disabled "Bientôt") | `Débit Direct` (disabled "Bientôt").
+- **Operator carousel** (horizontal scroll on mobile, grid on desktop) with the 4 new circular SVG logos and ringed selection.
+- Form: **Nom**, **Prénoms**, **Email**, **Compte Mobile Money** with country flag (+225 by default, switchable).
+- Sticky bottom **"Payer X F CFA"** button (white text on violet gradient).
+- After "Payer" → animated processing → OTP step (reuse `OtpVerification`) → biometric step (reuse logic) → success.
 
-**Pas de migration DB requise** — tout passe par les tables existantes (`paiements`, `sinistres`, `contracts`, `notifications`).
+**New: `src/components/payment/PremiumPaymentBanner.tsx`** — animated promo banner shown above the form featuring a **generated AI image of an African family** (warm, smiling, wearing traditional clothes) with overlay text *"AssurDignité — La sérénité pour ceux que vous aimez"*, parallax glow, and a "simulation test" badge.
+
+**New: `src/components/payment/SimulationBadge.tsx`** — floating ribbon "🧪 Mode simulation — aucun débit réel" pinned top-right of the page.
+
+Update `src/App.tsx` to route `/client/paiement` and `/client/paiement/:contractId` to the new component.
 
 ---
 
-## Action à ta charge (Google branding)
+## 3. Interactive premium simulator (3 versions)
 
-Une fois le plan approuvé, je te re-rappellerai en fin d'implémentation comment configurer ton propre OAuth Google pour remplacer "Lovable" par "AssurDignité" sur l'écran Google. C'est la seule étape qui ne peut pas être faite par code.
+**Shared new component: `src/components/simulator/PremiumSimulatorCore.tsx`** — encapsulates the inputs + premium results panel with:
+- Animated big-number counter (count up via framer-motion) for the prime.
+- **Comparative table** of the 4 formulas (A/B/C/D) showing for THE current family composition: prime annuelle, capital total, capital nature 70%, capital espèces 30%, with the selected one highlighted.
+- **Recharts**: 
+  - Donut chart Nature 70% / Espèces 30% (already exists).
+  - **Stacked bar** comparing the 4 formulas' prime totals.
+  - **Radar chart** showing coverage scope per formula (Cercueil, Conservation, Transport, Inhumation, Rapatriement) on a 1-5 scale.
+- Premium "what's included" cards per formula with check icons.
+- Animated "économie réalisée vs formule A" badge.
+
+Apply this core to:
+1. `src/components/landing/SimulateurSection.tsx` — landing.
+2. `src/pages/client/Adhesion.tsx` step 0 (Simulation).
+3. `src/pages/admin/Outils.tsx` admin simulator (find the existing one and replace, with the actuarial breakdown still shown for admins).
+
+---
+
+## 4. Family banners across the platform
+
+**New: `src/components/marketing/FamilyBanner.tsx`** — reusable hero/promo banner with:
+- Generated AI image of an African family (different variants: family of 4 smiling, elderly couple with grandchildren, mother with child, professional businesswoman with family).
+- Overlay text customizable + CTA.
+- Subtle parallax + fade-in animation (framer-motion).
+- Variants: `hero`, `compact`, `wide`.
+
+Generate **4 family images** via Lovable AI (`google/gemini-3-pro-image-preview`) and save to `src/assets/banners/`:
+- `family-united.jpg` — happy African family of 4
+- `family-elderly.jpg` — elderly couple with grandchildren
+- `family-mother.jpg` — African mother holding child
+- `family-pro.jpg` — African business professional with family
+
+Place banners on:
+- Client dashboard top (rotating subtle hero strip).
+- Payment page (Section 2).
+- Souscription completion screen.
+- Landing simulator section background accent.
+
+---
+
+## 5. KYC OCR scanning (step 3 of adhesion)
+
+**New: `src/components/kyc/IdCardScanner.tsx`** — alternative to (or complementary to) Didit:
+- Camera capture of recto + verso of CNI/Passeport (using `getUserMedia` with `facingMode: 'environment'`).
+- File upload fallback.
+- After capture → calls new edge function `kyc-ocr-extract` with the base64 image.
+- Loading state with the same scanning animation, then auto-fills `nom / prenom / dob / cni / adresse`.
+- Inline preview with crop overlay.
+
+**New edge function: `supabase/functions/kyc-ocr-extract/index.ts`**:
+- Accepts base64 image.
+- Calls Lovable AI Gateway with `google/gemini-2.5-pro` (vision) using a structured tool-call schema:
+  ```
+  extract_id_data({first_name, last_name, date_of_birth (YYYY-MM-DD), document_number, document_type, address?, nationality?, gender?})
+  ```
+- Returns the parsed object.
+- Public (`verify_jwt = false` in `supabase/config.toml`).
+
+In `Adhesion.tsx` step 2 (KYC Principal): add a tab/toggle between **"Scanner ma pièce (OCR)"** and **"Vérification Nirva"**. The OCR option uses `IdCardScanner` and pre-fills the form; the Nirva option keeps the existing `DiditVerification`.
+
+**Mobile scroll fix**: when entering step 2 (and any step) on mobile, the page jumps mid-form because the focused element is not the top. Fix in `Adhesion.tsx`:
+- In the `setStep` wrapper / `goNext` / `goPrev`, after state update, call `window.scrollTo({ top: 0, behavior: 'smooth' })` AND scroll the step container ref into view at `block: 'start'`.
+- Add a `topOfStepRef` `<div ref={topOfStepRef} />` at the top of each step content and `topOfStepRef.current?.scrollIntoView({ block: 'start' })` after step change.
+
+---
+
+## 6. Futuristic 3D African woman face for KYC animation
+
+Replace the `<ScanFace>` icon in `DiditVerification.tsx` with a **generated 3D image**:
+- Generate via Lovable AI (`google/gemini-3-pro-image-preview`) prompt: *"Hyper-futuristic 3D render of a young African woman's face being scanned by holographic blue/violet laser lines, neon glow, cyberpunk aesthetic, dark background, photo-realistic, head-on portrait, ethereal lighting"*.
+- Save as `src/assets/kyc-3d-scan.jpg`.
+- In the animation panel: show this image in the center face frame with the existing rotating rings, scan line, and corner brackets overlaid on top. Add a `mix-blend-mode: screen` overlay tint.
+- Keep the "Système prêt" pill and `NIRVA · KYC v1.0` mono labels.
+
+---
+
+## 7. Dashboard premium redesign (mobile + web)
+
+`src/pages/client/Dashboard.tsx` and `src/layouts/ClientLayout.tsx`:
+- New rotating `FamilyBanner` hero strip at the top with greeting overlaid.
+- Replace flat stat cards with `PremiumCard` elevated variants + gradient accents.
+- Add a **"Couverture" donut** (Nature/Espèces split of active contract).
+- Bottom mobile nav: glassmorphism with active indicator pill.
+- Re-tune spacing for `<sm` viewport: container px-3, card padding p-4, font sizes step down by one level.
+
+---
+
+## 8. Full responsive audit & coherence fixes
+
+Sweep the following pages and fix overflow / cramped / missing breakpoint issues:
+- Landing: `Header`, `HeroSection`, `FormulesSection`, `SimulateurSection`, `FAQSection`, `Footer`.
+- Client: `Dashboard`, `Souscrire`, `Adhesion`, `Sinistre`, `SinistreSuivi`, `SinistresHistorique`, `Documents`, `Paiements`, `Profil`, `Beneficiaires`, `Contrats`, `Assistance`.
+- Admin: `Dashboard`, `Utilisateurs`, `Contrats`, `Sinistres`, `Finances`, `Reporting`, `Communication`, `Parametrage`, `Outils`, `Fraude`.
+
+Patterns applied:
+- All tables wrapped in `overflow-x-auto` + minimum column widths.
+- Replace fixed `text-3xl` headings with `text-2xl sm:text-3xl`.
+- Replace `grid-cols-3` etc. with `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`.
+- Replace fixed `gap-8` with `gap-4 sm:gap-6 lg:gap-8`.
+- Sidebars: collapse to drawer below `md`.
+- All forms: 1-col mobile, 2-col sm+.
+- Sticky bottom action bars on multi-step forms (mobile).
+
+---
+
+## Files plan
+
+**New:**
+- `src/assets/operators/{orange-money,wave,mtn-momo,moov-money}.svg`
+- `src/assets/banners/{family-united,family-elderly,family-mother,family-pro}.jpg`
+- `src/assets/kyc-3d-scan.jpg`
+- `src/pages/client/PaiementCheckoutV2.tsx`
+- `src/components/payment/PremiumPaymentBanner.tsx`
+- `src/components/payment/SimulationBadge.tsx`
+- `src/components/simulator/PremiumSimulatorCore.tsx`
+- `src/components/marketing/FamilyBanner.tsx`
+- `src/components/kyc/IdCardScanner.tsx`
+- `supabase/functions/kyc-ocr-extract/index.ts`
+
+**Modified:**
+- `src/App.tsx` — route swap to V2 checkout.
+- `src/components/payment/OperatorPicker.tsx` — new logos.
+- `src/components/landing/SimulateurSection.tsx` — premium core.
+- `src/pages/admin/Outils.tsx` — premium core.
+- `src/pages/client/Adhesion.tsx` — OCR scanner in step 2, mobile scroll fix, premium simulator in step 0.
+- `src/components/kyc/DiditVerification.tsx` — replace icon with 3D face image.
+- `src/pages/client/Dashboard.tsx` + `src/layouts/ClientLayout.tsx` — premium redesign.
+- `supabase/config.toml` — declare `kyc-ocr-extract` with `verify_jwt = false`.
+- ~25 page/layout files for responsive polish (touch-up only).
+
+---
+
+## Technical notes
+
+- AI image generation runs at build/setup time via `lovable_ai.py` script and outputs to `src/assets/`.
+- OCR edge function uses tool-calling (structured output) with `google/gemini-2.5-pro` for accuracy.
+- All existing biometric, payment, and contract-creation logic is preserved.
+- No DB migrations needed.
+- Keep `PaiementCheckout.tsx` deleted/renamed after V2 replaces it (old `?resume=` query still supported).

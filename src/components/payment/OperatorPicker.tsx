@@ -1,8 +1,8 @@
 import * as React from 'react';
-import orange from '@/assets/orange.svg';
-import wave from '@/assets/wave.svg';
-import mtn from '@/assets/mtn.svg';
-import moov from '@/assets/moov.svg';
+import orange from '@/assets/operators/orange-money.svg';
+import wave from '@/assets/operators/wave.svg';
+import mtn from '@/assets/operators/mtn-momo.svg';
+import moov from '@/assets/operators/moov-money.svg';
 import { cn } from '@/lib/utils';
 import { Check } from 'lucide-react';
 
