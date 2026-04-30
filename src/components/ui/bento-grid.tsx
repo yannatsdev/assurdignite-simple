@@ -46,19 +46,24 @@ export function BentoCard({ className, title, description, icon, background, cta
           {background}
         </div>
       )}
-      {/* Glass overlay for legibility */}
-      <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/40 to-transparent" />
+      {/* Strong gradient overlay for legibility on imagery */}
+      {background && (
+        <>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/55 to-black/15" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-transparent" />
+        </>
+      )}
 
       {/* Content */}
       <div className="relative z-10 flex h-full flex-col justify-end p-5 sm:p-6">
         {icon && (
-          <div className="mb-3 inline-flex w-fit items-center justify-center rounded-2xl bg-primary/10 p-2.5 text-primary backdrop-blur-md transition-transform duration-300 group-hover:-translate-y-1">
+          <div className="mb-3 inline-flex w-fit items-center justify-center rounded-2xl bg-white/15 p-2.5 text-white backdrop-blur-md ring-1 ring-white/20 transition-transform duration-300 group-hover:-translate-y-1">
             {icon}
           </div>
         )}
-        <h3 className="text-lg sm:text-xl font-bold font-display text-foreground">{title}</h3>
+        <h3 className={cn('text-lg sm:text-xl font-bold font-display drop-shadow-md', background ? 'text-white' : 'text-foreground')}>{title}</h3>
         {description && (
-          <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed line-clamp-3">{description}</p>
+          <p className={cn('mt-1.5 text-sm leading-relaxed drop-shadow', background ? 'text-white/90' : 'text-muted-foreground')}>{description}</p>
         )}
         {cta && <div className="mt-3">{cta}</div>}
       </div>

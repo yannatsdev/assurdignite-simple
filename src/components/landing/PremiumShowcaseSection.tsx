@@ -9,6 +9,7 @@ import familyUnited from '@/assets/banners/family-united.jpg';
 import familyMother from '@/assets/banners/family-mother.jpg';
 import familyElderly from '@/assets/banners/family-elderly.jpg';
 import familyPro from '@/assets/banners/family-pro.jpg';
+import fastPayout from '@/assets/banners/fast-payout.jpg';
 import orangeLogo from '@/assets/operators/orange-money.svg';
 import waveLogo from '@/assets/operators/wave.svg';
 import mtnLogo from '@/assets/operators/mtn-momo.svg';
@@ -69,7 +70,7 @@ export function PremiumShowcaseSection() {
             description="Versement express après dépôt et analyse des pièces requises."
             icon={<Clock className="w-5 h-5" />}
             background={
-              <img src={familyMother} alt="Mère africaine et son enfant" className="h-full w-full object-cover" loading="lazy" />
+              <img src={fastPayout} alt="Conseiller AssurDignité — versement express" className="h-full w-full object-cover" loading="lazy" />
             }
             delay={0.1}
           />
@@ -83,14 +84,7 @@ export function PremiumShowcaseSection() {
             delay={0.15}
           />
           <BentoCard
-            title="Conformité CIMA"
-            description="Modèle actuariel CIMA H, taux 3,5%. Reconnu et régulé."
-            icon={<Shield className="w-5 h-5" />}
-            background={<div className="h-full w-full bg-gradient-to-br from-primary/30 via-sonam-blue/20 to-secondary/20" />}
-            delay={0.2}
-          />
-          <BentoCard
-            span="sm:col-span-2"
+            span="sm:col-span-3"
             title="Dignité jusqu'au dernier souffle"
             description="Prestations en nature 70% (cercueil, conservation, transport, inhumation) + 30% en capital espèces aux bénéficiaires."
             icon={<Users2 className="w-5 h-5" />}
