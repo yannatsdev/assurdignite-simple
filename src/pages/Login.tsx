@@ -69,9 +69,9 @@ export default function LoginPage() {
       setBioFailed(true);
       const msg = r.error || '';
       const friendly = /NotAllowed|cancelled|annul/i.test(msg)
-        ? "Authentification annulée ou expirée. Réessayez ou utilisez Google."
+        ? "Authentification annulée ou expirée. Réessayez ou utilisez votre email."
         : /InvalidState|UNKNOWN_DEVICE|reconnu/i.test(msg)
-        ? "Cet appareil n'est pas reconnu. Connectez-vous avec Google ou par email."
+        ? "Cet appareil n'est pas reconnu. Connectez-vous par email."
         : msg || 'Échec de la vérification.';
       toast({ title: 'Empreinte refusée', description: friendly, variant: 'destructive' });
     }
