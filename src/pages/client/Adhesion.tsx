@@ -330,8 +330,24 @@ export default function AdhesionPage() {
     setHasSignature(false);
   };
 
+  const [bioConfirming, setBioConfirming] = useState(false);
+
   const handleSign = async () => {
     if (!user || !simResult) return;
+
+    // 2nd-factor: biometric confirmation tied to this user
+    setBioConfirming(true);
+    const bio = await verifyBiometricForUser(user.id, user.email);
+    setBioConfirming(false);
+    if (!bio.ok) {
+      toast({
+        title: 'Confirmation biométrique requise',
+        description: bio.error || "Validez avec l'empreinte/Face ID de cet appareil pour signer.",
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const newPolice = `POL-AD-${Date.now().toString(36).toUpperCase()}`;
     setPoliceNumber(newPolice);
     const { data, error } = await supabase.from('contracts').insert({
@@ -362,7 +378,10 @@ export default function AdhesionPage() {
     }
     const newPayRef = `PAY-${Date.now().toString(36).toUpperCase()}`;
     setPaymentRef(newPayRef);
-    await supabase.from('paiements').insert({ user_id: user.id, contract_id: data.id, montant: simResult.primeAnnuelle, methode: paymentMethod, status: 'paid', reference: newPayRef });
+    await supabase.from('paiements').insert({
+      user_id: user.id, contract_id: data.id, montant: simResult.primeAnnuelle, methode: paymentMethod,
+      status: 'paid', reference: newPayRef, biometric_confirmed_at: new Date().toISOString(),
+    } as any);
 
     setSigned(true);
     toast({ title: 'Contrat signé !', description: `Votre contrat ${newPolice} a été créé avec succès.` });
