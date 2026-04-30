@@ -6,6 +6,7 @@ import { ShieldCheck, Loader2, AlertCircle, ExternalLink, ScanFace, FileCheck2 }
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import kyc3dScan from '@/assets/kyc-3d-scan.jpg';
 
 export type KycStatus = 'not_started' | 'pending' | 'in_review' | 'approved' | 'declined';
 
@@ -350,31 +351,31 @@ export function DiditVerification({
                   transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
                 />
 
-                {/* Centered face frame */}
+                {/* Centered 3D face frame */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <motion.div
                     animate={{ scale: [1, 1.05, 1] }}
                     transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-                    className="relative h-24 w-24 sm:h-28 sm:w-28"
+                    className="relative h-28 w-28 sm:h-32 sm:w-32"
                   >
                     {/* Animated rotating ring */}
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
-                      className="absolute inset-0 rounded-full border-2 border-dashed border-primary/40"
+                      className="absolute -inset-2 rounded-full border-2 border-dashed border-primary/40"
                     />
                     {/* Inner ring counter-rotate */}
                     <motion.div
                       animate={{ rotate: -360 }}
                       transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
-                      className="absolute inset-2 rounded-full border border-sonam-green/50"
+                      className="absolute inset-0 rounded-full border border-sonam-green/50"
                     />
                     {/* Corners */}
                     {[
-                      'top-0 left-0 border-t-2 border-l-2 rounded-tl-md',
-                      'top-0 right-0 border-t-2 border-r-2 rounded-tr-md',
-                      'bottom-0 left-0 border-b-2 border-l-2 rounded-bl-md',
-                      'bottom-0 right-0 border-b-2 border-r-2 rounded-br-md',
+                      '-top-2 -left-2 border-t-2 border-l-2 rounded-tl-md',
+                      '-top-2 -right-2 border-t-2 border-r-2 rounded-tr-md',
+                      '-bottom-2 -left-2 border-b-2 border-l-2 rounded-bl-md',
+                      '-bottom-2 -right-2 border-b-2 border-r-2 rounded-br-md',
                     ].map((c, i) => (
                       <motion.span
                         key={i}
@@ -383,9 +384,16 @@ export function DiditVerification({
                         className={`absolute h-4 w-4 border-sonam-green ${c}`}
                       />
                     ))}
-                    {/* Face icon */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <ScanFace className="h-10 w-10 text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]" />
+                    {/* 3D Generated Face */}
+                    <div className="absolute inset-0 rounded-full overflow-hidden shadow-[0_0_30px_hsl(var(--primary)/0.5)]">
+                      <img
+                        src={kyc3dScan}
+                        alt="Scan biométrique"
+                        loading="lazy"
+                        className="w-full h-full object-cover"
+                      />
+                      {/* Holographic violet/cyan overlay tint */}
+                      <div className="absolute inset-0 mix-blend-screen bg-gradient-to-br from-primary/30 via-transparent to-sonam-green/30 pointer-events-none" />
                     </div>
                   </motion.div>
                 </div>
