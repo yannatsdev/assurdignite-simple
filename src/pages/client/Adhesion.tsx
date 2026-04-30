@@ -714,7 +714,6 @@ export default function AdhesionPage() {
                     />
                     <p className="text-xs text-muted-foreground mt-2">
                       La vérification d'identité est traitée de manière sécurisée par notre partenaire Nirva.
-                      Vos pièces (CNI/passeport, selfie liveness) ne sont jamais stockées sur nos serveurs.
                     </p>
                   </div>
                 </div>
