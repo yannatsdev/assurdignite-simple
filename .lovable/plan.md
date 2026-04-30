@@ -1,79 +1,109 @@
-## Plan d'implémentation
+# Plan d'amélioration AssurDignité
 
-### 1. Connexion Google sur la page Login client
-- Ajouter un bouton "Continuer avec Google" sur `src/pages/Login.tsx` (mode connexion ET inscription)
-- Utiliser le module managé Lovable Cloud OAuth (`lovable.auth.signInWithOAuth("google")`) — aucune clé requise, géré automatiquement
-- Redirection vers `/client` après succès, gestion des erreurs via toast
-- Note : OTP WhatsApp **mis de côté** comme demandé
+## 1. Page Login utilisateur (src/pages/Login.tsx)
+- Supprimer le badge **"Agréé CIMA • SSL 256 bits"** (ligne 88-90).
+- Remplacer le titre/sous-titre du visuel par :
+  - Titre : **"Bienvenue sur votre Espace Client"**
+  - Sous-titre : *"Gérez vos contrats, suivez vos paiements et déclarez vos sinistres en toute simplicité, 100% digital."*
+- Garder visible aussi en mobile (retirer `hidden sm:block`).
 
-### 2. Connexion biométrique (WebAuthn / Passkeys)
-- Créer `src/lib/webauthn.ts` : helpers `registerPasskey()` et `authenticateWithPasskey()` utilisant l'API navigateur native (`navigator.credentials`)
-- Créer table `user_passkeys` (id, user_id, credential_id, public_key, counter, device_name, created_at) avec RLS stricte (user lit/écrit uniquement les siens)
-- 2 edge functions : `webauthn-register` (génère challenge + stocke credential) et `webauthn-authenticate` (vérifie assertion + ouvre session via magic link/JWT custom)
-- À la **2ᵉ connexion** : si l'appareil supporte WebAuthn (`PublicKeyCredential` détecté) ET utilisateur déjà inscrit, proposer modal "Activer la connexion par empreinte ?"
-- Page Login : si passkey enregistré pour cet appareil → bouton prioritaire "🖐️ Connexion empreinte" en haut + repli email/mot de passe
-- Stockage local `localStorage` flag `passkey_enrolled_for_<userId>` pour proposer une seule fois
+## 2. KYC Didit — auto-remplissage (src/pages/client/Adhesion.tsx + DiditVerification.tsx)
+**Problème :** `onExtractedData` ne se déclenche que si `parseDiditPayload` trouve des champs ; le webhook Didit peut renvoyer la décision dans une forme non couverte.
 
-### 3. Fix uploads pièces justificatives Sinistre + temps réel admin
-**Problème actuel** : `src/pages/client/Sinistre.tsx` étape 1 → bouton "Charger" sans handler, fichiers non uploadés.
+Corrections :
+- Côté `DiditVerification.tsx` :
+  - Élargir `parseDiditPayload` pour parcourir aussi `payload.verifications`, `payload.id_document`, `payload.mrz`, `payload.face`, et la clé `extracted_data`.
+  - Lors de `result.type === 'completed'`, **toujours** récupérer le profil complet en BDD (`profiles.kyc_payload`) et fire `fireExtracted` même si la SDK n'a rien renvoyé.
+  - Re-déclencher `fireExtracted` à chaque update temps-réel approved (retirer le `extractedFiredRef` pour les approved updates qui contiennent un payload non vide).
+- Côté `Adhesion.tsx` : forcer `setKyc` même si champs déjà saisis quand l'utilisateur n'a rien tapé manuellement (tracker `kycManuallyEdited`).
+- Afficher un toast clair si Didit OK mais aucune donnée extraite, avec bouton "Réessayer la récupération".
 
-- Brancher chaque bouton sur un `<input type="file" hidden>` avec `accept="image/*,.pdf"`
-- Upload vers bucket Storage `kyc-documents` (existant) sous `sinistres/{user_id}/{sinistre_id}/{type}-{filename}`
-- Créer le sinistre (INSERT) **avant** uploads pour avoir l'id, puis stocker les URLs publiques signées dans `sinistres.documents_urls` (champ ARRAY existant)
-- Indicateur de progression par fichier + état "uploadé ✓"
-- Politique storage : ajouter policies pour bucket `kyc-documents` permettant à l'utilisateur d'uploader sous son `user_id` et aux admins de tout lire
-- **Temps réel admin** : sur `src/pages/admin/Sinistres.tsx`, ajouter `supabase.channel().on('postgres_changes', { table: 'sinistres' })` pour mise à jour live de la liste (insert + update). Activer la table dans publication realtime via migration.
-- Page admin Sinistres : ajouter colonne "Documents" avec aperçu + lien de téléchargement signé
+## 3. Fast-Track Sinistre — Résumé + Suivi (src/pages/client/Sinistre.tsx + nouvelle page)
+- Ajouter un **résumé de dossier** (étape 4 actuelle) listant : infos décès, documents téléchargés (avec lien signed URL), bénéficiaire, méthode paiement, référence, date prévue de virement.
+- Créer **`src/pages/client/SinistreSuivi.tsx`** (route `/client/sinistre/:id`) :
+  - Stepper visuel (Déclaré → En traitement → Validé → Payé / Rejeté) avec dates.
+  - Délai estimé (< 12h après validation).
+  - Liste des pièces téléchargées (téléchargeables via signed URL).
+  - Realtime sur `sinistres` filtré par id.
+  - Lien depuis Dashboard et écran de confirmation Sinistre.
+- Côté upload : augmenter limite à 10 Mo (déjà annoncé), valider type, gérer erreur de bucket non public via signed URL (déjà OK).
 
-### 4. Bouton "Appeler maintenant" → dialer
-- `src/pages/client/Assistance.tsx` : envelopper le bouton dans `<a href="tel:+2250595452165">` (numéro 05 95 45 21 65)
-- Ajouter aussi un bouton WhatsApp (`https://wa.me/2250595452165`) pour cohérence mobile premium
+## 4. Sécurité Passkeys (src/lib/webauthn.ts + Login.tsx)
+- Wrap `authenticateWithPasskey` :
+  - Détecter `NotAllowedError` (challenge expiré / refus) → message clair + proposer Google.
+  - Détecter `InvalidStateError` (device non reconnu) → effacer marker local + proposer Google.
+  - Timeout 60s → proposer fallback.
+- Sur la page Login : si la biométrie échoue, afficher une **bannière** avec bouton "Continuer avec Google" pré-cliquable.
+- Côté Edge Function `webauthn-authenticate` : vérifier que le `credential_id` appartient bien à l'email (déjà fait via `profiles`), retourner code d'erreur explicite (`UNKNOWN_DEVICE`, `NO_PASSKEY`).
+- **Garantir l'unicité** : index unique `(user_id, credential_id)` sur `user_passkeys` (migration) et un seul passkey actif par device.
 
-### 5. Notifications temps réel admin pour nouveaux sinistres
-- Trigger DB `on_sinistre_insert` qui crée une ligne dans `notifications` pour tous les admins (via fonction security definer qui boucle sur `user_roles` admins)
-- Dashboard admin (`src/pages/admin/Dashboard.tsx`) : abonnement realtime sur `sinistres` + toast "Nouveau sinistre déclaré : {ref}" + badge compteur en temps réel
-- Bell icon dans `src/components/admin/AdminSidebar.tsx` avec compteur non-lus
+## 5. Biométrie comme 2e confirmation au paiement (Adhesion.tsx — étape Signature)
+- Avant `handleSign()`, exiger une vérification WebAuthn de l'utilisateur connecté.
+- Si l'utilisateur n'a pas encore de passkey enregistré → propose `registerPasskey()` à la volée (enrôlement immédiat lié à `user.id`).
+- Si l'appareil ne supporte pas la biométrie → fallback OTP email (lien magique court).
+- Marqueur en BDD `paiements.biometric_confirmed_at` (migration ajout colonne).
+- Une passkey = un user (déjà via RLS `auth.uid() = user_id` sur `user_passkeys`).
 
-### 6. Refonte design premium (mobile + web)
-**Objectif** : look "assurance premium high-end" type Allianz/AXA digital.
-- `src/index.css` : ajouter ombres douces premium (`--shadow-premium`), gradients SONAM violet→bleu plus riches, glass-morphism subtil pour cartes
-- Cartes : bordures fines `border-border/40`, padding plus aéré, micro-animations Framer Motion sur hover et apparition (fade+slide)
-- Sidebar client (`ClientSidebar.tsx`) : icônes plus grandes mobile, indicateur actif avec barre verticale violette + glow
-- Header mobile : bottom-nav style iOS pour navigation principale (Accueil, Contrats, Sinistre, Profil)
-- Dashboard client : hero card avec motif décoratif SVG en filigrane, typographie Playfair plus marquée
-- Page Login : ajouter mini-carrousel de témoignages, icônes confiance (Cadenas SSL, agréé CIMA)
-- Toutes les pages : transitions de route fluides avec Framer Motion
+## 6. ChatBot — base de connaissance + formatage (src/components/ChatBot.tsx + edge fn `chat-ai`)
+- Edge function `chat-ai` :
+  - Au démarrage, récupérer toutes les `chatbot_faqs` actives + un **bloc règles garanties** (formules A/B/C/D, capitaux, exclusions Article 4, bonus Article 6) injecté dans le system prompt.
+  - Forcer le modèle `google/gemini-2.5-flash` à répondre en markdown structuré (cards, citations `>`, listes, liens).
+- Front :
+  - Améliorer le rendu : composants `Card` pour les blocs "Formule X", `blockquote` stylé pour citations CIMA, liens internes (`/client/sinistre`, `/client/contrats`) reconnus via regex et transformés en boutons.
+  - Synchronisation espace utilisateur : si `user` connecté, charger `contracts` et inclure un résumé dans le contexte ("contrat actif POL-XXX, formule D, prochain paiement..."). Permet de répondre "Quand expire mon contrat ?".
 
-### 7. Nettoyage données prod (mock + base)
-**Code (mocks restants)** :
-- Dashboard client : "Bonus Fidélité-Santé 1/3 an" en dur → calculer depuis `contracts.date_effet` (années écoulées sans sinistre lié)
-- Dashboard admin : `livePresence` non utilisé → soit retirer soit brancher sur Supabase presence
-- Vérifier `Communication.tsx`, `Reporting.tsx`, `Fraude.tsx` pour valeurs en dur
+## 7. Notifications admin temps-réel (nouveau composant + AdminLayout)
+- Créer `src/components/admin/NotificationBell.tsx` :
+  - Subscribe realtime sur `notifications` (filter `user_id=eq.{adminId}` ou via `has_role`).
+  - Badge avec compteur non-lu.
+  - Popover avec historique (50 derniers), groupés par type (`sinistre`, `paiement`, `contrat`, `info`).
+  - Filtres par type de sinistre (déclaré / en traitement / payé / rejeté).
+  - Marquer lu au clic + bouton "Tout marquer lu".
+- Intégrer dans `AdminLayout.tsx` (header).
+- Élargir trigger `notify_admins_new_sinistre` (déjà actif) + ajouter trigger pour status update sinistre.
 
-**Base (vider tests)** :
-- Migration `DELETE FROM paiements; DELETE FROM sinistres; DELETE FROM beneficiaires; DELETE FROM assures_complementaires; DELETE FROM contracts; DELETE FROM notifications;`
-- Conserver `profiles`, `user_roles`, `actuarial_config_versions`, `chatbot_faqs`
+## 8. Design premium cohérent
+- Créer `src/components/ui/premium-card.tsx`, `section-header.tsx`, `stat-tile.tsx`, `status-pill.tsx` réutilisables (couleurs SONAM violet/vert/bleu, gradients, micro-interactions framer-motion).
+- Auditer toutes les pages client + admin pour utiliser ces composants (dashboard, contrats, paiements, sinistres, profil, beneficiaires, documents, assistance).
+- Typographies : `font-display` (Playfair) pour titres, `font-sans` (DM Sans) pour body, harmoniser tailles (h1 3xl/2xl mobile, h2 xl, body sm/base).
+- Micro-interactions : hover scale 1.02 sur cards, ripple sur boutons primaires, transitions `framer-motion` page (déjà sur quelques pages → généraliser via wrapper dans layouts).
 
----
+## 9. Compte admin seed
+- Via `admin-signup` edge function (déjà existante) :
+  - Email : `adminyannsonam@gmail.com`
+  - Password : `Yannedge50$`
+  - Code d'accès : `ADDWARRIORSONAMVIE777` (déjà = `ADMIN_ACCESS_CODE`)
+- Exécuter automatiquement lors du déploiement via un script ou directement appeler l'endpoint une fois.
 
 ## Détails techniques
+- **Migrations SQL :**
+  ```sql
+  -- Unicité passkeys
+  create unique index if not exists user_passkeys_user_credential_uniq
+    on public.user_passkeys (user_id, credential_id);
+  -- Confirmation biométrique paiement
+  alter table public.paiements
+    add column if not exists biometric_confirmed_at timestamptz;
+  -- Trigger update sinistre
+  create or replace function public.notify_admins_sinistre_status()
+  returns trigger language plpgsql security definer set search_path=public as $$
+  begin
+    if NEW.status is distinct from OLD.status then
+      insert into public.notifications (user_id, title, message, type, link, contract_id)
+      select ur.user_id, 'Sinistre mis à jour',
+             'Réf '||NEW.reference||' → '||NEW.status,
+             'sinistre', '/admin/sinistres', NEW.contract_id
+      from public.user_roles ur where ur.role='admin';
+    end if;
+    return NEW;
+  end$$;
+  create trigger trg_sinistre_status
+    after update on public.sinistres
+    for each row execute function public.notify_admins_sinistre_status();
+  ```
+- **Edge function** `chat-ai` mise à jour pour fetch FAQ + règles + contexte user.
+- **Routes** ajoutées dans `App.tsx` : `/client/sinistre/:id`.
 
-**Nouvelle table** : `user_passkeys (id uuid pk, user_id uuid not null, credential_id text unique, public_key text, counter bigint default 0, device_name text, created_at timestamptz default now())` + RLS user-scope.
-
-**Trigger sinistres** :
-```sql
-create function notify_admins_new_sinistre() returns trigger ...
-  insert into notifications (user_id, title, message, type, link)
-  select ur.user_id, 'Nouveau sinistre', 'Réf: '||NEW.reference, 'sinistre', '/admin/sinistres'
-  from user_roles ur where ur.role = 'admin';
-```
-
-**Realtime** : `ALTER PUBLICATION supabase_realtime ADD TABLE sinistres, notifications;`
-
-**Storage policies** sur `kyc-documents` :
-- INSERT/SELECT : `auth.uid()::text = (storage.foldername(name))[2]` (path = `sinistres/{user_id}/...`)
-- SELECT admin : `has_role(auth.uid(), 'admin')`
-
-**Fichiers modifiés** : `Login.tsx`, `Sinistre.tsx` (client), `Assistance.tsx`, `Sinistre.tsx` (admin), `Dashboard.tsx` (admin+client), `AdminSidebar.tsx`, `ClientSidebar.tsx`, `index.css`, + nouveaux : `lib/webauthn.ts`, `components/PasskeyPrompt.tsx`, `components/MobileBottomNav.tsx`, edge functions `webauthn-register`, `webauthn-authenticate`.
-
-**Connecteur** : configurer Google OAuth via outil natif Lovable Cloud (aucune action utilisateur requise).
+## Fichiers impactés
+**Modifiés :** `src/pages/Login.tsx`, `src/pages/client/Adhesion.tsx`, `src/pages/client/Sinistre.tsx`, `src/components/kyc/DiditVerification.tsx`, `src/lib/webauthn.ts`, `src/components/ChatBot.tsx`, `src/layouts/AdminLayout.tsx`, `src/App.tsx`, `supabase/functions/chat-ai/index.ts`, `supabase/functions/webauthn-authenticate/index.ts`.
+**Créés :** `src/pages/client/SinistreSuivi.tsx`, `src/components/admin/NotificationBell.tsx`, `src/components/ui/premium-card.tsx`, `src/components/ui/section-header.tsx`, `src/components/ui/status-pill.tsx`, migration SQL.
