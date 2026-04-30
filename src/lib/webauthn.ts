@@ -3,7 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 export const isWebAuthnSupported = () =>
   typeof window !== "undefined" &&
   !!window.PublicKeyCredential &&
-  typeof window.PublicKeyCredential === "function";
+  typeof window.PublicKeyCredential === "function" &&
+  typeof navigator !== "undefined" &&
+  !!navigator.credentials;
 
 export const isPlatformAuthenticatorAvailable = async (): Promise<boolean> => {
   if (!isWebAuthnSupported()) return false;
@@ -11,6 +13,22 @@ export const isPlatformAuthenticatorAvailable = async (): Promise<boolean> => {
     return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
   } catch {
     return false;
+  }
+};
+
+/**
+ * Returns 'supported' | 'maybe' | 'unsupported'.
+ * - supported: WebAuthn + capteur biométrique présent
+ * - maybe: WebAuthn présent mais capteur non détectable (iframe, navigateur restrictif) — on tente quand même
+ * - unsupported: pas de WebAuthn du tout (ex: vieux navigateur, contexte non sécurisé)
+ */
+export const getBiometricSupport = async (): Promise<'supported' | 'maybe' | 'unsupported'> => {
+  if (!isWebAuthnSupported()) return 'unsupported';
+  try {
+    const ok = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    return ok ? 'supported' : 'maybe';
+  } catch {
+    return 'maybe';
   }
 };
 
@@ -49,8 +67,8 @@ export async function registerPasskey(deviceName?: string): Promise<{ ok: boolea
           displayName: chData.user.displayName,
         },
         pubKeyCredParams: [
-          { type: "public-key", alg: -7 },   // ES256
-          { type: "public-key", alg: -257 }, // RS256
+          { type: "public-key", alg: -7 },
+          { type: "public-key", alg: -257 },
         ],
         authenticatorSelection: {
           authenticatorAttachment: "platform",
@@ -78,7 +96,6 @@ export async function registerPasskey(deviceName?: string): Promise<{ ok: boolea
     });
     if (error || (data as any)?.error) return { ok: false, error: error?.message || (data as any)?.error };
 
-    // Local marker
     const { data: { user } } = await supabase.auth.getUser();
     if (user) localStorage.setItem(`passkey_enrolled_${user.id}`, "1");
     localStorage.setItem("passkey_device_active", "1");
@@ -124,7 +141,6 @@ export async function authenticateWithPasskey(email: string): Promise<{ ok: bool
         return { ok: false, error: "Authentification annulée ou expirée", code: "NotAllowedError" };
       }
       if (name === "InvalidStateError") {
-        // Device not enrolled — clear local marker
         localStorage.removeItem("passkey_device_active");
         return { ok: false, error: "Cet appareil n'est pas reconnu", code: "InvalidStateError" };
       }
@@ -165,21 +181,44 @@ export const hasLocalPasskey = (userId?: string) => {
 
 /**
  * Local biometric verification for the currently signed-in user.
- * Used as 2nd-factor confirmation (e.g. before signing a contract / paying).
- * Auto-enrolls the user if they don't yet have a passkey on this device.
+ * Returns:
+ *  - ok: true → biométrie validée
+ *  - ok: false + code 'UNSUPPORTED' → l'appareil ne supporte pas WebAuthn → l'UI doit proposer "Continuer sans biométrie"
+ *  - ok: false + autre code → erreur réelle (à afficher en toast)
  */
-export async function verifyBiometricForUser(userId: string, userEmail?: string | null): Promise<{ ok: boolean; error?: string }> {
-  if (!isWebAuthnSupported()) return { ok: false, error: "Biométrie non disponible sur cet appareil" };
-  const platformOk = await isPlatformAuthenticatorAvailable();
-  if (!platformOk) return { ok: false, error: "Capteur biométrique introuvable" };
-
-  // Auto-enroll on the fly if needed
-  if (!hasLocalPasskey(userId)) {
-    const reg = await registerPasskey("Confirmation paiement");
-    if (!reg.ok) return { ok: false, error: reg.error || "Enrôlement biométrique échoué" };
+export async function verifyBiometricForUser(
+  userId: string,
+  userEmail?: string | null
+): Promise<{ ok: boolean; error?: string; code?: 'UNSUPPORTED' | 'CANCELLED' | 'ERROR' | 'ENROLL_FAILED' }> {
+  if (!isWebAuthnSupported()) {
+    return { ok: false, error: "Biométrie non disponible sur cet appareil", code: 'UNSUPPORTED' };
   }
 
-  if (!userEmail) return { ok: true }; // Already enrolled this session = trusted
+  // Auto-enroll on the fly if needed (works whether platform check returns true or 'maybe')
+  if (!hasLocalPasskey(userId)) {
+    try {
+      const reg = await registerPasskey("Confirmation paiement");
+      if (!reg.ok) {
+        const msg = reg.error || "";
+        // If the actual create() call failed because no authenticator exists → unsupported
+        if (/NotSupportedError|NotAllowedError|not.*available|introuvable/i.test(msg)) {
+          return { ok: false, error: "Biométrie non disponible sur cet appareil", code: 'UNSUPPORTED' };
+        }
+        return { ok: false, error: msg || "Enrôlement biométrique échoué", code: 'ENROLL_FAILED' };
+      }
+    } catch (e: any) {
+      return { ok: false, error: "Biométrie non disponible sur cet appareil", code: 'UNSUPPORTED' };
+    }
+  }
+
+  if (!userEmail) return { ok: true };
   const res = await authenticateWithPasskey(userEmail);
-  return { ok: res.ok, error: res.error };
+  if (res.ok) return { ok: true };
+  if (res.code === 'UNSUPPORTED' || res.code === 'NO_PASSKEY') {
+    return { ok: false, error: res.error, code: 'UNSUPPORTED' };
+  }
+  if (res.code === 'NotAllowedError' || res.code === 'CANCELLED') {
+    return { ok: false, error: res.error, code: 'CANCELLED' };
+  }
+  return { ok: false, error: res.error, code: 'ERROR' };
 }
