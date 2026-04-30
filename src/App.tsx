@@ -20,7 +20,7 @@ import BeneficiairesPage from "./pages/client/Beneficiaires";
 import SinistrePage from "./pages/client/Sinistre";
 import SinistreSuivi from "./pages/client/SinistreSuivi";
 import SinistresHistoriquePage from "./pages/client/SinistresHistorique";
-import PaiementCheckoutPage from "./pages/client/PaiementCheckout";
+import PaiementCheckoutPage from "./pages/client/PaiementCheckoutV2";
 import AssistancePage from "./pages/client/Assistance";
 import DocumentsPage from "./pages/client/Documents";
 import ProfilPage from "./pages/client/Profil";
