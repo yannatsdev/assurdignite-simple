@@ -9,10 +9,87 @@ import { useToast } from '@/hooks/use-toast';
 
 export type KycStatus = 'not_started' | 'pending' | 'in_review' | 'approved' | 'declined';
 
+export type ExtractedKycData = {
+  first_name?: string;
+  last_name?: string;
+  date_of_birth?: string; // ISO YYYY-MM-DD
+  document_number?: string;
+  address?: string;
+  nationality?: string;
+  gender?: string;
+};
+
+// Robust parser for various Didit payload shapes (v3)
+export function parseDiditPayload(payload: any): ExtractedKycData {
+  if (!payload || typeof payload !== 'object') return {};
+
+  // Candidate sub-objects where extracted fields may live
+  const candidates: any[] = [
+    payload,
+    payload.decision,
+    payload.decision?.kyc,
+    payload.decision?.id_verification,
+    payload.kyc,
+    payload.id_verification,
+    payload.document,
+    payload.document_data,
+    payload.session?.decision,
+    payload.session?.decision?.kyc,
+    payload.session?.kyc,
+  ].filter(Boolean);
+
+  const pick = (...keys: string[]): string | undefined => {
+    for (const c of candidates) {
+      for (const k of keys) {
+        const v = c?.[k];
+        if (typeof v === 'string' && v.trim()) return v.trim();
+      }
+    }
+    return undefined;
+  };
+
+  // Normalize date to YYYY-MM-DD
+  const normalizeDate = (raw?: string): string | undefined => {
+    if (!raw) return undefined;
+    const s = raw.trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    // DD/MM/YYYY or DD-MM-YYYY
+    const m = s.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/);
+    if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    return undefined;
+  };
+
+  // Compose address from parts if not present as one string
+  let address = pick('address', 'full_address', 'formatted_address');
+  if (!address) {
+    const parts = [
+      pick('street', 'address_line_1', 'address1'),
+      pick('city', 'locality'),
+      pick('state', 'region', 'province'),
+      pick('postal_code', 'zip', 'zip_code'),
+      pick('country', 'country_name'),
+    ].filter(Boolean);
+    if (parts.length) address = parts.join(', ');
+  }
+
+  return {
+    first_name: pick('first_name', 'firstName', 'given_name', 'givenNames', 'given_names'),
+    last_name: pick('last_name', 'lastName', 'family_name', 'surname'),
+    date_of_birth: normalizeDate(pick('date_of_birth', 'dateOfBirth', 'birth_date', 'dob')),
+    document_number: pick('document_number', 'documentNumber', 'id_number', 'number'),
+    address,
+    nationality: pick('nationality', 'country_of_nationality'),
+    gender: pick('gender', 'sex'),
+  };
+}
+
 interface DiditVerificationProps {
   vendorDataSuffix?: string; // e.g. 'conjoint'
   label?: string;
   onApproved?: () => void;
+  onExtractedData?: (data: ExtractedKycData) => void;
   className?: string;
 }
 
