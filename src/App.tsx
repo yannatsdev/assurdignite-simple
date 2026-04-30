@@ -19,6 +19,8 @@ import PaiementsPage from "./pages/client/Paiements";
 import BeneficiairesPage from "./pages/client/Beneficiaires";
 import SinistrePage from "./pages/client/Sinistre";
 import SinistreSuivi from "./pages/client/SinistreSuivi";
+import SinistresHistoriquePage from "./pages/client/SinistresHistorique";
+import PaiementCheckoutPage from "./pages/client/PaiementCheckout";
 import AssistancePage from "./pages/client/Assistance";
 import DocumentsPage from "./pages/client/Documents";
 import ProfilPage from "./pages/client/Profil";
@@ -78,6 +80,9 @@ const App = () => (
               <Route path="beneficiaires" element={<BeneficiairesPage />} />
               <Route path="sinistre" element={<SinistrePage />} />
               <Route path="sinistre/:id" element={<SinistreSuivi />} />
+              <Route path="historique-sinistres" element={<SinistresHistoriquePage />} />
+              <Route path="paiement" element={<PaiementCheckoutPage />} />
+              <Route path="paiement/:contractId" element={<PaiementCheckoutPage />} />
               <Route path="assistance" element={<AssistancePage />} />
               <Route path="documents" element={<DocumentsPage />} />
               <Route path="profil" element={<ProfilPage />} />
