@@ -228,7 +228,10 @@ export function DiditVerification({
           const mapped: KycStatus =
             s === 'approved' ? 'approved' : s === 'declined' ? 'declined' : 'in_review';
           if (!vendorDataSuffix) setStatus(mapped);
-          if (mapped === 'approved') onApproved?.();
+          if (mapped === 'approved') {
+            onApproved?.();
+            fireExtracted(result.session ?? result);
+          }
         } else if (result?.type === 'cancelled') {
           toast({ title: 'Vérification annulée', description: 'Vous pouvez réessayer.' });
         } else if (result?.type === 'failed') {
