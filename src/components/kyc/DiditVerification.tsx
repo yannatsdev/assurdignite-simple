@@ -105,6 +105,7 @@ export function DiditVerification({
   vendorDataSuffix,
   label = "Vérifier mon identité",
   onApproved,
+  onExtractedData,
   className = '',
 }: DiditVerificationProps) {
   const { user } = useAuth();
@@ -115,6 +116,16 @@ export function DiditVerification({
   const [verificationUrl, setVerificationUrl] = useState<string | null>(null);
   const sdkRef = useRef<any>(null);
   const pollRef = useRef<number | null>(null);
+  const extractedFiredRef = useRef(false);
+
+  const fireExtracted = (payload: any) => {
+    if (extractedFiredRef.current || !onExtractedData) return;
+    const data = parseDiditPayload(payload);
+    const hasAny = Object.values(data).some((v) => typeof v === 'string' && v.trim());
+    if (!hasAny) return;
+    extractedFiredRef.current = true;
+    onExtractedData(data);
+  };
 
   // Load initial status (only for principal)
   useEffect(() => {
