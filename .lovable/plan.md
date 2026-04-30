@@ -1,69 +1,79 @@
-## Auto-remplissage des champs depuis la vérification Didit
+## Plan d'implémentation
 
-Oui, c'est possible. Didit retourne dans le webhook (et dans le résultat `onComplete` du SDK) les données extraites du document : nom, prénom, date de naissance, numéro de pièce, adresse, etc. On va les pousser automatiquement dans les champs de l'étape « KYC Principal ».
+### 1. Connexion Google sur la page Login client
+- Ajouter un bouton "Continuer avec Google" sur `src/pages/Login.tsx` (mode connexion ET inscription)
+- Utiliser le module managé Lovable Cloud OAuth (`lovable.auth.signInWithOAuth("google")`) — aucune clé requise, géré automatiquement
+- Redirection vers `/client` après succès, gestion des erreurs via toast
+- Note : OTP WhatsApp **mis de côté** comme demandé
 
-### Flux fonctionnel
+### 2. Connexion biométrique (WebAuthn / Passkeys)
+- Créer `src/lib/webauthn.ts` : helpers `registerPasskey()` et `authenticateWithPasskey()` utilisant l'API navigateur native (`navigator.credentials`)
+- Créer table `user_passkeys` (id, user_id, credential_id, public_key, counter, device_name, created_at) avec RLS stricte (user lit/écrit uniquement les siens)
+- 2 edge functions : `webauthn-register` (génère challenge + stocke credential) et `webauthn-authenticate` (vérifie assertion + ouvre session via magic link/JWT custom)
+- À la **2ᵉ connexion** : si l'appareil supporte WebAuthn (`PublicKeyCredential` détecté) ET utilisateur déjà inscrit, proposer modal "Activer la connexion par empreinte ?"
+- Page Login : si passkey enregistré pour cet appareil → bouton prioritaire "🖐️ Connexion empreinte" en haut + repli email/mot de passe
+- Stockage local `localStorage` flag `passkey_enrolled_for_<userId>` pour proposer une seule fois
 
-1. L'utilisateur lance la vérification Nirva/Didit.
-2. Didit scanne sa CNI/passeport + selfie liveness.
-3. Dès que le statut passe à `approved`, on récupère les champs extraits depuis `kyc_payload`.
-4. Les champs **Nom, Prénom, Date de naissance, N° CNI/Passeport, Adresse** se remplissent automatiquement (animation douce).
-5. Un petit bandeau « Champs renseignés automatiquement depuis votre pièce d'identité — vous pouvez les modifier si besoin » s'affiche.
-6. L'utilisateur garde la main : il peut corriger un champ avant de passer à l'étape suivante.
+### 3. Fix uploads pièces justificatives Sinistre + temps réel admin
+**Problème actuel** : `src/pages/client/Sinistre.tsx` étape 1 → bouton "Charger" sans handler, fichiers non uploadés.
 
-Email et Téléphone restent saisis manuellement (Didit ne les capture pas de manière fiable).
+- Brancher chaque bouton sur un `<input type="file" hidden>` avec `accept="image/*,.pdf"`
+- Upload vers bucket Storage `kyc-documents` (existant) sous `sinistres/{user_id}/{sinistre_id}/{type}-{filename}`
+- Créer le sinistre (INSERT) **avant** uploads pour avoir l'id, puis stocker les URLs publiques signées dans `sinistres.documents_urls` (champ ARRAY existant)
+- Indicateur de progression par fichier + état "uploadé ✓"
+- Politique storage : ajouter policies pour bucket `kyc-documents` permettant à l'utilisateur d'uploader sous son `user_id` et aux admins de tout lire
+- **Temps réel admin** : sur `src/pages/admin/Sinistres.tsx`, ajouter `supabase.channel().on('postgres_changes', { table: 'sinistres' })` pour mise à jour live de la liste (insert + update). Activer la table dans publication realtime via migration.
+- Page admin Sinistres : ajouter colonne "Documents" avec aperçu + lien de téléchargement signé
 
-### Modifications techniques
+### 4. Bouton "Appeler maintenant" → dialer
+- `src/pages/client/Assistance.tsx` : envelopper le bouton dans `<a href="tel:+2250595452165">` (numéro 05 95 45 21 65)
+- Ajouter aussi un bouton WhatsApp (`https://wa.me/2250595452165`) pour cohérence mobile premium
 
-**1. `supabase/functions/didit-webhook/index.ts`**
-- Extraire les données du document depuis le payload Didit (champs typiques : `decision.kyc.first_name`, `last_name`, `date_of_birth`, `document_number`, `address`, `nationality`, `gender`). Selon la version de l'API ils peuvent être sous `id_verification`, `vendor_data`, ou directement à la racine.
-- Sauver le payload complet dans `profiles.kyc_payload` (déjà fait) — pas de migration nécessaire.
+### 5. Notifications temps réel admin pour nouveaux sinistres
+- Trigger DB `on_sinistre_insert` qui crée une ligne dans `notifications` pour tous les admins (via fonction security definer qui boucle sur `user_roles` admins)
+- Dashboard admin (`src/pages/admin/Dashboard.tsx`) : abonnement realtime sur `sinistres` + toast "Nouveau sinistre déclaré : {ref}" + badge compteur en temps réel
+- Bell icon dans `src/components/admin/AdminSidebar.tsx` avec compteur non-lus
 
-**2. `src/components/kyc/DiditVerification.tsx`**
-- Ajouter un prop `onExtractedData?: (data: ExtractedKycData) => void`.
-- Type :
-  ```ts
-  type ExtractedKycData = {
-    first_name?: string;
-    last_name?: string;
-    date_of_birth?: string;  // ISO YYYY-MM-DD
-    document_number?: string;
-    address?: string;
-  };
-  ```
-- Helper `parseDiditPayload(payload)` : navigue dans les chemins possibles du payload pour extraire ces champs (robuste aux variantes de format Didit v3).
-- Deux endroits où on appelle `onExtractedData` :
-  - Dans `sdkRef.current.onComplete` quand `result.session` contient les données (cas où l'utilisateur termine sans fermer la modale).
-  - Dans le subscriber realtime sur `profiles` (cas webhook arrivé) : on relit `kyc_payload` et on parse.
-- Dédoublonner avec un `useRef<boolean>` pour ne pas écraser deux fois si l'utilisateur a déjà édité un champ.
+### 6. Refonte design premium (mobile + web)
+**Objectif** : look "assurance premium high-end" type Allianz/AXA digital.
+- `src/index.css` : ajouter ombres douces premium (`--shadow-premium`), gradients SONAM violet→bleu plus riches, glass-morphism subtil pour cartes
+- Cartes : bordures fines `border-border/40`, padding plus aéré, micro-animations Framer Motion sur hover et apparition (fade+slide)
+- Sidebar client (`ClientSidebar.tsx`) : icônes plus grandes mobile, indicateur actif avec barre verticale violette + glow
+- Header mobile : bottom-nav style iOS pour navigation principale (Accueil, Contrats, Sinistre, Profil)
+- Dashboard client : hero card avec motif décoratif SVG en filigrane, typographie Playfair plus marquée
+- Page Login : ajouter mini-carrousel de témoignages, icônes confiance (Cadenas SSL, agréé CIMA)
+- Toutes les pages : transitions de route fluides avec Framer Motion
 
-**3. `src/pages/client/Adhesion.tsx` (étape 2 KYC Principal)**
-- Passer `onExtractedData` au `<DiditVerification />` :
-  ```tsx
-  onExtractedData={(d) => {
-    setKyc(prev => ({
-      ...prev,
-      nom: prev.nom || d.last_name || '',
-      prenom: prev.prenom || d.first_name || '',
-      dob: prev.dob || d.date_of_birth || '',
-      cni: prev.cni || d.document_number || '',
-      adresse: prev.adresse || d.address || '',
-    }));
-    setAutoFilled(true);
-  }}
-  ```
-  (On ne remplace que les champs vides pour ne pas écraser une saisie utilisateur en cours.)
-- Ajouter un `useState` `autoFilled` et afficher un petit bandeau vert (icône `Sparkles` ou `ShieldCheck`) au-dessus du formulaire quand `true`.
-- Animation `framer-motion` : highlight pulse sur les champs remplis pendant ~1.5s.
+### 7. Nettoyage données prod (mock + base)
+**Code (mocks restants)** :
+- Dashboard client : "Bonus Fidélité-Santé 1/3 an" en dur → calculer depuis `contracts.date_effet` (années écoulées sans sinistre lié)
+- Dashboard admin : `livePresence` non utilisé → soit retirer soit brancher sur Supabase presence
+- Vérifier `Communication.tsx`, `Reporting.tsx`, `Fraude.tsx` pour valeurs en dur
 
-### Notes
+**Base (vider tests)** :
+- Migration `DELETE FROM paiements; DELETE FROM sinistres; DELETE FROM beneficiaires; DELETE FROM assures_complementaires; DELETE FROM contracts; DELETE FROM notifications;`
+- Conserver `profiles`, `user_roles`, `actuarial_config_versions`, `chatbot_faqs`
 
-- Les noms exacts des champs renvoyés par Didit dépendent du workflow configuré (Document + Liveness vs Document + AML, etc.). Le helper de parsing tentera plusieurs chemins (`decision.kyc.*`, `decision.id_verification.*`, racine) pour être robuste.
-- Si un champ est introuvable dans le payload, on ne touche pas au champ correspondant — pas de régression.
-- Pour le conjoint (étape 3), on n'active pas l'auto-fill par défaut (le payload concerne l'assuré principal). On peut l'ajouter plus tard si tu veux.
+---
 
-### Fichiers modifiés
+## Détails techniques
 
-- `supabase/functions/didit-webhook/index.ts` (s'assurer que tout le payload est bien stocké)
-- `src/components/kyc/DiditVerification.tsx` (extraction + nouveau prop)
-- `src/pages/client/Adhesion.tsx` (consommation + bandeau visuel)
+**Nouvelle table** : `user_passkeys (id uuid pk, user_id uuid not null, credential_id text unique, public_key text, counter bigint default 0, device_name text, created_at timestamptz default now())` + RLS user-scope.
+
+**Trigger sinistres** :
+```sql
+create function notify_admins_new_sinistre() returns trigger ...
+  insert into notifications (user_id, title, message, type, link)
+  select ur.user_id, 'Nouveau sinistre', 'Réf: '||NEW.reference, 'sinistre', '/admin/sinistres'
+  from user_roles ur where ur.role = 'admin';
+```
+
+**Realtime** : `ALTER PUBLICATION supabase_realtime ADD TABLE sinistres, notifications;`
+
+**Storage policies** sur `kyc-documents` :
+- INSERT/SELECT : `auth.uid()::text = (storage.foldername(name))[2]` (path = `sinistres/{user_id}/...`)
+- SELECT admin : `has_role(auth.uid(), 'admin')`
+
+**Fichiers modifiés** : `Login.tsx`, `Sinistre.tsx` (client), `Assistance.tsx`, `Sinistre.tsx` (admin), `Dashboard.tsx` (admin+client), `AdminSidebar.tsx`, `ClientSidebar.tsx`, `index.css`, + nouveaux : `lib/webauthn.ts`, `components/PasskeyPrompt.tsx`, `components/MobileBottomNav.tsx`, edge functions `webauthn-register`, `webauthn-authenticate`.
+
+**Connecteur** : configurer Google OAuth via outil natif Lovable Cloud (aucune action utilisateur requise).

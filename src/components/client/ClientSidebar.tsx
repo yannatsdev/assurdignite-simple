@@ -44,7 +44,12 @@ export function ClientSidebar() {
               {menuItems.map(item => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink to={item.url} end={item.url === '/client'} className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                    <NavLink
+                      to={item.url}
+                      end={item.url === '/client'}
+                      className="relative hover:bg-sidebar-accent/50 rounded-lg transition-colors"
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium before:content-[''] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-5 before:rounded-r-full before:bg-sidebar-primary"
+                    >
                       <item.icon className="mr-2 h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
