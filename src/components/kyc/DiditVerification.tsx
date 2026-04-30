@@ -239,6 +239,9 @@ export function DiditVerification({
           if (mapped === 'approved') {
             onApproved?.();
             fireExtracted(result.session ?? result);
+            // Always re-poll the DB in case webhook arrived later with richer payload
+            setTimeout(() => { refetchAndExtract(); }, 1500);
+            setTimeout(() => { refetchAndExtract(); }, 5000);
           }
         } else if (result?.type === 'cancelled') {
           toast({ title: 'Vérification annulée', description: 'Vous pouvez réessayer.' });
