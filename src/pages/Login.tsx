@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { lovable } from '@/integrations/lovable';
+
 import { authenticateWithPasskey, isPlatformAuthenticatorAvailable, hasLocalPasskey } from '@/lib/webauthn';
 import logoSonam from '@/assets/logo-sonamvie.png';
 import logoAssurDignite from '@/assets/logo-assurdignite.png';
