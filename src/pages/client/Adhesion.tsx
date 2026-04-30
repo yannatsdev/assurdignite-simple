@@ -679,70 +679,20 @@ export default function AdhesionPage() {
                   <div><Label>Adresse complète</Label><Input value={kyc.adresse} onChange={e => setKyc({ ...kyc, adresse: e.target.value })} /></div>
 
                   <div className="border-t pt-4 mt-4">
-                    <h4 className="font-semibold font-display mb-3 flex items-center gap-2"><Upload className="w-4 h-4" /> Documents justificatifs</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {/* CNI upload */}
-                      <div className="space-y-2">
-                        <Label className="text-sm">Pièce d'identité (CNI/Passeport) *</Label>
-                        <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${kycFiles.cni ? 'border-sonam-green bg-sonam-green/5' : 'border-border hover:border-primary/50'}`}>
-                          {kycFiles.cni ? (
-                            <div className="flex items-center justify-center gap-2">
-                              <Check className="w-4 h-4 text-sonam-green" />
-                              <span className="text-sm text-sonam-green font-medium">Uploadé</span>
-                              <button onClick={() => setKycFiles(prev => { const n = { ...prev }; delete n.cni; return n; })} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button>
-                            </div>
-                          ) : (
-                            <label className="cursor-pointer">
-                              {uploadingFile === 'cni' ? (
-                                <div className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /><span className="text-xs">Upload...</span></div>
-                              ) : (
-                                <><Upload className="w-6 h-6 mx-auto text-muted-foreground mb-1" /><p className="text-xs text-muted-foreground">Cliquez pour uploader</p><p className="text-xs text-muted-foreground/60">PNG, JPG ou PDF (max 5 Mo)</p></>
-                              )}
-                              <input type="file" accept="image/*,.pdf" className="hidden" onChange={e => e.target.files?.[0] && handleKycUpload(e.target.files[0], 'cni')} />
-                            </label>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Photo — Camera selfie */}
-                      <div className="space-y-2">
-                        <Label className="text-sm">Prendre une photo (selfie) *</Label>
-                        <CameraSelfie
-                          existingFile={kycFiles.photo}
-                          uploading={uploadingFile === 'photo'}
-                          onCapture={blob => handleKycUpload(blob, 'photo')}
-                          onRemove={() => setKycFiles(prev => { const n = { ...prev }; delete n.photo; return n; })}
-                        />
-                      </div>
-
-                      {/* Domicile upload */}
-                      <div className="space-y-2">
-                        <Label className="text-sm">Justificatif de domicile</Label>
-                        <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${kycFiles.domicile ? 'border-sonam-green bg-sonam-green/5' : 'border-border hover:border-primary/50'}`}>
-                          {kycFiles.domicile ? (
-                            <div className="flex items-center justify-center gap-2">
-                              <Check className="w-4 h-4 text-sonam-green" />
-                              <span className="text-sm text-sonam-green font-medium">Uploadé</span>
-                              <button onClick={() => setKycFiles(prev => { const n = { ...prev }; delete n.domicile; return n; })} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button>
-                            </div>
-                          ) : (
-                            <label className="cursor-pointer">
-                              {uploadingFile === 'domicile' ? (
-                                <div className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /><span className="text-xs">Upload...</span></div>
-                              ) : (
-                                <><Upload className="w-6 h-6 mx-auto text-muted-foreground mb-1" /><p className="text-xs text-muted-foreground">Cliquez pour uploader</p><p className="text-xs text-muted-foreground/60">PNG, JPG ou PDF (max 5 Mo)</p></>
-                              )}
-                              <input type="file" accept="image/*,.pdf" className="hidden" onChange={e => e.target.files?.[0] && handleKycUpload(e.target.files[0], 'domicile')} />
-                            </label>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                    <h4 className="font-semibold font-display mb-3 flex items-center gap-2"><Shield className="w-4 h-4" /> Vérification d'identité</h4>
+                    <DiditVerification
+                      label="Démarrer la vérification KYC"
+                      onApproved={() => setKycFiles(prev => ({ ...prev, cni: 'didit-verified', photo: 'didit-verified' }))}
+                    />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      La vérification d'identité est traitée de manière sécurisée par notre partenaire Didit.
+                      Vos pièces (CNI/passeport, selfie liveness) ne sont jamais stockées sur nos serveurs.
+                    </p>
                   </div>
                 </div>
               )}
 
-              {/* Step 3: Conjoint — with CNI + camera selfie */}
+              {/* Step 3: Conjoint — KYC via Didit */}
               {step === 3 && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
