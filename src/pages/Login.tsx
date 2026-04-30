@@ -52,19 +52,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogle = async () => {
-    setIsLoading(true);
-    try {
-      const result = await lovable.auth.signInWithOAuth('google', { redirect_uri: window.location.origin + '/client' });
-      if (result.error) throw result.error;
-      if (!result.redirected) navigate('/client');
-    } catch (err: any) {
-      toast({ title: 'Erreur Google', description: err.message || 'Connexion impossible', variant: 'destructive' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const [bioFailed, setBioFailed] = useState(false);
 
   const handleBiometric = async () => {
