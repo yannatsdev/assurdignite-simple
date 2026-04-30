@@ -18,6 +18,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import { DiditVerification } from '@/components/kyc/DiditVerification';
+import { verifyBiometricForUser } from '@/lib/webauthn';
+import { Fingerprint } from 'lucide-react';
 
 const STEPS = [
   'Simulation', 'Choix Formule', 'KYC Principal', 'Conjoint', 'Assurés Complémentaires',
@@ -1267,8 +1269,13 @@ export default function AdhesionPage() {
                         <Button variant="outline" size="sm" onClick={clearCanvas}>Effacer la signature</Button>
                       </div>
 
-                      <Button className="w-full gap-2" onClick={handleSign} disabled={!hasSignature}>
-                        <PenTool className="w-4 h-4" /> Signer le contrat
+                      <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 flex items-start gap-2 text-xs">
+                        <Fingerprint className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                        <span>Une <strong>confirmation biométrique</strong> (empreinte/Face ID) sera demandée pour valider votre signature, garantissant qu'elle vous appartient bien.</span>
+                      </div>
+
+                      <Button className="w-full gap-2" onClick={handleSign} disabled={!hasSignature || bioConfirming}>
+                        {bioConfirming ? <><Loader2 className="w-4 h-4 animate-spin" /> Confirmation biométrique…</> : <><PenTool className="w-4 h-4" /> Signer avec biométrie</>}
                       </Button>
                     </>
                   ) : (
