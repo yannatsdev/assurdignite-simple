@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, User, ArrowRight, Fingerprint, ShieldCheck, Award } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, ArrowRight, Fingerprint } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -65,16 +65,29 @@ export default function LoginPage() {
     }
   };
 
+  const [bioFailed, setBioFailed] = useState(false);
+
   const handleBiometric = async () => {
     if (!email) {
       toast({ title: 'Email requis', description: 'Saisissez d\'abord votre email.', variant: 'destructive' });
       return;
     }
     setIsLoading(true);
+    setBioFailed(false);
     const r = await authenticateWithPasskey(email);
     setIsLoading(false);
-    if (r.ok) navigate('/client');
-    else toast({ title: 'Empreinte refusée', description: r.error || 'Échec de la vérification', variant: 'destructive' });
+    if (r.ok) {
+      navigate('/client');
+    } else {
+      setBioFailed(true);
+      const msg = r.error || '';
+      const friendly = /NotAllowed|cancelled|annul/i.test(msg)
+        ? "Authentification annulée ou expirée. Réessayez ou utilisez Google."
+        : /InvalidState|UNKNOWN_DEVICE|reconnu/i.test(msg)
+        ? "Cet appareil n'est pas reconnu. Connectez-vous avec Google ou par email."
+        : msg || 'Échec de la vérification.';
+      toast({ title: 'Empreinte refusée', description: friendly, variant: 'destructive' });
+    }
   };
 
   return (
@@ -85,18 +98,15 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/85 via-primary/60 to-[hsl(var(--sonam-blue))]/70" />
         <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-10 lg:p-14 text-white">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-sm border border-white/20 text-xs font-medium mb-4">
-              <ShieldCheck className="w-3 h-3" /> Agréé CIMA • SSL 256 bits
-            </div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-display mb-2 lg:mb-4 leading-tight">
-              Votre dignité,<br />notre engagement.
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-display mb-3 lg:mb-4 leading-tight">
+              Bienvenue sur votre<br />Espace Client
             </h2>
-            <p className="text-white/85 text-sm lg:text-base max-w-md hidden sm:block">
-              Gérez vos contrats obsèques, déclarez un sinistre et accompagnez vos proches — 100% digital, en toute confiance.
+            <p className="text-white/85 text-sm lg:text-base max-w-md">
+              Gérez vos contrats, suivez vos paiements et déclarez vos sinistres en toute simplicité, 100% digital.
             </p>
             <div className="hidden lg:flex items-center gap-4 mt-6 text-xs text-white/80">
-              <div className="flex items-center gap-1.5"><Award className="w-3.5 h-3.5" /> +50 ans d'expérience</div>
-              <div className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5" /> Capital garanti</div>
+              <div className="flex items-center gap-1.5">+50 ans d'expérience</div>
+              <div className="flex items-center gap-1.5">Capital garanti</div>
             </div>
           </motion.div>
         </div>
@@ -127,6 +137,16 @@ export default function LoginPage() {
               <Fingerprint className="w-6 h-6" />
               <span className="font-medium">Connexion par empreinte</span>
             </motion.button>
+          )}
+
+          {bioFailed && (
+            <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+              className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs text-foreground space-y-2">
+              <p>L'empreinte n'a pas fonctionné. Essayez avec Google :</p>
+              <Button type="button" size="sm" variant="outline" onClick={handleGoogle} disabled={isLoading} className="w-full gap-2">
+                Continuer avec Google
+              </Button>
+            </motion.div>
           )}
 
           {/* Google */}

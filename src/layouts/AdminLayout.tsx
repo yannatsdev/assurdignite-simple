@@ -1,7 +1,8 @@
 import { Outlet } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
-import { Bell, Search, Moon, Sun, LogOut } from 'lucide-react';
+import { Search, Moon, Sun, LogOut } from 'lucide-react';
+import { NotificationBell } from '@/components/admin/NotificationBell';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,7 +32,7 @@ export default function AdminLayout() {
             <div className="flex items-center gap-1 sm:gap-2 min-w-0">
               <span className="text-xs text-muted-foreground hidden md:inline truncate max-w-[180px]">{user?.email}</span>
               <Button variant="ghost" size="icon" onClick={toggleDark}>{dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}</Button>
-              <Button variant="ghost" size="icon" className="relative"><Bell className="w-4 h-4" /><span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" /></Button>
+              <NotificationBell />
               <Button variant="ghost" size="sm" onClick={signOut} className="gap-1"><LogOut className="w-4 h-4" /><span className="hidden sm:inline">Déconnexion</span></Button>
             </div>
           </header>

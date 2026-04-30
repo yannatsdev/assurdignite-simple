@@ -46,18 +46,18 @@ Deno.serve(async (req) => {
     }
 
     if (action === "verify") {
-      if (!credentialId) return json({ error: "Missing credential" }, 400);
+      if (!credentialId) return json({ error: "Missing credential", code: "MISSING_CREDENTIAL" }, 400);
 
       const { data: passkey } = await admin
         .from("user_passkeys")
         .select("user_id")
         .eq("credential_id", credentialId)
         .maybeSingle();
-      if (!passkey) return json({ error: "Empreinte non reconnue" }, 404);
+      if (!passkey) return json({ error: "Empreinte non reconnue sur ce compte", code: "UNKNOWN_DEVICE" }, 404);
 
       // Get user email
       const { data: { user }, error: userErr } = await admin.auth.admin.getUserById(passkey.user_id);
-      if (userErr || !user?.email) return json({ error: "User not found" }, 404);
+      if (userErr || !user?.email) return json({ error: "User not found", code: "USER_NOT_FOUND" }, 404);
 
       // Generate magic link to sign in user without password
       const { data: link, error: linkErr } = await admin.auth.admin.generateLink({

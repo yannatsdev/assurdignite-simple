@@ -11,13 +11,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, ArrowRight, Check, Calculator, Users, FileText, Heart, Shield, CreditCard, PenTool, Download, Plus, Minus, AlertCircle, Building2, Upload, X, Camera, Banknote } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Calculator, Users, FileText, Heart, Shield, CreditCard, PenTool, Download, Plus, Minus, AlertCircle, Building2, Upload, X, Camera, Banknote, Loader2 } from 'lucide-react';
 import { simulatePrime, formatCFA, OPTIONS_CAPITALS, type OptionKey, type SimulationResult } from '@/lib/actuarial-engine';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import { DiditVerification } from '@/components/kyc/DiditVerification';
+import { verifyBiometricForUser } from '@/lib/webauthn';
+import { Fingerprint } from 'lucide-react';
 
 const STEPS = [
   'Simulation', 'Choix Formule', 'KYC Principal', 'Conjoint', 'Assurés Complémentaires',
@@ -330,8 +332,24 @@ export default function AdhesionPage() {
     setHasSignature(false);
   };
 
+  const [bioConfirming, setBioConfirming] = useState(false);
+
   const handleSign = async () => {
     if (!user || !simResult) return;
+
+    // 2nd-factor: biometric confirmation tied to this user
+    setBioConfirming(true);
+    const bio = await verifyBiometricForUser(user.id, user.email);
+    setBioConfirming(false);
+    if (!bio.ok) {
+      toast({
+        title: 'Confirmation biométrique requise',
+        description: bio.error || "Validez avec l'empreinte/Face ID de cet appareil pour signer.",
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const newPolice = `POL-AD-${Date.now().toString(36).toUpperCase()}`;
     setPoliceNumber(newPolice);
     const { data, error } = await supabase.from('contracts').insert({
@@ -362,7 +380,10 @@ export default function AdhesionPage() {
     }
     const newPayRef = `PAY-${Date.now().toString(36).toUpperCase()}`;
     setPaymentRef(newPayRef);
-    await supabase.from('paiements').insert({ user_id: user.id, contract_id: data.id, montant: simResult.primeAnnuelle, methode: paymentMethod, status: 'paid', reference: newPayRef });
+    await supabase.from('paiements').insert({
+      user_id: user.id, contract_id: data.id, montant: simResult.primeAnnuelle, methode: paymentMethod,
+      status: 'paid', reference: newPayRef, biometric_confirmed_at: new Date().toISOString(),
+    } as any);
 
     setSigned(true);
     toast({ title: 'Contrat signé !', description: `Votre contrat ${newPolice} a été créé avec succès.` });
@@ -1248,8 +1269,13 @@ export default function AdhesionPage() {
                         <Button variant="outline" size="sm" onClick={clearCanvas}>Effacer la signature</Button>
                       </div>
 
-                      <Button className="w-full gap-2" onClick={handleSign} disabled={!hasSignature}>
-                        <PenTool className="w-4 h-4" /> Signer le contrat
+                      <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 flex items-start gap-2 text-xs">
+                        <Fingerprint className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                        <span>Une <strong>confirmation biométrique</strong> (empreinte/Face ID) sera demandée pour valider votre signature, garantissant qu'elle vous appartient bien.</span>
+                      </div>
+
+                      <Button className="w-full gap-2" onClick={handleSign} disabled={!hasSignature || bioConfirming}>
+                        {bioConfirming ? <><Loader2 className="w-4 h-4 animate-spin" /> Confirmation biométrique…</> : <><PenTool className="w-4 h-4" /> Signer avec biométrie</>}
                       </Button>
                     </>
                   ) : (

@@ -257,6 +257,7 @@ export type Database = {
       }
       paiements: {
         Row: {
+          biometric_confirmed_at: string | null
           contract_id: string | null
           date_paiement: string | null
           id: string
@@ -267,6 +268,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          biometric_confirmed_at?: string | null
           contract_id?: string | null
           date_paiement?: string | null
           id?: string
@@ -277,6 +279,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          biometric_confirmed_at?: string | null
           contract_id?: string | null
           date_paiement?: string | null
           id?: string

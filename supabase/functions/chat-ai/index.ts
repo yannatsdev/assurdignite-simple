@@ -38,7 +38,18 @@ PARCOURS DIGITAL DE SOUSCRIPTION (14 étapes, 100% en ligne) :
 CONTACT
 - Téléphone : **27 20 31 71 82** ou **05 95 45 21 65**
 - Email : **servicecommercialsonamvie@sonam.ci**
-- Siège : Plateau, Immeuble Trade Center, 3ème étage, Avenue NOGUES, Abidjan (visite uniquement si l'utilisateur le demande explicitement).`;
+- Siège : Plateau, Immeuble Trade Center, 3ème étage, Avenue NOGUES, Abidjan (visite uniquement si l'utilisateur le demande explicitement).
+
+RÈGLES DE GARANTIES (à citer en blockquote markdown \`>\` quand pertinent) :
+> Article 3 — Versement du capital espèces (30%) en moins de 12h après dépôt et analyse des pièces.
+> Article 4 — Exclusions : suicide les 2 premières années, faits de guerre, actes terroristes, fausses déclarations.
+> Article 6 — Bonus Fidélité-Santé : +30% des primes nettes cumulées si aucun sinistre pendant 3 ans.
+> Article 7 — Non-paiement : suspension après 30 jours, résiliation après 90 jours.
+
+FORMATAGE PREMIUM :
+- Pour comparer formules, utilise un tableau markdown avec colonnes : Formule | Capital | Idéal pour.
+- Pour des liens internes, utilise UNIQUEMENT ces chemins réels : /client/souscrire, /client/sinistre, /client/contrats, /client/paiements, /client/assistance.
+- Cite toujours les articles CIMA pertinents en blockquote (\`>\`).`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
