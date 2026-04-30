@@ -2,3 +2,6 @@ project_id = "vnnzizjgbphhsmkdenbn"
 
 [functions.didit-webhook]
 verify_jwt = false
+
+[functions.kyc-ocr-extract]
+verify_jwt = false
