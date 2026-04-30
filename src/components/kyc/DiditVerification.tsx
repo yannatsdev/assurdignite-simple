@@ -200,7 +200,7 @@ export function DiditVerification({
                 Vérification d'identité sécurisée
               </h3>
               <p className="text-xs text-muted-foreground">
-                Propulsée par <span className="font-semibold">Didit</span> · CNI, passeport, selfie
+                Propulsée par <span className="font-semibold">Nirva</span> · CNI, passeport, selfie
               </p>
             </div>
           </div>
