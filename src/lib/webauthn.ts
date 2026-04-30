@@ -89,15 +89,17 @@ export async function registerPasskey(deviceName?: string): Promise<{ ok: boolea
   }
 }
 
-export async function authenticateWithPasskey(email: string): Promise<{ ok: boolean; error?: string }> {
+export async function authenticateWithPasskey(email: string): Promise<{ ok: boolean; error?: string; code?: string }> {
   try {
-    if (!isWebAuthnSupported()) return { ok: false, error: "Non supporté" };
+    if (!isWebAuthnSupported()) return { ok: false, error: "Non supporté", code: "UNSUPPORTED" };
 
     const { data: chData, error: chErr } = await supabase.functions.invoke("webauthn-authenticate", {
       body: { action: "challenge", email },
     });
     if (chErr || !chData || (chData as any).error) {
-      return { ok: false, error: chErr?.message || (chData as any)?.error };
+      const msg = chErr?.message || (chData as any)?.error || "";
+      const code = /Aucune empreinte/i.test(msg) ? "NO_PASSKEY" : "CHALLENGE_FAILED";
+      return { ok: false, error: msg || "Aucune empreinte enregistrée", code };
     }
 
     const allowCredentials = ((chData as any).allowCredentials || []).map((c: any) => ({
@@ -105,35 +107,53 @@ export async function authenticateWithPasskey(email: string): Promise<{ ok: bool
       type: "public-key" as const,
     }));
 
-    const assertion = await navigator.credentials.get({
-      publicKey: {
-        challenge: b64ToBuf((chData as any).challenge),
-        allowCredentials,
-        userVerification: "required",
-        timeout: 60000,
-        rpId: window.location.hostname,
-      },
-    }) as PublicKeyCredential | null;
+    let assertion: PublicKeyCredential | null = null;
+    try {
+      assertion = await navigator.credentials.get({
+        publicKey: {
+          challenge: b64ToBuf((chData as any).challenge),
+          allowCredentials,
+          userVerification: "required",
+          timeout: 60000,
+          rpId: window.location.hostname,
+        },
+      }) as PublicKeyCredential | null;
+    } catch (err: any) {
+      const name = err?.name || "";
+      if (name === "NotAllowedError") {
+        return { ok: false, error: "Authentification annulée ou expirée", code: "NotAllowedError" };
+      }
+      if (name === "InvalidStateError") {
+        // Device not enrolled — clear local marker
+        localStorage.removeItem("passkey_device_active");
+        return { ok: false, error: "Cet appareil n'est pas reconnu", code: "InvalidStateError" };
+      }
+      throw err;
+    }
 
-    if (!assertion) return { ok: false, error: "Annulé" };
+    if (!assertion) return { ok: false, error: "Annulé", code: "CANCELLED" };
 
     const credentialId = bufToB64(assertion.rawId);
 
     const { data, error } = await supabase.functions.invoke("webauthn-authenticate", {
       body: { action: "verify", credentialId },
     });
-    if (error || (data as any)?.error) return { ok: false, error: error?.message || (data as any)?.error };
+    if (error || (data as any)?.error) {
+      const msg = error?.message || (data as any)?.error || "";
+      const code = /non reconnue/i.test(msg) ? "UNKNOWN_DEVICE" : "VERIFY_FAILED";
+      return { ok: false, error: msg, code };
+    }
 
     const { token_hash, type } = data as { token_hash: string; type: string };
     const { error: vErr } = await supabase.auth.verifyOtp({
       type: type as any,
       token_hash,
     });
-    if (vErr) return { ok: false, error: vErr.message };
+    if (vErr) return { ok: false, error: vErr.message, code: "OTP_FAILED" };
 
     return { ok: true };
   } catch (e: any) {
-    return { ok: false, error: e?.message || "Erreur" };
+    return { ok: false, error: e?.message || "Erreur", code: "UNKNOWN" };
   }
 }
 
