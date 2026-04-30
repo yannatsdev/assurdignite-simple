@@ -303,11 +303,14 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string | null
+          date_of_birth: string | null
           deleted_at: string | null
           disabled_at: string | null
           email: string
           full_name: string | null
           id: string
+          id_document_number: string | null
+          id_document_type: string | null
           kyc_payload: Json | null
           kyc_provider: string | null
           kyc_session_id: string | null
@@ -320,11 +323,14 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string | null
+          date_of_birth?: string | null
           deleted_at?: string | null
           disabled_at?: string | null
           email: string
           full_name?: string | null
           id: string
+          id_document_number?: string | null
+          id_document_type?: string | null
           kyc_payload?: Json | null
           kyc_provider?: string | null
           kyc_session_id?: string | null
@@ -337,11 +343,14 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string | null
+          date_of_birth?: string | null
           deleted_at?: string | null
           disabled_at?: string | null
           email?: string
           full_name?: string | null
           id?: string
+          id_document_number?: string | null
+          id_document_type?: string | null
           kyc_payload?: Json | null
           kyc_provider?: string | null
           kyc_session_id?: string | null
