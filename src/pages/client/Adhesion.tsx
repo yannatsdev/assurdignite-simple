@@ -335,6 +335,27 @@ export default function AdhesionPage() {
   const [bioConfirming, setBioConfirming] = useState(false);
   const [bioUnsupported, setBioUnsupported] = useState(false);
 
+  const handleSign = async () => {
+    if (!user || !simResult) return;
+    setBioConfirming(true);
+    const bio = await verifyBiometricForUser(user.id, user.email);
+    setBioConfirming(false);
+    if (!bio.ok) {
+      if (bio.code === 'UNSUPPORTED') {
+        setBioUnsupported(true);
+        toast({ title: 'Biométrie non disponible', description: 'Vous pouvez continuer sans biométrie.' });
+        return;
+      }
+      toast({
+        title: 'Confirmation biométrique échouée',
+        description: bio.error || 'Réessayez ou continuez sans biométrie.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    await proceedAfterBio();
+  };
+
   const proceedAfterBio = async () => {
     if (!user || !simResult) return;
 
