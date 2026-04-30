@@ -1,101 +1,69 @@
-## Intégration Didit Identity Verification
+## Auto-remplissage des champs depuis la vérification Didit
 
-Remplacer le KYC manuel (upload CNI/photo/domicile) par le flux Didit avec SDK JavaScript + session backend sécurisée. Le sci-fi wizard précédemment proposé est abandonné.
+Oui, c'est possible. Didit retourne dans le webhook (et dans le résultat `onComplete` du SDK) les données extraites du document : nom, prénom, date de naissance, numéro de pièce, adresse, etc. On va les pousser automatiquement dans les champs de l'étape « KYC Principal ».
 
-### 1. Secrets backend
+### Flux fonctionnel
 
-Demander via `add_secret` :
-- `DIDIT_API_KEY` — Didit Console > API & Webhooks
-- `DIDIT_WORKFLOW_ID` — Didit Console > Workflows
-- `DIDIT_APP_ID` — (stocké pour référence/logs)
+1. L'utilisateur lance la vérification Nirva/Didit.
+2. Didit scanne sa CNI/passeport + selfie liveness.
+3. Dès que le statut passe à `approved`, on récupère les champs extraits depuis `kyc_payload`.
+4. Les champs **Nom, Prénom, Date de naissance, N° CNI/Passeport, Adresse** se remplissent automatiquement (animation douce).
+5. Un petit bandeau « Champs renseignés automatiquement depuis votre pièce d'identité — vous pouvez les modifier si besoin » s'affiche.
+6. L'utilisateur garde la main : il peut corriger un champ avant de passer à l'étape suivante.
 
-Toutes côté backend uniquement. Le frontend ne reçoit qu'un `session_token` + `verification_url`.
+Email et Téléphone restent saisis manuellement (Didit ne les capture pas de manière fiable).
 
-### 2. Schéma DB
+### Modifications techniques
 
-Migration : ajouter colonnes à `profiles` (ou nouvelle table `kyc_sessions`) :
-```
-kyc_session_id text
-kyc_status text         -- 'pending' | 'in_review' | 'approved' | 'declined'
-kyc_provider text default 'didit'
-kyc_verified_at timestamptz
-kyc_payload jsonb
-```
-RLS : user lit/met à jour son propre profil ; service role écrit via webhook.
+**1. `supabase/functions/didit-webhook/index.ts`**
+- Extraire les données du document depuis le payload Didit (champs typiques : `decision.kyc.first_name`, `last_name`, `date_of_birth`, `document_number`, `address`, `nationality`, `gender`). Selon la version de l'API ils peuvent être sous `id_verification`, `vendor_data`, ou directement à la racine.
+- Sauver le payload complet dans `profiles.kyc_payload` (déjà fait) — pas de migration nécessaire.
 
-### 3. Edge functions
+**2. `src/components/kyc/DiditVerification.tsx`**
+- Ajouter un prop `onExtractedData?: (data: ExtractedKycData) => void`.
+- Type :
+  ```ts
+  type ExtractedKycData = {
+    first_name?: string;
+    last_name?: string;
+    date_of_birth?: string;  // ISO YYYY-MM-DD
+    document_number?: string;
+    address?: string;
+  };
+  ```
+- Helper `parseDiditPayload(payload)` : navigue dans les chemins possibles du payload pour extraire ces champs (robuste aux variantes de format Didit v3).
+- Deux endroits où on appelle `onExtractedData` :
+  - Dans `sdkRef.current.onComplete` quand `result.session` contient les données (cas où l'utilisateur termine sans fermer la modale).
+  - Dans le subscriber realtime sur `profiles` (cas webhook arrivé) : on relit `kyc_payload` et on parse.
+- Dédoublonner avec un `useRef<boolean>` pour ne pas écraser deux fois si l'utilisateur a déjà édité un champ.
 
-**`didit-create-session`** (verify_jwt = true)
-- Auth user via JWT
-- POST `https://verification.didit.me/v3/session/`
-- Headers : `x-api-key: DIDIT_API_KEY`
-- Body : `{ workflow_id, vendor_data: user.id, callback: "<app>/client/adhesion?kyc=done" }`
-- Retourne `{ session_id, session_token, verification_url }` au client
-- Insère ligne `pending` dans `profiles.kyc_*`
+**3. `src/pages/client/Adhesion.tsx` (étape 2 KYC Principal)**
+- Passer `onExtractedData` au `<DiditVerification />` :
+  ```tsx
+  onExtractedData={(d) => {
+    setKyc(prev => ({
+      ...prev,
+      nom: prev.nom || d.last_name || '',
+      prenom: prev.prenom || d.first_name || '',
+      dob: prev.dob || d.date_of_birth || '',
+      cni: prev.cni || d.document_number || '',
+      adresse: prev.adresse || d.address || '',
+    }));
+    setAutoFilled(true);
+  }}
+  ```
+  (On ne remplace que les champs vides pour ne pas écraser une saisie utilisateur en cours.)
+- Ajouter un `useState` `autoFilled` et afficher un petit bandeau vert (icône `Sparkles` ou `ShieldCheck`) au-dessus du formulaire quand `true`.
+- Animation `framer-motion` : highlight pulse sur les champs remplis pendant ~1.5s.
 
-**`didit-webhook`** (verify_jwt = false, public)
-- Reçoit POST de Didit avec résultat final
-- Vérifie signature HMAC (header `x-signature`) avec `DIDIT_WEBHOOK_SECRET` (à demander aussi)
-- Met à jour `profiles.kyc_status`, `kyc_verified_at`, `kyc_payload` via service role
-- Log dans `supabase/config.toml` : ajouter `[functions.didit-webhook] verify_jwt = false`
+### Notes
 
-### 4. Frontend — composant `<DiditVerification />`
+- Les noms exacts des champs renvoyés par Didit dépendent du workflow configuré (Document + Liveness vs Document + AML, etc.). Le helper de parsing tentera plusieurs chemins (`decision.kyc.*`, `decision.id_verification.*`, racine) pour être robuste.
+- Si un champ est introuvable dans le payload, on ne touche pas au champ correspondant — pas de régression.
+- Pour le conjoint (étape 3), on n'active pas l'auto-fill par défaut (le payload concerne l'assuré principal). On peut l'ajouter plus tard si tu veux.
 
-Nouveau fichier `src/components/kyc/DiditVerification.tsx`:
-- Bouton « Démarrer la vérification d'identité »
-- Au clic : `supabase.functions.invoke('didit-create-session')`
-- Charge SDK : `const { DiditSdk } = await import('@didit-protocol/sdk-web')`
-- `DiditSdk.shared.onComplete = (result) => { ... }` met à jour état local + UI
-- `DiditSdk.shared.onEvent` pour afficher progression (étape document_front, face, etc.)
-- `startVerification({ url: verification_url, configuration: { showExitConfirmation: true, closeModalOnComplete: true } })`
-- Fallback bouton « Ouvrir dans un nouvel onglet » si SDK échoue
+### Fichiers modifiés
 
-Polling léger (`select kyc_status from profiles`) toutes les 3s pendant que modal ouvert, ou realtime subscribe sur `profiles` row pour basculer immédiatement quand webhook arrive.
-
-### 5. Intégration dans `Adhesion.tsx`
-
-Étape 3 « KYC Principal » :
-- Garder champs textuels (nom, prénom, dob, email, phone, adresse, CNI) — utiles pour la police
-- **Remplacer** la zone upload (CNI recto/verso, selfie, justificatif domicile) par `<DiditVerification />`
-- Bloquer `Suivant` tant que `kyc_status !== 'approved'` (autoriser `in_review` avec warning)
-- Badge vert « Identité vérifiée par Didit » + sessionId masqué
-
-Étape 4 « Conjoint » : même composant avec `vendor_data` distinct (`${user.id}:conjoint`).
-
-Supprimer / archiver `CameraSelfie` et logique `kycFiles` upload Supabase Storage (garder bucket pour autres docs).
-
-### 6. Dashboard admin
-
-`src/pages/admin/Utilisateurs.tsx` ou `Contrats.tsx` : afficher colonne `KYC` avec badge (Approved/Pending/Declined) + lien vers `kyc_payload` (JSON viewer modal).
-
-### 7. Installation
-
-```
-bun add @didit-protocol/sdk-web
-```
-
-### 8. Détails techniques
-
-- SDK importé en dynamic import pour ne pas charger au boot
-- Mode modal par défaut (mobile + desktop friendly)
-- `loggingEnabled: import.meta.env.DEV`
-- Webhook URL à configurer dans Didit Console : `https://vnnzizjgbphhsmkdenbn.supabase.co/functions/v1/didit-webhook`
-- Rate limit free 10/min — ajouter throttle côté `didit-create-session` (1 session/user/min)
-
-### Fichiers touchés
-
-Nouveaux :
-- `supabase/functions/didit-create-session/index.ts`
-- `supabase/functions/didit-webhook/index.ts`
-- `src/components/kyc/DiditVerification.tsx`
-- migration SQL pour colonnes profiles
-
-Modifiés :
-- `src/pages/client/Adhesion.tsx` (étape 3 et 4)
-- `src/pages/admin/Utilisateurs.tsx` (colonne KYC)
-- `supabase/config.toml` (verify_jwt webhook)
-- `package.json` (sdk-web)
-
-### Question avant exécution
-
-Je vais te demander 4 secrets : `DIDIT_API_KEY`, `DIDIT_WORKFLOW_ID`, `DIDIT_APP_ID`, et `DIDIT_WEBHOOK_SECRET` (signature webhook — à créer dans la console Didit). Confirme l'approbation pour démarrer.
+- `supabase/functions/didit-webhook/index.ts` (s'assurer que tout le payload est bien stocké)
+- `src/components/kyc/DiditVerification.tsx` (extraction + nouveau prop)
+- `src/pages/client/Adhesion.tsx` (consommation + bandeau visuel)

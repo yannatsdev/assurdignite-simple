@@ -181,6 +181,7 @@ export default function AdhesionPage() {
 
   // Step 2: KYC
   const [kyc, setKyc] = useState({ nom: '', prenom: '', dob: '', email: '', phone: '', adresse: '', cni: '' });
+  const [kycAutoFilled, setKycAutoFilled] = useState(false);
   const [kycFiles, setKycFiles] = useState<{ cni?: string; photo?: string; domicile?: string; cniConjoint?: string; photoConjoint?: string }>({});
   const [uploadingFile, setUploadingFile] = useState<string | null>(null);
 
@@ -669,6 +670,20 @@ export default function AdhesionPage() {
               {step === 2 && (
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">Informations de l'assuré principal.</p>
+
+                  {kycAutoFilled && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-start gap-2 rounded-lg border border-sonam-green/40 bg-sonam-green/10 p-3 text-xs sm:text-sm text-sonam-green-dark"
+                    >
+                      <Check className="h-4 w-4 mt-0.5 shrink-0 text-sonam-green" />
+                      <span>
+                        Champs renseignés automatiquement depuis votre pièce d'identité — vous pouvez les modifier si besoin.
+                      </span>
+                    </motion.div>
+                  )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div><Label>Nom *</Label><Input value={kyc.nom} onChange={e => setKyc({ ...kyc, nom: e.target.value })} /></div>
                     <div><Label>Prénom *</Label><Input value={kyc.prenom} onChange={e => setKyc({ ...kyc, prenom: e.target.value })} /></div>
@@ -684,6 +699,18 @@ export default function AdhesionPage() {
                     <DiditVerification
                       label="Démarrer la vérification KYC"
                       onApproved={() => setKycFiles(prev => ({ ...prev, cni: 'didit-verified', photo: 'didit-verified' }))}
+                      onExtractedData={(d) => {
+                        setKyc(prev => ({
+                          ...prev,
+                          nom: prev.nom || d.last_name || '',
+                          prenom: prev.prenom || d.first_name || '',
+                          dob: prev.dob || d.date_of_birth || '',
+                          cni: prev.cni || d.document_number || '',
+                          adresse: prev.adresse || d.address || '',
+                        }));
+                        setKycAutoFilled(true);
+                        toast({ title: 'Informations récupérées', description: 'Vos données ont été pré-remplies depuis votre pièce d\'identité.' });
+                      }}
                     />
                     <p className="text-xs text-muted-foreground mt-2">
                       La vérification d'identité est traitée de manière sécurisée par notre partenaire Nirva.
