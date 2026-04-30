@@ -105,8 +105,8 @@ export default function LoginPage() {
               Gérez vos contrats, suivez vos paiements et déclarez vos sinistres en toute simplicité, 100% digital.
             </p>
             <div className="hidden lg:flex items-center gap-4 mt-6 text-xs text-white/80">
-              <div className="flex items-center gap-1.5"><Award className="w-3.5 h-3.5" /> +50 ans d'expérience</div>
-              <div className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5" /> Capital garanti</div>
+              <div className="flex items-center gap-1.5">+50 ans d'expérience</div>
+              <div className="flex items-center gap-1.5">Capital garanti</div>
             </div>
           </motion.div>
         </div>
