@@ -305,6 +305,11 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          kyc_payload: Json | null
+          kyc_provider: string | null
+          kyc_session_id: string | null
+          kyc_status: string | null
+          kyc_verified_at: string | null
           phone: string | null
           status: string
           updated_at: string | null
@@ -317,6 +322,11 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          kyc_payload?: Json | null
+          kyc_provider?: string | null
+          kyc_session_id?: string | null
+          kyc_status?: string | null
+          kyc_verified_at?: string | null
           phone?: string | null
           status?: string
           updated_at?: string | null
@@ -329,6 +339,11 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          kyc_payload?: Json | null
+          kyc_provider?: string | null
+          kyc_session_id?: string | null
+          kyc_status?: string | null
+          kyc_verified_at?: string | null
           phone?: string | null
           status?: string
           updated_at?: string | null
