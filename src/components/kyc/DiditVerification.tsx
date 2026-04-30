@@ -117,12 +117,22 @@ export function DiditVerification({
   const extractedFiredRef = useRef(false);
 
   const fireExtracted = (payload: any) => {
-    if (extractedFiredRef.current || !onExtractedData) return;
+    if (!onExtractedData) return;
     const data = parseDiditPayload(payload);
     const hasAny = Object.values(data).some((v) => typeof v === 'string' && v.trim());
     if (!hasAny) return;
     extractedFiredRef.current = true;
     onExtractedData(data);
+  };
+
+  const refetchAndExtract = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('profiles')
+      .select('kyc_payload')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (data?.kyc_payload) fireExtracted(data.kyc_payload);
   };
 
   // Load initial status (only for principal)
