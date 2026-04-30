@@ -28,18 +28,30 @@ export default function SinistreSuivi() {
   const { id } = useParams();
   const { user } = useAuth();
   const [sinistre, setSinistre] = useState<any>(null);
-  const [docs, setDocs] = useState<{ path: string; url: string; name: string }[]>([]);
+  const [docs, setDocs] = useState<{ path: string; url: string; name: string; ext: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [docQ, setDocQ] = useState('');
+  const [docSort, setDocSort] = useState<'name' | 'type'>('name');
+  const [preview, setPreview] = useState<{ url: string; name: string } | null>(null);
 
   const loadDocs = async (paths: string[]) => {
     if (!paths?.length) { setDocs([]); return; }
     const signed = await Promise.all(paths.map(async (p) => {
       const { data } = await supabase.storage.from('kyc-documents').createSignedUrl(p, 3600);
       const name = p.split('/').pop() || p;
-      return { path: p, url: data?.signedUrl || '', name };
+      const ext = (name.split('.').pop() || '').toLowerCase();
+      return { path: p, url: data?.signedUrl || '', name, ext };
     }));
     setDocs(signed.filter(d => d.url));
   };
+
+  const filteredDocs = useMemo(() => {
+    const q = docQ.trim().toLowerCase();
+    const filtered = q ? docs.filter(d => d.name.toLowerCase().includes(q)) : docs;
+    return [...filtered].sort((a, b) =>
+      docSort === 'type' ? a.ext.localeCompare(b.ext) || a.name.localeCompare(b.name) : a.name.localeCompare(b.name)
+    );
+  }, [docs, docQ, docSort]);
 
   useEffect(() => {
     if (!id || !user) return;
