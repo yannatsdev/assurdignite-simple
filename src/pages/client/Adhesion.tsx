@@ -18,6 +18,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import { DiditVerification } from '@/components/kyc/DiditVerification';
+import { IdCardScanner } from '@/components/kyc/IdCardScanner';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { verifyBiometricForUser } from '@/lib/webauthn';
 import { Fingerprint } from 'lucide-react';
 
@@ -554,8 +556,15 @@ export default function AdhesionPage() {
     doc.save(`Attestation_AssurDignite_${policeNumber}.pdf`);
   };
 
-  const next = () => setStep(Math.min(step + 1, STEPS.length - 1));
-  const prev = () => setStep(Math.max(step - 1, 0));
+  const stepTopRef = useRef<HTMLDivElement>(null);
+  const scrollToStepTop = () => {
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      stepTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  };
+  const next = () => { setStep(Math.min(step + 1, STEPS.length - 1)); scrollToStepTop(); };
+  const prev = () => { setStep(Math.max(step - 1, 0)); scrollToStepTop(); };
   const progress = ((step + 1) / STEPS.length) * 100;
   const StepIcon = STEP_ICONS[step];
 
