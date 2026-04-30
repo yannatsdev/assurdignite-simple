@@ -686,7 +686,7 @@ export default function AdhesionPage() {
                       onApproved={() => setKycFiles(prev => ({ ...prev, cni: 'didit-verified', photo: 'didit-verified' }))}
                     />
                     <p className="text-xs text-muted-foreground mt-2">
-                      La vérification d'identité est traitée de manière sécurisée par notre partenaire Didit.
+                      La vérification d'identité est traitée de manière sécurisée par notre partenaire Nirva.
                       Vos pièces (CNI/passeport, selfie liveness) ne sont jamais stockées sur nos serveurs.
                     </p>
                   </div>

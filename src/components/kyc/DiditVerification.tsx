@@ -200,7 +200,7 @@ export function DiditVerification({
                 Vérification d'identité sécurisée
               </h3>
               <p className="text-xs text-muted-foreground">
-                Propulsée par <span className="font-semibold">Didit</span> · CNI, passeport, selfie
+                Propulsée par <span className="font-semibold">Nirva</span> · CNI, passeport, selfie
               </p>
             </div>
           </div>
@@ -221,6 +221,82 @@ export function DiditVerification({
               exit={{ opacity: 0, y: -8 }}
               className="flex flex-col gap-3"
             >
+              {/* Sci-fi pre-verification animation */}
+              <div className="relative h-40 sm:h-48 overflow-hidden rounded-xl border border-primary/20 bg-gradient-to-br from-[hsl(var(--sonam-violet))]/10 via-background to-sonam-green/10">
+                {/* Holographic grid */}
+                <div
+                  className="absolute inset-0 opacity-30"
+                  style={{
+                    backgroundImage:
+                      'linear-gradient(hsl(var(--primary) / 0.3) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary) / 0.3) 1px, transparent 1px)',
+                    backgroundSize: '24px 24px',
+                  }}
+                />
+                {/* Radial glow */}
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,hsl(var(--primary)/0.25),transparent_60%)]" />
+
+                {/* Scanning line */}
+                <motion.div
+                  className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-sonam-green to-transparent shadow-[0_0_12px_2px_hsl(var(--sonam-green))]"
+                  initial={{ top: '10%' }}
+                  animate={{ top: ['10%', '90%', '10%'] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                />
+
+                {/* Centered face frame */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <motion.div
+                    animate={{ scale: [1, 1.05, 1] }}
+                    transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                    className="relative h-24 w-24 sm:h-28 sm:w-28"
+                  >
+                    {/* Animated rotating ring */}
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+                      className="absolute inset-0 rounded-full border-2 border-dashed border-primary/40"
+                    />
+                    {/* Inner ring counter-rotate */}
+                    <motion.div
+                      animate={{ rotate: -360 }}
+                      transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
+                      className="absolute inset-2 rounded-full border border-sonam-green/50"
+                    />
+                    {/* Corners */}
+                    {[
+                      'top-0 left-0 border-t-2 border-l-2 rounded-tl-md',
+                      'top-0 right-0 border-t-2 border-r-2 rounded-tr-md',
+                      'bottom-0 left-0 border-b-2 border-l-2 rounded-bl-md',
+                      'bottom-0 right-0 border-b-2 border-r-2 rounded-br-md',
+                    ].map((c, i) => (
+                      <motion.span
+                        key={i}
+                        animate={{ opacity: [0.4, 1, 0.4] }}
+                        transition={{ duration: 1.6, repeat: Infinity, delay: i * 0.15 }}
+                        className={`absolute h-4 w-4 border-sonam-green ${c}`}
+                      />
+                    ))}
+                    {/* Face icon */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <ScanFace className="h-10 w-10 text-primary drop-shadow-[0_0_8px_hsl(var(--primary))]" />
+                    </div>
+                  </motion.div>
+                </div>
+
+                {/* Status pill */}
+                <div className="absolute top-2 left-2 flex items-center gap-1.5 rounded-full bg-background/80 backdrop-blur px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider text-primary">
+                  <motion.span
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 1.2, repeat: Infinity }}
+                    className="h-1.5 w-1.5 rounded-full bg-sonam-green"
+                  />
+                  Système prêt
+                </div>
+                <div className="absolute bottom-2 right-2 font-mono text-[10px] text-muted-foreground">
+                  NIRVA · KYC v1.0
+                </div>
+              </div>
+
               <ul className="grid sm:grid-cols-3 gap-2 text-xs">
                 <li className="flex items-center gap-2 rounded-lg bg-background/60 px-3 py-2">
                   <FileCheck2 className="h-4 w-4 text-primary" /> Pièce d'identité
