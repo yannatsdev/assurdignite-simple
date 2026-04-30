@@ -706,30 +706,11 @@ export default function AdhesionPage() {
                         <div><Label>Prénom</Label><Input value={conjoint.prenom} onChange={e => setConjoint({ ...conjoint, prenom: e.target.value })} /></div>
                         <div><Label>Date de naissance</Label><DateInput value={conjoint.dob} onChange={e => setConjoint({ ...conjoint, dob: e })} /></div>
                       </div>
-                      {/* Conjoint CNI */}
-                      <div className="space-y-2">
-                        <Label className="text-sm">Pièce d'identité du conjoint (CNI/Passeport) *</Label>
-                        <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${kycFiles.cniConjoint ? 'border-sonam-green bg-sonam-green/5' : 'border-border hover:border-primary/50'}`}>
-                          {kycFiles.cniConjoint ? (
-                            <div className="flex items-center justify-center gap-2"><Check className="w-4 h-4 text-sonam-green" /><span className="text-sm text-sonam-green font-medium">Uploadé</span><button onClick={() => setKycFiles(prev => { const n = { ...prev }; delete n.cniConjoint; return n; })} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button></div>
-                          ) : (
-                            <label className="cursor-pointer">
-                              {uploadingFile === 'cniConjoint' ? <div className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /><span className="text-xs">Upload...</span></div> : <><Upload className="w-6 h-6 mx-auto text-muted-foreground mb-1" /><p className="text-xs text-muted-foreground">Cliquez pour uploader (PNG, JPG, PDF)</p></>}
-                              <input type="file" accept="image/*,.pdf" className="hidden" onChange={e => e.target.files?.[0] && handleKycUpload(e.target.files[0], 'cniConjoint')} />
-                            </label>
-                          )}
-                        </div>
-                      </div>
-                      {/* Conjoint Photo selfie */}
-                      <div className="space-y-2">
-                        <Label className="text-sm">Photo du conjoint (selfie) *</Label>
-                        <CameraSelfie
-                          existingFile={kycFiles.photoConjoint}
-                          uploading={uploadingFile === 'photoConjoint'}
-                          onCapture={blob => handleKycUpload(blob, 'photoConjoint')}
-                          onRemove={() => setKycFiles(prev => { const n = { ...prev }; delete n.photoConjoint; return n; })}
-                        />
-                      </div>
+                      <DiditVerification
+                        vendorDataSuffix="conjoint"
+                        label="Vérifier l'identité du conjoint"
+                        onApproved={() => setKycFiles(prev => ({ ...prev, cniConjoint: 'didit-verified', photoConjoint: 'didit-verified' }))}
+                      />
                     </div>
                   )}
                 </div>
