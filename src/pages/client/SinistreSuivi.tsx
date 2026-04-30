@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, FileText, ExternalLink, Clock, CheckCircle2, AlertTriangle, Loader2, XCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { StatusPill } from '@/components/ui/status-pill';
+import { DocumentPreviewDialog } from '@/components/documents/DocumentPreviewDialog';
+import { ArrowLeft, FileText, Eye, Clock, CheckCircle2, AlertTriangle, Loader2, XCircle, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -25,18 +28,30 @@ export default function SinistreSuivi() {
   const { id } = useParams();
   const { user } = useAuth();
   const [sinistre, setSinistre] = useState<any>(null);
-  const [docs, setDocs] = useState<{ path: string; url: string; name: string }[]>([]);
+  const [docs, setDocs] = useState<{ path: string; url: string; name: string; ext: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [docQ, setDocQ] = useState('');
+  const [docSort, setDocSort] = useState<'name' | 'type'>('name');
+  const [preview, setPreview] = useState<{ url: string; name: string } | null>(null);
 
   const loadDocs = async (paths: string[]) => {
     if (!paths?.length) { setDocs([]); return; }
     const signed = await Promise.all(paths.map(async (p) => {
       const { data } = await supabase.storage.from('kyc-documents').createSignedUrl(p, 3600);
       const name = p.split('/').pop() || p;
-      return { path: p, url: data?.signedUrl || '', name };
+      const ext = (name.split('.').pop() || '').toLowerCase();
+      return { path: p, url: data?.signedUrl || '', name, ext };
     }));
     setDocs(signed.filter(d => d.url));
   };
+
+  const filteredDocs = useMemo(() => {
+    const q = docQ.trim().toLowerCase();
+    const filtered = q ? docs.filter(d => d.name.toLowerCase().includes(q)) : docs;
+    return [...filtered].sort((a, b) =>
+      docSort === 'type' ? a.ext.localeCompare(b.ext) || a.name.localeCompare(b.name) : a.name.localeCompare(b.name)
+    );
+  }, [docs, docQ, docSort]);
 
   useEffect(() => {
     if (!id || !user) return;
@@ -77,13 +92,8 @@ export default function SinistreSuivi() {
             <h1 className="text-2xl sm:text-3xl font-bold font-display">Suivi sinistre</h1>
             <p className="text-muted-foreground font-mono text-sm">{sinistre.reference}</p>
           </div>
-          <Badge className={
-            isRejected ? 'bg-destructive' :
-            sinistre.status === 'paid' ? 'bg-secondary' :
-            sinistre.status === 'processing' ? 'bg-blue-500' : 'bg-sonam-gold'
-          }>
-            {STATUS_LABEL[sinistre.status] || sinistre.status}
-          </Badge>
+          <StatusPill status={sinistre.status} size="md" />
+
         </div>
       </motion.div>
 
@@ -152,21 +162,40 @@ export default function SinistreSuivi() {
         {docs.length === 0 ? (
           <p className="text-sm text-muted-foreground">Aucune pièce jointe.</p>
         ) : (
-          <ul className="space-y-2">
-            {docs.map((d, i) => (
-              <li key={i} className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-card hover:border-primary/40 transition">
-                <div className="flex items-center gap-2 min-w-0">
-                  <FileText className="w-4 h-4 text-primary shrink-0" />
-                  <span className="text-sm truncate">{d.name}</span>
-                </div>
-                <a href={d.url} target="_blank" rel="noopener noreferrer">
-                  <Button size="sm" variant="outline" className="gap-1"><ExternalLink className="w-3 h-3" /> Voir</Button>
-                </a>
-              </li>
-            ))}
-          </ul>
+          <>
+            <div className="flex flex-col sm:flex-row gap-2 mb-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input value={docQ} onChange={e => setDocQ(e.target.value)} placeholder="Rechercher une pièce…" className="pl-9" />
+              </div>
+              <Select value={docSort} onValueChange={(v: any) => setDocSort(v)}>
+                <SelectTrigger className="sm:w-[180px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Nom (A–Z)</SelectItem>
+                  <SelectItem value="type">Type de fichier</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <ul className="space-y-2">
+              {filteredDocs.map((d, i) => (
+                <li key={i} className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-card hover:border-primary/40 transition">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText className="w-4 h-4 text-primary shrink-0" />
+                    <span className="text-sm truncate">{d.name}</span>
+                    <span className="text-[10px] uppercase text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{d.ext}</span>
+                  </div>
+                  <Button size="sm" variant="outline" className="gap-1" onClick={() => setPreview(d)}>
+                    <Eye className="w-3 h-3" /> Aperçu
+                  </Button>
+                </li>
+              ))}
+              {filteredDocs.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Aucun résultat.</p>}
+            </ul>
+          </>
         )}
       </CardContent></Card>
+      <DocumentPreviewDialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)} url={preview?.url || null} filename={preview?.name} />
     </div>
   );
 }
+

@@ -1,109 +1,128 @@
-# Plan d'amélioration AssurDignité
+## Contexte important — écran Google "Lovable"
 
-## 1. Page Login utilisateur (src/pages/Login.tsx)
-- Supprimer le badge **"Agréé CIMA • SSL 256 bits"** (ligne 88-90).
-- Remplacer le titre/sous-titre du visuel par :
-  - Titre : **"Bienvenue sur votre Espace Client"**
-  - Sous-titre : *"Gérez vos contrats, suivez vos paiements et déclarez vos sinistres en toute simplicité, 100% digital."*
-- Garder visible aussi en mobile (retirer `hidden sm:block`).
+L'écran de connexion Google (logo cœur Lovable + texte "Accéder à l'application Lovable") est **l'écran de consentement OAuth de Google**, contrôlé côté Google Cloud Console — il n'est pas modifiable depuis le code de l'app. Pour afficher "AssurDignité" + logo SONAM, il faut **utiliser tes propres identifiants Google OAuth (BYOC)** :
 
-## 2. KYC Didit — auto-remplissage (src/pages/client/Adhesion.tsx + DiditVerification.tsx)
-**Problème :** `onExtractedData` ne se déclenche que si `parseDiditPayload` trouve des champs ; le webhook Didit peut renvoyer la décision dans une forme non couverte.
+1. Créer un projet Google Cloud → écran de consentement OAuth → nom de l'app "AssurDignité", logo SONAM, domaine autorisé.
+2. Générer un Client ID + Client Secret OAuth.
+3. Les coller dans Lovable Cloud → Users → Authentication Settings → Sign In Methods → Google → "Use your own credentials".
 
-Corrections :
-- Côté `DiditVerification.tsx` :
-  - Élargir `parseDiditPayload` pour parcourir aussi `payload.verifications`, `payload.id_document`, `payload.mrz`, `payload.face`, et la clé `extracted_data`.
-  - Lors de `result.type === 'completed'`, **toujours** récupérer le profil complet en BDD (`profiles.kyc_payload`) et fire `fireExtracted` même si la SDK n'a rien renvoyé.
-  - Re-déclencher `fireExtracted` à chaque update temps-réel approved (retirer le `extractedFiredRef` pour les approved updates qui contiennent un payload non vide).
-- Côté `Adhesion.tsx` : forcer `setKyc` même si champs déjà saisis quand l'utilisateur n'a rien tapé manuellement (tracker `kycManuallyEdited`).
-- Afficher un toast clair si Didit OK mais aucune donnée extraite, avec bouton "Réessayer la récupération".
+Je peux préparer le code et te guider, mais cette étape de configuration Google + collage des secrets dans Cloud doit être faite par toi (5 min). Sans cela, l'écran Google restera "Lovable".
 
-## 3. Fast-Track Sinistre — Résumé + Suivi (src/pages/client/Sinistre.tsx + nouvelle page)
-- Ajouter un **résumé de dossier** (étape 4 actuelle) listant : infos décès, documents téléchargés (avec lien signed URL), bénéficiaire, méthode paiement, référence, date prévue de virement.
-- Créer **`src/pages/client/SinistreSuivi.tsx`** (route `/client/sinistre/:id`) :
-  - Stepper visuel (Déclaré → En traitement → Validé → Payé / Rejeté) avec dates.
-  - Délai estimé (< 12h après validation).
-  - Liste des pièces téléchargées (téléchargeables via signed URL).
-  - Realtime sur `sinistres` filtré par id.
-  - Lien depuis Dashboard et écran de confirmation Sinistre.
-- Côté upload : augmenter limite à 10 Mo (déjà annoncé), valider type, gérer erreur de bucket non public via signed URL (déjà OK).
+Je vais malgré tout traiter **tout le reste** maintenant.
 
-## 4. Sécurité Passkeys (src/lib/webauthn.ts + Login.tsx)
-- Wrap `authenticateWithPasskey` :
-  - Détecter `NotAllowedError` (challenge expiré / refus) → message clair + proposer Google.
-  - Détecter `InvalidStateError` (device non reconnu) → effacer marker local + proposer Google.
-  - Timeout 60s → proposer fallback.
-- Sur la page Login : si la biométrie échoue, afficher une **bannière** avec bouton "Continuer avec Google" pré-cliquable.
-- Côté Edge Function `webauthn-authenticate` : vérifier que le `credential_id` appartient bien à l'email (déjà fait via `profiles`), retourner code d'erreur explicite (`UNKNOWN_DEVICE`, `NO_PASSKEY`).
-- **Garantir l'unicité** : index unique `(user_id, credential_id)` sur `user_passkeys` (migration) et un seul passkey actif par device.
+---
 
-## 5. Biométrie comme 2e confirmation au paiement (Adhesion.tsx — étape Signature)
-- Avant `handleSign()`, exiger une vérification WebAuthn de l'utilisateur connecté.
-- Si l'utilisateur n'a pas encore de passkey enregistré → propose `registerPasskey()` à la volée (enrôlement immédiat lié à `user.id`).
-- Si l'appareil ne supporte pas la biométrie → fallback OTP email (lien magique court).
-- Marqueur en BDD `paiements.biometric_confirmed_at` (migration ajout colonne).
-- Une passkey = un user (déjà via RLS `auth.uid() = user_id` sur `user_passkeys`).
+## Plan d'implémentation
 
-## 6. ChatBot — base de connaissance + formatage (src/components/ChatBot.tsx + edge fn `chat-ai`)
-- Edge function `chat-ai` :
-  - Au démarrage, récupérer toutes les `chatbot_faqs` actives + un **bloc règles garanties** (formules A/B/C/D, capitaux, exclusions Article 4, bonus Article 6) injecté dans le system prompt.
-  - Forcer le modèle `google/gemini-2.5-flash` à répondre en markdown structuré (cards, citations `>`, listes, liens).
-- Front :
-  - Améliorer le rendu : composants `Card` pour les blocs "Formule X", `blockquote` stylé pour citations CIMA, liens internes (`/client/sinistre`, `/client/contrats`) reconnus via regex et transformés en boutons.
-  - Synchronisation espace utilisateur : si `user` connecté, charger `contracts` et inclure un résumé dans le contexte ("contrat actif POL-XXX, formule D, prochain paiement..."). Permet de répondre "Quand expire mon contrat ?".
+### 1. Nouvelle page Paiement simulée (Mobile Money + OTP)
 
-## 7. Notifications admin temps-réel (nouveau composant + AdminLayout)
-- Créer `src/components/admin/NotificationBell.tsx` :
-  - Subscribe realtime sur `notifications` (filter `user_id=eq.{adminId}` ou via `has_role`).
-  - Badge avec compteur non-lu.
-  - Popover avec historique (50 derniers), groupés par type (`sinistre`, `paiement`, `contrat`, `info`).
-  - Filtres par type de sinistre (déclaré / en traitement / payé / rejeté).
-  - Marquer lu au clic + bouton "Tout marquer lu".
-- Intégrer dans `AdminLayout.tsx` (header).
-- Élargir trigger `notify_admins_new_sinistre` (déjà actif) + ajouter trigger pour status update sinistre.
+- Créer `src/pages/client/PaiementCheckout.tsx` (route `/client/paiement/:contractId?`).
+- Étape 1 — Sélection opérateur : 4 cartes cliquables avec les SVG `orange.svg`, `wave.svg`, `mtn.svg`, `moov.svg` déjà présents dans `src/assets`. Bandeau jaune "Mode test : paiements simulés, aucun débit réel".
+- Étape 2 — Saisie numéro Mobile Money (validation +225 / 10 chiffres).
+- Étape 3 — OTP simulé : afficher un code à 6 chiffres généré client-side (ex. `123456`) directement dans l'UI avec mention "Code de test : XXXXXX". Champ OTP, validation, animation de confirmation.
+- Étape 4 — Confirmation biométrique (avec le nouveau fallback gracieux, voir §3).
+- Étape 5 — Insertion `paiements` (status `paid` direct en mode simulé), notification, redirection succès.
+- Refonte de `Paiements.tsx` : bouton principal "Payer ma prime" → ouvre cette page au lieu du formulaire actuel.
 
-## 8. Design premium cohérent
-- Créer `src/components/ui/premium-card.tsx`, `section-header.tsx`, `stat-tile.tsx`, `status-pill.tsx` réutilisables (couleurs SONAM violet/vert/bleu, gradients, micro-interactions framer-motion).
-- Auditer toutes les pages client + admin pour utiliser ces composants (dashboard, contrats, paiements, sinistres, profil, beneficiaires, documents, assistance).
-- Typographies : `font-display` (Playfair) pour titres, `font-sans` (DM Sans) pour body, harmoniser tailles (h1 3xl/2xl mobile, h2 xl, body sm/base).
-- Micro-interactions : hover scale 1.02 sur cards, ripple sur boutons primaires, transitions `framer-motion` page (déjà sur quelques pages → généraliser via wrapper dans layouts).
+### 2. Résumé de transaction pour paiements en attente
 
-## 9. Compte admin seed
-- Via `admin-signup` edge function (déjà existante) :
-  - Email : `adminyannsonam@gmail.com`
-  - Password : `Yannedge50$`
-  - Code d'accès : `ADDWARRIORSONAMVIE777` (déjà = `ADMIN_ACCESS_CODE`)
-- Exécuter automatiquement lors du déploiement via un script ou directement appeler l'endpoint une fois.
+Dans `Paiements.tsx` colonne Historique :
+- Bouton "Voir le résumé" sur les lignes `pending`.
+- Modal avec : montant, méthode, référence, date, contrat lié, statut → 2 actions : **"Reprendre le paiement"** (relance le checkout) et **"Annuler et recommencer"** (UPDATE status='cancelled', puis ouvre checkout vierge).
+
+### 3. Fix biométrie "non disponible"
+
+Dans `src/lib/webauthn.ts` → `verifyBiometricForUser` : la détection actuelle rejette dès qu'`isUserVerifyingPlatformAuthenticatorAvailable()` renvoie `false` (ce qui arrive même avec biométrie présente, ex. iframe preview, contexte non-HTTPS local, navigateur restrictif).
+
+Améliorations :
+- Détection plus tolérante : try/catch séparés, fallback sur `navigator.credentials.create` réel si la pré-check échoue mais le navigateur supporte WebAuthn.
+- Distinguer 3 cas : (a) WebAuthn supporté + capteur OK → biométrie obligatoire ; (b) WebAuthn supporté mais capteur indéterminé → tenter quand même ; (c) pas de WebAuthn du tout → afficher carte "Biométrie non disponible sur cet appareil" + bouton **"Continuer sans biométrie"** (avec confirmation par mot de passe en fallback).
+- Dans `Adhesion.tsx` étape Signature : remplacer le toast d'erreur rouge par un encart info + bouton "Continuer sans biométrie" si cas (c). Si cas (a/b) qui échoue après tentative → toast d'erreur + retry.
+
+### 4. Composants premium réutilisables
+
+Créer dans `src/components/ui/` :
+- `premium-card.tsx` — Card avec gradient subtil violet→blanc, bordure 1px, ombre douce, padding cohérent, variant `gradient` / `outline` / `glass`.
+- `section-header.tsx` — Titre H2 Playfair + sous-titre DM Sans + slot action à droite.
+- `status-pill.tsx` — Pastille colorée typée (`active` vert, `pending` ambre, `paid` vert, `failed` rouge, `cancelled` gris) avec icône.
+
+Appliquer sur : `Dashboard.tsx`, `Paiements.tsx`, `Sinistre.tsx`, `SinistreSuivi.tsx`, `Documents.tsx`, `Contrats.tsx`, `Beneficiaires.tsx`, `Profil.tsx`.
+
+### 5. Refonte Dashboard premium (inspiration mockup image 9)
+
+- Header avec avatar circulaire + "Hello 👋 {Prénom}" + cloche notifications.
+- Barre de recherche globale (filtre actions rapides + contrats).
+- **Carte contrat hero** : gradient violet, photo/icône, formule en grand, dates clés, bouton "Renouveler" si proche échéance, ID Card avec QR (deep-link vers `/client/contrats/:id`).
+- Grille **Quick Actions** colorée (4 tuiles : Sinistre / Documents / Bénéficiaires / Simuler) — version chips arrondies premium.
+- Section **Live & Rewards** : carte "Bonus Fidélité-Santé" avec progression circulaire + carte "Chat avec expert" → ouvre chatbot.
+- Bottom-nav mobile sticky (Home / Contrats / Sinistres / Profil) avec FAB central violet "+" → menu rapide (déclarer sinistre / payer / souscrire).
+- Animations Framer Motion sur entrée des cartes.
+
+### 6. Section Historique des sinistres
+
+Nouvelle section dans `Dashboard.tsx` + page dédiée `src/pages/client/SinistresHistorique.tsx` :
+- Liste de tous les sinistres de l'utilisateur (`sinistres` filtrés `user_id`).
+- Colonnes : Référence, Date déclaration, Nom du défunt, Statut (`status-pill`), Action → "Suivre" qui pointe vers `SinistreSuivi` `/client/sinistre/:id`.
+- Filtres par statut, recherche par référence/nom.
+
+### 7. Suivi des pièces — recherche, tri, prévisualisation
+
+Dans `SinistreSuivi.tsx` (et `Documents.tsx`) :
+- Barre de recherche par nom de fichier.
+- Select de tri par type (`acte_deces`, `cni`, `acte_naissance`, `bulletin_pharmacie`, etc.).
+- Prévisualisation : Dialog plein écran qui ouvre PDF dans `<iframe>` (signed URL) ou image dans `<img>` selon le mime/extension.
+- Badge type + taille du fichier sur chaque carte.
+
+### 8. Chatbot contextuel avec actions rapides
+
+Dans `src/components/ChatBot.tsx` :
+- Au mount, charger contexte : contrat actif ? paiement dû ? sinistre en cours ? attestation dispo ?
+- Afficher chips d'**actions rapides contextuelles** au-dessus du champ de saisie :
+  - Si contrat actif sans paiement annuel → "💳 Payer ma prime" (→ `/client/paiement`)
+  - Toujours → "🚨 Déclarer un sinistre" (→ `/client/sinistre`)
+  - Si contrat actif → "📄 Télécharger mon attestation" (génère PDF jsPDF)
+  - Si sinistre en cours → "🔍 Suivre mon sinistre" (→ `/client/sinistre/:id`)
+- Côté edge function `chat-ai` : injecter le contexte utilisateur (contrat, dernière prime, sinistres) dans le system prompt.
+
+### 9. Nettoyage cohérence générale
+
+- Vérifier toutes les routes dans `App.tsx` (ajouter `/client/paiement`, `/client/historique-sinistres`).
+- Uniformiser tous les badges de statut → `status-pill`.
+- Uniformiser tous les en-têtes de page → `section-header`.
+- Vérifier que `methode` affichée dans historique paiements est lisible (`Orange Money` au lieu de `orange_money`).
+- Corriger les imports `lucide-react` cassés éventuels.
+
+---
 
 ## Détails techniques
-- **Migrations SQL :**
-  ```sql
-  -- Unicité passkeys
-  create unique index if not exists user_passkeys_user_credential_uniq
-    on public.user_passkeys (user_id, credential_id);
-  -- Confirmation biométrique paiement
-  alter table public.paiements
-    add column if not exists biometric_confirmed_at timestamptz;
-  -- Trigger update sinistre
-  create or replace function public.notify_admins_sinistre_status()
-  returns trigger language plpgsql security definer set search_path=public as $$
-  begin
-    if NEW.status is distinct from OLD.status then
-      insert into public.notifications (user_id, title, message, type, link, contract_id)
-      select ur.user_id, 'Sinistre mis à jour',
-             'Réf '||NEW.reference||' → '||NEW.status,
-             'sinistre', '/admin/sinistres', NEW.contract_id
-      from public.user_roles ur where ur.role='admin';
-    end if;
-    return NEW;
-  end$$;
-  create trigger trg_sinistre_status
-    after update on public.sinistres
-    for each row execute function public.notify_admins_sinistre_status();
-  ```
-- **Edge function** `chat-ai` mise à jour pour fetch FAQ + règles + contexte user.
-- **Routes** ajoutées dans `App.tsx` : `/client/sinistre/:id`.
 
-## Fichiers impactés
-**Modifiés :** `src/pages/Login.tsx`, `src/pages/client/Adhesion.tsx`, `src/pages/client/Sinistre.tsx`, `src/components/kyc/DiditVerification.tsx`, `src/lib/webauthn.ts`, `src/components/ChatBot.tsx`, `src/layouts/AdminLayout.tsx`, `src/App.tsx`, `supabase/functions/chat-ai/index.ts`, `supabase/functions/webauthn-authenticate/index.ts`.
-**Créés :** `src/pages/client/SinistreSuivi.tsx`, `src/components/admin/NotificationBell.tsx`, `src/components/ui/premium-card.tsx`, `src/components/ui/section-header.tsx`, `src/components/ui/status-pill.tsx`, migration SQL.
+**Fichiers créés**
+- `src/pages/client/PaiementCheckout.tsx`
+- `src/pages/client/SinistresHistorique.tsx`
+- `src/components/ui/premium-card.tsx`
+- `src/components/ui/section-header.tsx`
+- `src/components/ui/status-pill.tsx`
+- `src/components/payment/OperatorPicker.tsx`
+- `src/components/payment/OtpVerification.tsx`
+- `src/components/payment/TransactionSummaryDialog.tsx`
+- `src/components/documents/DocumentPreviewDialog.tsx`
+
+**Fichiers modifiés**
+- `src/lib/webauthn.ts` — détection robuste + flag `unsupported` retourné
+- `src/pages/client/Adhesion.tsx` — fallback "Continuer sans biométrie"
+- `src/pages/client/Paiements.tsx` — refonte + bouton checkout + résumé pending
+- `src/pages/client/Dashboard.tsx` — refonte premium
+- `src/pages/client/Sinistre.tsx` & `SinistreSuivi.tsx` — recherche/tri/preview pièces
+- `src/pages/client/Documents.tsx` — recherche/tri/preview
+- `src/components/ChatBot.tsx` — chips contextuelles
+- `supabase/functions/chat-ai/index.ts` — contexte utilisateur dans prompt
+- `src/App.tsx` — nouvelles routes
+- `src/layouts/ClientLayout.tsx` — bottom-nav mobile premium
+
+**Pas de migration DB requise** — tout passe par les tables existantes (`paiements`, `sinistres`, `contracts`, `notifications`).
+
+---
+
+## Action à ta charge (Google branding)
+
+Une fois le plan approuvé, je te re-rappellerai en fin d'implémentation comment configurer ton propre OAuth Google pour remplacer "Lovable" par "AssurDignité" sur l'écran Google. C'est la seule étape qui ne peut pas être faite par code.
