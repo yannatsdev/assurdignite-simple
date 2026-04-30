@@ -80,13 +80,8 @@ export default function SinistreSuivi() {
             <h1 className="text-2xl sm:text-3xl font-bold font-display">Suivi sinistre</h1>
             <p className="text-muted-foreground font-mono text-sm">{sinistre.reference}</p>
           </div>
-          <Badge className={
-            isRejected ? 'bg-destructive' :
-            sinistre.status === 'paid' ? 'bg-secondary' :
-            sinistre.status === 'processing' ? 'bg-blue-500' : 'bg-sonam-gold'
-          }>
-            {STATUS_LABEL[sinistre.status] || sinistre.status}
-          </Badge>
+          <StatusPill status={sinistre.status} size="md" />
+
         </div>
       </motion.div>
 
