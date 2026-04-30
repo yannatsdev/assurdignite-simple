@@ -333,22 +333,10 @@ export default function AdhesionPage() {
   };
 
   const [bioConfirming, setBioConfirming] = useState(false);
+  const [bioUnsupported, setBioUnsupported] = useState(false);
 
-  const handleSign = async () => {
+  const proceedAfterBio = async () => {
     if (!user || !simResult) return;
-
-    // 2nd-factor: biometric confirmation tied to this user
-    setBioConfirming(true);
-    const bio = await verifyBiometricForUser(user.id, user.email);
-    setBioConfirming(false);
-    if (!bio.ok) {
-      toast({
-        title: 'Confirmation biométrique requise',
-        description: bio.error || "Validez avec l'empreinte/Face ID de cet appareil pour signer.",
-        variant: 'destructive',
-      });
-      return;
-    }
 
     const newPolice = `POL-AD-${Date.now().toString(36).toUpperCase()}`;
     setPoliceNumber(newPolice);
