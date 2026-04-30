@@ -181,6 +181,7 @@ export default function AdhesionPage() {
 
   // Step 2: KYC
   const [kyc, setKyc] = useState({ nom: '', prenom: '', dob: '', email: '', phone: '', adresse: '', cni: '' });
+  const [kycAutoFilled, setKycAutoFilled] = useState(false);
   const [kycFiles, setKycFiles] = useState<{ cni?: string; photo?: string; domicile?: string; cniConjoint?: string; photoConjoint?: string }>({});
   const [uploadingFile, setUploadingFile] = useState<string | null>(null);
 
