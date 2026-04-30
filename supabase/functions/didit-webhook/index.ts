@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
     const signature = req.headers.get("x-signature");
     const timestamp = req.headers.get("x-timestamp");
 
-    if (DIDIT_WEBHOOK_SECRET) {
+    if (DIDIT_WEBHOOK_SECRET && DIDIT_WEBHOOK_SECRET.trim() !== "" && signature) {
       const ok = await verifySignature(rawBody, signature, timestamp, DIDIT_WEBHOOK_SECRET);
       if (!ok) {
         console.warn("Invalid Didit webhook signature");
@@ -57,6 +57,8 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+    } else {
+      console.log("Webhook: skipping signature verification (no secret or no signature header)");
     }
 
     const payload = JSON.parse(rawBody);
