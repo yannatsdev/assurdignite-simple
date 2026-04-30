@@ -171,27 +171,6 @@ export function DiditVerification({
         },
       )
       .subscribe();
-
-  // Realtime subscription on profile row
-  useEffect(() => {
-    if (!user || vendorDataSuffix) return;
-    const channel = supabase
-      .channel(`kyc-${user.id}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
-        (payload) => {
-          const next = (payload.new as any)?.kyc_status as KycStatus | undefined;
-          if (next) {
-            setStatus(next);
-            if (next === 'approved') {
-              onApproved?.();
-              toast({ title: 'Identité vérifiée ✓', description: 'Votre KYC a été validé.' });
-            }
-          }
-        },
-      )
-      .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
