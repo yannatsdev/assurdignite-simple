@@ -4,10 +4,28 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { FileText, Users, AlertTriangle, FolderOpen, Calculator, HeadphonesIcon, CreditCard, Shield, ArrowRight, Calendar, TrendingUp, Gift, Loader2 } from 'lucide-react';
+import {
+  AlertTriangle,
+  FolderOpen,
+  Users,
+  Calculator,
+  CreditCard,
+  ArrowRight,
+  TrendingUp,
+  Gift,
+  Loader2,
+  HeadphonesIcon,
+  Heart,
+  Baby,
+  UserCog,
+} from 'lucide-react';
+import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCFA } from '@/lib/actuarial-engine';
+import { PolicyHeroCard } from '@/components/client/PolicyHeroCard';
+import { MarketingCarousel } from '@/components/client/MarketingCarousel';
+import { TrustMarquee } from '@/components/client/TrustMarquee';
 
 const quickActions = [
   { icon: AlertTriangle, label: 'Déclarer un sinistre', path: '/client/sinistre', color: 'bg-red-500/10 text-red-600', border: 'border-red-200' },
@@ -15,8 +33,6 @@ const quickActions = [
   { icon: Users, label: 'Bénéficiaires', path: '/client/beneficiaires', color: 'bg-emerald-500/10 text-emerald-600', border: 'border-emerald-200' },
   { icon: Calculator, label: 'Simuler une prime', path: '/client/souscrire', color: 'bg-amber-500/10 text-amber-600', border: 'border-amber-200' },
 ];
-
-const FORMULE_NAMES: Record<string, string> = { A: 'Dignité Simple', B: 'Serein', C: 'Prestige', D: 'Excellence' };
 
 export default function ClientDashboard() {
   const { user } = useAuth();
@@ -53,36 +69,52 @@ export default function ClientDashboard() {
 
   const userName = profile?.full_name || user?.user_metadata?.full_name || 'Assuré';
   const initials = userName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
-  
+
   const fields = [profile?.full_name, profile?.phone, profile?.email, contract];
   const completionPct = Math.round((fields.filter(Boolean).length / fields.length) * 100);
 
-  // Bonus Fidélité-Santé : années pleines depuis date_effet du contrat (max 3)
   const yearsSinceEffet = contract?.date_effet
     ? Math.floor((Date.now() - new Date(contract.date_effet).getTime()) / (365.25 * 24 * 3600 * 1000))
     : 0;
   const bonusYears = Math.min(yearsSinceEffet, 3);
   const bonusPct = Math.round((bonusYears / 3) * 100);
 
+  // Garanties par profil (image-5 inspired horizontal cards)
+  const garanties = contract
+    ? [
+        { icon: Heart, label: 'Principal', value: contract.principal_name || 'Vous', tone: 'from-rose-500/15 to-rose-500/5 text-rose-600 ring-rose-200' },
+        { icon: Heart, label: 'Conjoint', value: contract.conjoint_name || '—', tone: 'from-pink-500/15 to-pink-500/5 text-pink-600 ring-pink-200' },
+        { icon: Baby, label: 'Enfants', value: `${contract.nb_enfants || 0} couvert${(contract.nb_enfants || 0) > 1 ? 's' : ''}`, tone: 'from-amber-500/15 to-amber-500/5 text-amber-600 ring-amber-200' },
+        { icon: UserCog, label: 'Ascendants', value: `${contract.nb_ascendants || 0} couvert${(contract.nb_ascendants || 0) > 1 ? 's' : ''}`, tone: 'from-emerald-500/15 to-emerald-500/5 text-emerald-600 ring-emerald-200' },
+      ]
+    : [];
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       {/* Greeting */}
-      <div className="flex items-center gap-4">
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center gap-4"
+      >
         <div className="relative">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-lg font-display">
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-lg font-display shadow-lg ring-2 ring-white">
             {initials}
           </div>
           <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-background border-2 border-secondary flex items-center justify-center">
             <span className="text-[10px] font-bold text-secondary">{completionPct}%</span>
           </div>
         </div>
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-display">Bonjour, {userName.split(' ')[0]} !</h1>
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold font-display truncate">Bonjour, {userName.split(' ')[0]} !</h1>
           <p className="text-sm text-muted-foreground">
-            {completionPct < 100 ? "Complétez votre profil pour profiter de tous les avantages d'Assurdignité." : 'Bienvenue dans votre espace AssurDignité.'}
+            {completionPct < 100 ? "Complétez votre profil pour profiter de tous les avantages." : 'Bienvenue dans votre espace AssurDignité.'}
           </p>
         </div>
-      </div>
+      </motion.div>
+
+      {/* Trust marquee */}
+      <TrustMarquee />
 
       {/* Profile completion */}
       {completionPct < 100 && (
@@ -98,69 +130,63 @@ export default function ClientDashboard() {
       )}
 
       {/* Hero policy card */}
-      {contract ? (
-        <Card className="overflow-hidden border-0 shadow-lg">
-          <div className="bg-gradient-to-r from-primary via-primary/90 to-[hsl(var(--sonam-blue))] p-6 text-white">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <p className="text-xs text-white/70 uppercase tracking-wider">Contrat Actif</p>
-                <h2 className="text-xl font-bold font-display">{FORMULE_NAMES[contract.formule] || contract.formule}</h2>
-                <p className="text-sm text-white/80 font-mono">{contract.police_number}</p>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                <Shield className="w-6 h-6" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-6">
-              <div>
-                <p className="text-xs text-white/60">Capital garanti</p>
-                <p className="text-sm font-bold">{formatCFA(contract.capital_total)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-white/60">Prime annuelle</p>
-                <p className="text-sm font-bold">{formatCFA(contract.prime_annuelle)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-white/60">Expiration</p>
-                <p className="text-sm font-bold flex items-center gap-1"><Calendar className="w-3 h-3" />{contract.date_expiration}</p>
-              </div>
-            </div>
-            <div className="mt-4 flex gap-2">
-              <Button size="sm" variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-0" onClick={() => navigate('/client/contrats')}>
-                Voir détails
-              </Button>
-              <Button size="sm" variant="secondary" className="bg-secondary hover:bg-secondary/90 text-white border-0" onClick={() => navigate('/client/documents')}>
-                <FileText className="w-3 h-3 mr-1" /> Documents
-              </Button>
-            </div>
-          </div>
-        </Card>
-      ) : (
-        <Card className="overflow-hidden border-0 shadow-lg">
-          <div className="bg-gradient-to-r from-primary/80 to-[hsl(var(--sonam-blue))] p-6 text-white text-center space-y-3">
-            <Shield className="w-12 h-12 mx-auto text-white/80" />
-            <h2 className="text-xl font-bold font-display">Protégez votre famille dès aujourd'hui</h2>
-            <p className="text-sm text-white/70">Souscrivez à AssurDignité et offrez à vos proches une couverture obsèques complète.</p>
-            <Button onClick={() => navigate('/client/adhesion')} className="bg-secondary hover:bg-secondary/90 text-white gap-2">
-              Souscrire maintenant <ArrowRight className="w-4 h-4" />
+      <PolicyHeroCard contract={contract} />
+
+      {/* Mes garanties (image-5 horizontal cards) */}
+      {contract && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Mes garanties</h2>
+            <Button variant="link" size="sm" className="text-xs h-auto p-0" onClick={() => navigate('/client/contrats')}>
+              Voir tout →
             </Button>
           </div>
-        </Card>
+          <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4">
+            {garanties.map((g, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.07 }}
+                className={`shrink-0 w-40 sm:w-auto snap-start rounded-2xl border ring-1 ring-inset bg-gradient-to-br p-4 hover:-translate-y-0.5 hover:shadow-md transition-all cursor-pointer ${g.tone}`}
+                onClick={() => navigate('/client/contrats')}
+              >
+                <div className="w-10 h-10 rounded-xl bg-white/80 backdrop-blur flex items-center justify-center mb-3">
+                  <g.icon className="w-5 h-5" />
+                </div>
+                <p className="text-[11px] font-medium uppercase tracking-wider opacity-70">{g.label}</p>
+                <p className="text-sm font-bold mt-0.5 truncate text-foreground">{g.value}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
       )}
+
+      {/* Marketing carousel */}
+      <MarketingCarousel />
 
       {/* Quick Actions */}
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Actions rapides</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {quickActions.map((action, i) => (
-            <Card key={i} className={`cursor-pointer hover:shadow-md transition-all border ${action.border} hover:scale-[1.02]`} onClick={() => navigate(action.path)}>
-              <CardContent className="pt-4 pb-4 text-center space-y-2">
-                <div className={`w-12 h-12 rounded-xl ${action.color} flex items-center justify-center mx-auto`}>
-                  <action.icon className="w-5 h-5" />
-                </div>
-                <p className="text-xs font-medium leading-tight">{action.label}</p>
-              </CardContent>
-            </Card>
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.05 }}
+            >
+              <Card className={`cursor-pointer hover:shadow-md transition-all border ${action.border} hover:-translate-y-0.5`} onClick={() => navigate(action.path)}>
+                <CardContent className="pt-4 pb-4 text-center space-y-2">
+                  <div className={`w-12 h-12 rounded-xl ${action.color} flex items-center justify-center mx-auto`}>
+                    <action.icon className="w-5 h-5" />
+                  </div>
+                  <p className="text-xs font-medium leading-tight">{action.label}</p>
+                </CardContent>
+              </Card>
+            </motion.div>
           ))}
         </div>
       </div>
@@ -229,17 +255,17 @@ export default function ClientDashboard() {
           {/* Assistance */}
           <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
             <CardContent className="pt-5 pb-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
                     <HeadphonesIcon className="w-5 h-5 text-primary" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <h3 className="font-semibold text-sm font-display">Besoin d'aide ?</h3>
-                    <p className="text-xs text-muted-foreground">Notre équipe est à votre écoute</p>
+                    <p className="text-xs text-muted-foreground truncate">Notre équipe est à votre écoute</p>
                   </div>
                 </div>
-                <Button size="sm" variant="outline" className="gap-1" onClick={() => navigate('/client/assistance')}>
+                <Button size="sm" variant="outline" className="gap-1 shrink-0" onClick={() => navigate('/client/assistance')}>
                   Contacter <ArrowRight className="w-3 h-3" />
                 </Button>
               </div>
