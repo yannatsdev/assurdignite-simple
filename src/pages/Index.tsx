@@ -3,6 +3,7 @@ import { HeroSection } from '@/components/landing/HeroSection';
 import { FormulesSection } from '@/components/landing/FormulesSection';
 import { AvantagesSection } from '@/components/landing/AvantagesSection';
 import { SimulateurSection } from '@/components/landing/SimulateurSection';
+import { PremiumShowcaseSection } from '@/components/landing/PremiumShowcaseSection';
 import { FAQSection } from '@/components/landing/FAQSection';
 import { ConditionsSection } from '@/components/landing/ConditionsSection';
 import { ContactSection } from '@/components/landing/ContactSection';
@@ -71,6 +72,7 @@ const Index = () => {
 
       <FormulesSection />
       <AvantagesSection />
+      <PremiumShowcaseSection />
       <SimulateurSection />
 
       {/* Stats */}
