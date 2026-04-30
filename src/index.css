@@ -133,7 +133,20 @@
   /* Prevent iOS zoom on input focus */
   @media (max-width: 640px) {
     input, select, textarea { font-size: 16px !important; }
+}
+
+@layer utilities {
+  .shadow-premium { box-shadow: var(--shadow-premium); }
+  .shadow-soft { box-shadow: var(--shadow-soft); }
+  .shadow-glow { box-shadow: var(--shadow-glow); }
+  .bg-gradient-premium { background: var(--gradient-premium); }
+  .bg-gradient-soft { background: var(--gradient-soft); }
+  .glass {
+    background: hsl(var(--card) / 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
+}
   /* Better tap targets on mobile */
   @media (max-width: 640px) {
     button, a[role="button"] { min-height: 40px; }
