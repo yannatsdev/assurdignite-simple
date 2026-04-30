@@ -57,6 +57,13 @@ export default function ClientDashboard() {
   const fields = [profile?.full_name, profile?.phone, profile?.email, contract];
   const completionPct = Math.round((fields.filter(Boolean).length / fields.length) * 100);
 
+  // Bonus Fidélité-Santé : années pleines depuis date_effet du contrat (max 3)
+  const yearsSinceEffet = contract?.date_effet
+    ? Math.floor((Date.now() - new Date(contract.date_effet).getTime()) / (365.25 * 24 * 3600 * 1000))
+    : 0;
+  const bonusYears = Math.min(yearsSinceEffet, 3);
+  const bonusPct = Math.round((bonusYears / 3) * 100);
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       {/* Greeting */}
@@ -209,12 +216,12 @@ export default function ClientDashboard() {
                 </div>
               </div>
               <div className="space-y-1">
-                <div className="flex justify-between text-xs"><span>Progression</span><span className="font-medium">1/3 an</span></div>
-                <Progress value={33} className="h-2" />
+                <div className="flex justify-between text-xs"><span>Progression</span><span className="font-medium">{bonusYears}/3 an{bonusYears > 1 ? 's' : ''}</span></div>
+                <Progress value={bonusPct} className="h-2" />
               </div>
               <div className="mt-3 flex items-center gap-1 text-xs text-amber-700">
                 <TrendingUp className="w-3 h-3" />
-                <span>Continuez ainsi ! Vous êtes sur la bonne voie.</span>
+                <span>{bonusYears >= 3 ? 'Bonus disponible ! Contactez-nous.' : contract ? 'Continuez ainsi ! Vous êtes sur la bonne voie.' : 'Souscrivez pour démarrer votre bonus.'}</span>
               </div>
             </CardContent>
           </Card>
