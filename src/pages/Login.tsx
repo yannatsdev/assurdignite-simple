@@ -65,16 +65,29 @@ export default function LoginPage() {
     }
   };
 
+  const [bioFailed, setBioFailed] = useState(false);
+
   const handleBiometric = async () => {
     if (!email) {
       toast({ title: 'Email requis', description: 'Saisissez d\'abord votre email.', variant: 'destructive' });
       return;
     }
     setIsLoading(true);
+    setBioFailed(false);
     const r = await authenticateWithPasskey(email);
     setIsLoading(false);
-    if (r.ok) navigate('/client');
-    else toast({ title: 'Empreinte refusée', description: r.error || 'Échec de la vérification', variant: 'destructive' });
+    if (r.ok) {
+      navigate('/client');
+    } else {
+      setBioFailed(true);
+      const msg = r.error || '';
+      const friendly = /NotAllowed|cancelled|annul/i.test(msg)
+        ? "Authentification annulée ou expirée. Réessayez ou utilisez Google."
+        : /InvalidState|UNKNOWN_DEVICE|reconnu/i.test(msg)
+        ? "Cet appareil n'est pas reconnu. Connectez-vous avec Google ou par email."
+        : msg || 'Échec de la vérification.';
+      toast({ title: 'Empreinte refusée', description: friendly, variant: 'destructive' });
+    }
   };
 
   return (
