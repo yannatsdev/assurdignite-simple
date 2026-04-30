@@ -23,20 +23,20 @@ export type ExtractedKycData = {
 export function parseDiditPayload(payload: any): ExtractedKycData {
   if (!payload || typeof payload !== 'object') return {};
 
-  // Candidate sub-objects where extracted fields may live
-  const candidates: any[] = [
-    payload,
-    payload.decision,
-    payload.decision?.kyc,
-    payload.decision?.id_verification,
-    payload.kyc,
-    payload.id_verification,
-    payload.document,
-    payload.document_data,
-    payload.session?.decision,
-    payload.session?.decision?.kyc,
-    payload.session?.kyc,
-  ].filter(Boolean);
+  // Recursively flatten promising sub-objects
+  const candidates: any[] = [];
+  const seen = new WeakSet();
+  const walk = (o: any, depth = 0) => {
+    if (!o || typeof o !== 'object' || depth > 4 || seen.has(o)) return;
+    seen.add(o);
+    candidates.push(o);
+    for (const k of Object.keys(o)) {
+      const v = (o as any)[k];
+      if (v && typeof v === 'object' && !Array.isArray(v)) walk(v, depth + 1);
+      else if (Array.isArray(v)) v.forEach((it) => walk(it, depth + 1));
+    }
+  };
+  walk(payload);
 
   const pick = (...keys: string[]): string | undefined => {
     for (const c of candidates) {
@@ -53,7 +53,6 @@ export function parseDiditPayload(payload: any): ExtractedKycData {
     if (!raw) return undefined;
     const s = raw.trim();
     if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-    // DD/MM/YYYY or DD-MM-YYYY
     const m = s.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/);
     if (m) return `${m[3]}-${m[2]}-${m[1]}`;
     const d = new Date(s);
@@ -61,7 +60,6 @@ export function parseDiditPayload(payload: any): ExtractedKycData {
     return undefined;
   };
 
-  // Compose address from parts if not present as one string
   let address = pick('address', 'full_address', 'formatted_address');
   if (!address) {
     const parts = [
@@ -75,13 +73,13 @@ export function parseDiditPayload(payload: any): ExtractedKycData {
   }
 
   return {
-    first_name: pick('first_name', 'firstName', 'given_name', 'givenNames', 'given_names'),
-    last_name: pick('last_name', 'lastName', 'family_name', 'surname'),
-    date_of_birth: normalizeDate(pick('date_of_birth', 'dateOfBirth', 'birth_date', 'dob')),
-    document_number: pick('document_number', 'documentNumber', 'id_number', 'number'),
+    first_name: pick('first_name', 'firstName', 'given_name', 'givenNames', 'given_names', 'prenom', 'prenoms'),
+    last_name: pick('last_name', 'lastName', 'family_name', 'surname', 'nom'),
+    date_of_birth: normalizeDate(pick('date_of_birth', 'dateOfBirth', 'birth_date', 'dob', 'date_naissance')),
+    document_number: pick('document_number', 'documentNumber', 'id_number', 'number', 'numero_piece', 'cni'),
     address,
-    nationality: pick('nationality', 'country_of_nationality'),
-    gender: pick('gender', 'sex'),
+    nationality: pick('nationality', 'country_of_nationality', 'nationalite'),
+    gender: pick('gender', 'sex', 'sexe'),
   };
 }
 
