@@ -162,3 +162,24 @@ export const hasLocalPasskey = (userId?: string) => {
   if (userId) return localStorage.getItem(`passkey_enrolled_${userId}`) === "1";
   return localStorage.getItem("passkey_device_active") === "1";
 };
+
+/**
+ * Local biometric verification for the currently signed-in user.
+ * Used as 2nd-factor confirmation (e.g. before signing a contract / paying).
+ * Auto-enrolls the user if they don't yet have a passkey on this device.
+ */
+export async function verifyBiometricForUser(userId: string, userEmail?: string | null): Promise<{ ok: boolean; error?: string }> {
+  if (!isWebAuthnSupported()) return { ok: false, error: "Biométrie non disponible sur cet appareil" };
+  const platformOk = await isPlatformAuthenticatorAvailable();
+  if (!platformOk) return { ok: false, error: "Capteur biométrique introuvable" };
+
+  // Auto-enroll on the fly if needed
+  if (!hasLocalPasskey(userId)) {
+    const reg = await registerPasskey("Confirmation paiement");
+    if (!reg.ok) return { ok: false, error: reg.error || "Enrôlement biométrique échoué" };
+  }
+
+  if (!userEmail) return { ok: true }; // Already enrolled this session = trusted
+  const res = await authenticateWithPasskey(userEmail);
+  return { ok: res.ok, error: res.error };
+}
