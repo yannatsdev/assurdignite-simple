@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, FileText, ExternalLink, Clock, CheckCircle2, AlertTriangle, Loader2, XCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { StatusPill } from '@/components/ui/status-pill';
+import { DocumentPreviewDialog } from '@/components/documents/DocumentPreviewDialog';
+import { ArrowLeft, FileText, Eye, Clock, CheckCircle2, AlertTriangle, Loader2, XCircle, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
