@@ -150,21 +150,40 @@ export default function SinistreSuivi() {
         {docs.length === 0 ? (
           <p className="text-sm text-muted-foreground">Aucune pièce jointe.</p>
         ) : (
-          <ul className="space-y-2">
-            {docs.map((d, i) => (
-              <li key={i} className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-card hover:border-primary/40 transition">
-                <div className="flex items-center gap-2 min-w-0">
-                  <FileText className="w-4 h-4 text-primary shrink-0" />
-                  <span className="text-sm truncate">{d.name}</span>
-                </div>
-                <a href={d.url} target="_blank" rel="noopener noreferrer">
-                  <Button size="sm" variant="outline" className="gap-1"><ExternalLink className="w-3 h-3" /> Voir</Button>
-                </a>
-              </li>
-            ))}
-          </ul>
+          <>
+            <div className="flex flex-col sm:flex-row gap-2 mb-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input value={docQ} onChange={e => setDocQ(e.target.value)} placeholder="Rechercher une pièce…" className="pl-9" />
+              </div>
+              <Select value={docSort} onValueChange={(v: any) => setDocSort(v)}>
+                <SelectTrigger className="sm:w-[180px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Nom (A–Z)</SelectItem>
+                  <SelectItem value="type">Type de fichier</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <ul className="space-y-2">
+              {filteredDocs.map((d, i) => (
+                <li key={i} className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-card hover:border-primary/40 transition">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText className="w-4 h-4 text-primary shrink-0" />
+                    <span className="text-sm truncate">{d.name}</span>
+                    <span className="text-[10px] uppercase text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{d.ext}</span>
+                  </div>
+                  <Button size="sm" variant="outline" className="gap-1" onClick={() => setPreview(d)}>
+                    <Eye className="w-3 h-3" /> Aperçu
+                  </Button>
+                </li>
+              ))}
+              {filteredDocs.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Aucun résultat.</p>}
+            </ul>
+          </>
         )}
       </CardContent></Card>
+      <DocumentPreviewDialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)} url={preview?.url || null} filename={preview?.name} />
     </div>
   );
 }
+
