@@ -555,6 +555,8 @@ export default function AdhesionPage() {
         <p className="text-muted-foreground">Complétez les {STEPS.length} étapes pour souscrire à AssurDignité</p>
       </div>
 
+      <MarketingCarousel />
+
       {/* Progress */}
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
