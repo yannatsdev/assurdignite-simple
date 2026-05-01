@@ -1149,92 +1149,50 @@ export default function AdhesionPage() {
                 </div>
               )}
 
-              {/* Step 11: Paiement */}
+              {/* Step 11: Paiement — moyens de paiement modernisés */}
               {step === 11 && (
                 <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">Paiement annuel — Mobile Money, virement bancaire ou espèces en agence. Prime annuelle : <strong className="text-primary">{simResult ? formatCFA(simResult.primeAnnuelle) : '—'}</strong></p>
                   {paymentDone ? (
                     <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="p-4 rounded-xl bg-secondary/10 border border-secondary/30 text-center">
                       <Check className="w-8 h-8 text-secondary mx-auto mb-2" />
                       <p className="font-semibold text-secondary">Paiement enregistré !</p>
-                      <p className="text-xs text-muted-foreground">Votre référence sera vérifiée par notre équipe. Passage à l'étape suivante…</p>
+                      <p className="text-xs text-muted-foreground">Validation par notre équipe en cours. Passage à l'étape suivante…</p>
                     </motion.div>
                   ) : (
-                    <div className="space-y-4">
-                      <div className="rounded-xl border-2 border-primary/30 p-4 sm:p-5 bg-accent/30 space-y-3">
-                        <div className="flex items-center gap-2">
-                          <Banknote className="w-5 h-5 text-primary" />
-                          <p className="font-semibold text-primary">Coordonnées bancaires SONAM VIE</p>
-                        </div>
-                        <div className="grid sm:grid-cols-2 gap-3 text-sm">
-                          <div className="bg-white rounded-lg p-3 border border-border">
-                            <p className="text-xs text-muted-foreground">Banque</p>
-                            <p className="font-semibold">SGBCI – SONAM VIE</p>
-                          </div>
-                          <div className="bg-white rounded-lg p-3 border border-border">
-                            <p className="text-xs text-muted-foreground">RIB / IBAN</p>
-                            <p className="font-mono text-xs sm:text-sm">CI93 CI108 01001 1234567890 12</p>
-                          </div>
-                          <div className="bg-white rounded-lg p-3 border border-border">
-                            <p className="text-xs text-muted-foreground">Mobile Money (Wave / Orange / MTN / Moov)</p>
-                            <p className="font-semibold">+225 27 20 31 71 82</p>
-                          </div>
-                          <div className="bg-white rounded-lg p-3 border border-border">
-                            <p className="text-xs text-muted-foreground">Référence à indiquer</p>
-                            <p className="font-semibold">AD-{(user?.id || '').slice(0, 8).toUpperCase() || 'XXXXXXXX'}</p>
-                          </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground">Après votre paiement, saisissez ci-dessous le numéro / référence de transaction. Notre équipe validera sous 24h ouvrées.</p>
-                      </div>
-
-                      <div className="rounded-xl border border-border p-4 space-y-3 bg-card">
-                        <Label>Méthode utilisée</Label>
-                        <Select value={paymentMethod || ''} onValueChange={setPaymentMethod}>
-                          <SelectTrigger><SelectValue placeholder="Choisir un mode de paiement" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="virement">Virement bancaire</SelectItem>
-                            <SelectItem value="wave">Wave</SelectItem>
-                            <SelectItem value="orange_money">Orange Money</SelectItem>
-                            <SelectItem value="mtn_momo">MTN MoMo</SelectItem>
-                            <SelectItem value="moov_money">Moov Money</SelectItem>
-                            <SelectItem value="especes">Espèces (agence)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Label>Référence / numéro de transaction</Label>
-                        <Input value={paymentNumber} onChange={e => setPaymentNumber(e.target.value)} placeholder="Ex : TXN-987654 ou nom du titulaire" />
-                        <Button
-                          className="w-full gap-2"
-                          disabled={!paymentMethod || !paymentNumber.trim() || !user || !simResult}
-                          onClick={async () => {
-                            if (!user || !simResult) return;
-                            const ref = paymentNumber.trim();
-                            const { error } = await supabase.from('paiements').insert({
-                              user_id: user.id,
-                              montant: simResult.primeAnnuelle,
-                              methode: paymentMethod,
-                              status: 'pending',
-                              reference: ref,
-                            });
-                            if (error) {
-                              toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
-                              return;
-                            }
-                            await supabase.from('notifications').insert({
-                              user_id: user.id,
-                              title: 'Paiement déclaré',
-                              message: `Référence ${ref} — ${formatCFA(simResult.primeAnnuelle)}. En attente de validation.`,
-                              type: 'info',
-                              link: '/client/paiements',
-                            });
-                            setPaymentDone(true);
-                            toast({ title: 'Paiement enregistré ✓', description: `Référence : ${ref}. Validation sous 24h.` });
-                            setTimeout(() => setStep(s => Math.min(s + 1, STEPS.length - 1)), 1500);
-                          }}
-                        >
-                          <Check className="w-4 h-4" /> Confirmer mon paiement
-                        </Button>
-                      </div>
-                    </div>
+                    <PaymentMethodSelector
+                      amount={simResult ? formatCFA(simResult.primeAnnuelle) : '—'}
+                      rib={{
+                        bank: 'SGBCI – SONAM VIE',
+                        iban: 'CI93 CI108 01001 1234567890 12',
+                        reference: `AD-${(user?.id || '').slice(0, 8).toUpperCase() || 'XXXXXXXX'}`,
+                      }}
+                      onSubmit={async ({ method, reference }) => {
+                        if (!user || !simResult) return;
+                        setPaymentMethod(method);
+                        setPaymentNumber(reference);
+                        const { error } = await supabase.from('paiements').insert({
+                          user_id: user.id,
+                          montant: simResult.primeAnnuelle,
+                          methode: method,
+                          status: 'pending',
+                          reference,
+                        });
+                        if (error) {
+                          toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+                          return;
+                        }
+                        await supabase.from('notifications').insert({
+                          user_id: user.id,
+                          title: 'Paiement déclaré',
+                          message: `Référence ${reference} — ${formatCFA(simResult.primeAnnuelle)}. En attente de validation.`,
+                          type: 'info',
+                          link: '/client/paiements',
+                        });
+                        setPaymentDone(true);
+                        toast({ title: 'Paiement enregistré ✓', description: `Référence : ${reference}. Validation sous 24h.` });
+                        setTimeout(() => setStep(s => Math.min(s + 1, STEPS.length - 1)), 1500);
+                      }}
+                    />
                   )}
                 </div>
               )}
