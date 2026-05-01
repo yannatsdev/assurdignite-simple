@@ -63,12 +63,13 @@ export function MarketingCarousel({ className, interval = 5500 }: Props) {
           className="absolute inset-0"
         >
           <img src={slide.image} alt="" className="h-full w-full object-cover" loading="lazy" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/10" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/65 to-black/20" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-tr from-primary/35 via-transparent to-transparent" />
         </motion.div>
       </AnimatePresence>
 
-      <div className="relative z-10 flex h-full w-full flex-col justify-end p-5 sm:p-6 text-white">
+      <div className="relative z-10 flex h-full w-full flex-col justify-end p-5 sm:p-6 pb-9 text-white">
         <AnimatePresence mode="wait">
           <motion.div
             key={`content-${index}`}
@@ -76,7 +77,7 @@ export function MarketingCarousel({ className, interval = 5500 }: Props) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.5 }}
-            className="max-w-xl"
+            className="max-w-xl pr-2"
           >
             <div className="inline-flex items-center justify-center rounded-xl bg-white/15 backdrop-blur-md ring-1 ring-white/20 p-2 mb-2.5">
               <Icon className="w-4 h-4" />
@@ -88,17 +89,21 @@ export function MarketingCarousel({ className, interval = 5500 }: Props) {
           </motion.div>
         </AnimatePresence>
 
-        {/* Indicators */}
-        <div className="absolute bottom-4 right-5 flex gap-1.5">
+        {/* Indicators — bottom-center, ultra-thin so they don't cover text */}
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
           {slides.map((_, i) => (
             <button
               key={i}
               onClick={() => setIndex(i)}
               aria-label={`Slide ${i + 1}`}
-              className={`h-1.5 rounded-full transition-all ${
-                i === index ? 'w-6 bg-white' : 'w-1.5 bg-white/40 hover:bg-white/70'
-              }`}
-            />
+              className="relative p-1.5"
+            >
+              <span
+                className={`block h-1 rounded-full transition-all ${
+                  i === index ? 'w-5 bg-white' : 'w-1 bg-white/50 hover:bg-white/80'
+                }`}
+              />
+            </button>
           ))}
         </div>
       </div>

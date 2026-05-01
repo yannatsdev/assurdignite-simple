@@ -48,7 +48,7 @@ export default function ClientDashboard() {
       const [{ data: prof }, { data: contracts }, { data: pays }] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
         supabase.from('contracts').select('*').eq('user_id', user.id).eq('status', 'active').limit(1),
-        supabase.from('paiements').select('*').eq('user_id', user.id).order('date_paiement', { ascending: false }).limit(5),
+        supabase.from('paiements').select('*').eq('user_id', user.id).neq('status', 'cancelled').order('date_paiement', { ascending: false }).limit(5),
       ]);
       setProfile(prof);
       setContract(contracts?.[0] || null);

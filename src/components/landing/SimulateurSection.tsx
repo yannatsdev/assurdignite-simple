@@ -242,11 +242,11 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
                         </div>
                       ))}
                       <div className="flex justify-between items-center py-2 border-b border-border text-sm">
-                        <div><p className="font-medium">Frais accessoires</p><p className="text-xs text-muted-foreground">Forfait annuel</p></div>
+                        <div><p className="font-medium">Frais additionnels</p><p className="text-xs text-muted-foreground">Forfait annuel</p></div>
                         <p className="font-semibold text-primary">{formatCFA(result.accessoires)}</p>
                       </div>
                       <div className="border-t pt-3 flex justify-between font-bold text-primary text-base">
-                        <span>PRIME ANNUELLE TOTALE (PTTC)</span><span>{formatCFA(result.primeAnnuelle)}</span>
+                        <span>PRIME ANNUELLE TOTALE</span><span>{formatCFA(result.primeAnnuelle)}</span>
                       </div>
                     </CardContent></Card>
                   </TabsContent>
@@ -259,8 +259,8 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
                           </div>
                           <div className="space-y-1 text-sm">
                             <div className="flex justify-between"><span>Σ PC (Prime Annuelle Commerciale, sans accessoire)</span><span className="font-mono">{formatCFA(result.papTotal)}</span></div>
-                            <div className="flex justify-between"><span>Frais accessoires annuels</span><span className="font-mono">{formatCFA(result.accessoires)}</span></div>
-                            <div className="flex justify-between font-bold text-primary pt-2 border-t border-amber-200"><span>= Prime annuelle TTC (PTTC)</span><span className="font-mono">{formatCFA(result.primeAnnuelle)}</span></div>
+                            <div className="flex justify-between"><span>Frais additionnels annuels</span><span className="font-mono">{formatCFA(result.accessoires)}</span></div>
+                            <div className="flex justify-between font-bold text-primary pt-2 border-t border-amber-200"><span>= Prime annuelle TTC</span><span className="font-mono">{formatCFA(result.primeAnnuelle)}</span></div>
                             <div className="flex justify-between text-xs text-muted-foreground pt-1"><span>Engagement global Assureur</span><span className="font-mono">{formatCFA(result.engagementGlobal)}</span></div>
                             <div className="flex justify-between text-xs text-muted-foreground"><span>Durée du contrat</span><span className="font-mono">{result.duree} an(s)</span></div>
                           </div>

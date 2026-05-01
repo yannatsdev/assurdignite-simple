@@ -30,7 +30,7 @@ export default function PaiementsPage() {
   const load = async () => {
     if (!user) return;
     const [{ data: p }, { data: c }] = await Promise.all([
-      supabase.from('paiements').select('*').eq('user_id', user.id).order('date_paiement', { ascending: false }),
+      supabase.from('paiements').select('*').eq('user_id', user.id).neq('status', 'cancelled').order('date_paiement', { ascending: false }),
       supabase.from('contracts').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1),
     ]);
     setPaiements(p || []);
