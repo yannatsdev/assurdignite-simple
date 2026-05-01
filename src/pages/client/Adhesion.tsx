@@ -20,8 +20,8 @@ import jsPDF from 'jspdf';
 import { DiditVerification } from '@/components/kyc/DiditVerification';
 import { IdCardScanner } from '@/components/kyc/IdCardScanner';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { verifyBiometricForUser } from '@/lib/webauthn';
-import { Fingerprint } from 'lucide-react';
+import { PaymentMethodSelector } from '@/components/payment/PaymentMethodSelector';
+import { MarketingCarousel } from '@/components/client/MarketingCarousel';
 
 const STEPS = [
   'Simulation', 'Choix Formule', 'KYC Principal', 'Conjoint', 'Assurés Complémentaires',
@@ -1245,34 +1245,12 @@ export default function AdhesionPage() {
                         <Button variant="outline" size="sm" onClick={clearCanvas}>Effacer la signature</Button>
                       </div>
 
-                      {bioUnsupported ? (
-                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2 text-xs text-amber-800">
-                          <div className="flex items-start gap-2">
-                            <Fingerprint className="w-4 h-4 mt-0.5 shrink-0" />
-                            <span><strong>Biométrie non disponible sur cet appareil.</strong> Vous pouvez signer sans confirmation biométrique.</span>
-                          </div>
-                          <Button className="w-full gap-2" onClick={proceedAfterBio} disabled={!hasSignature}>
-                            <PenTool className="w-4 h-4" /> Signer sans biométrie
-                          </Button>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 flex items-start gap-2 text-xs">
-                            <Fingerprint className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                            <span>Une <strong>confirmation biométrique</strong> (empreinte/Face ID) sera demandée pour valider votre signature, garantissant qu'elle vous appartient bien.</span>
-                          </div>
-                          <Button className="w-full gap-2" onClick={handleSign} disabled={!hasSignature || bioConfirming}>
-                            {bioConfirming ? <><Loader2 className="w-4 h-4 animate-spin" /> Confirmation biométrique…</> : <><PenTool className="w-4 h-4" /> Signer avec biométrie</>}
-                          </Button>
-                          <button
-                            type="button"
-                            onClick={() => setBioUnsupported(true)}
-                            className="text-xs text-muted-foreground hover:text-primary underline mx-auto block"
-                          >
-                            Mon appareil ne supporte pas la biométrie
-                          </button>
-                        </>
-                      )}
+                      <Button className="w-full gap-2" onClick={proceedAfterBio} disabled={!hasSignature}>
+                        <PenTool className="w-4 h-4" /> Signer & finaliser ma souscription
+                      </Button>
+                      <p className="text-[11px] text-muted-foreground text-center">
+                        En signant, vous confirmez l'exactitude des informations fournies.
+                      </p>
                     </>
                   ) : (
                     <div className="text-center space-y-4">
