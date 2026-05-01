@@ -127,9 +127,6 @@ export function PremiumShowcaseSection() {
             <HeartHandshake className="w-7 h-7 sm:w-8 sm:h-8" />
           </div>
           <AnimatedBeam containerRef={beamContainer} fromRef={beamFrom} toRef={beamTo} curvature={40} duration={3} />
-          <div className="absolute inset-x-0 bottom-3 text-center text-xs text-muted-foreground">
-            Souscription → Cotisation annuelle → Protection garantie
-          </div>
         </div>
       </div>
     </section>

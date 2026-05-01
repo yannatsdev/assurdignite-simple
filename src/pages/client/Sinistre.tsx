@@ -125,7 +125,7 @@ export default function SinistrePage() {
         image={fastPayout}
         title="Sinistre Fast-Track"
         subtitle="Déclarez un sinistre en moins de 5 minutes — versement express en moins de 12h après analyse."
-        height="h-36 sm:h-44"
+        height="h-52 sm:h-60"
         cta={
           <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/95 backdrop-blur px-3 py-1.5 text-xs font-semibold text-white shadow">
             <Clock className="w-3.5 h-3.5" /> Versement &lt; 12h

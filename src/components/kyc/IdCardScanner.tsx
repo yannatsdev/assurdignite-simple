@@ -220,7 +220,7 @@ export function IdCardScanner({ onExtracted, className }: Props) {
       )}
 
       <p className="text-[11px] text-muted-foreground italic">
-        🔒 Vos images sont traitées par l'IA Lovable de manière sécurisée et ne sont pas stockées.
+        🔒 Vos images sont traitées par notre IA de manière sécurisée et ne sont pas stockées.
       </p>
     </div>
   );

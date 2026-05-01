@@ -39,11 +39,11 @@ export function ClientHeroBanner({
       <img
         src={image}
         alt=""
-        className="absolute inset-0 h-full w-full object-cover scale-105 transition-transform duration-[8s] hover:scale-110"
+        className="absolute inset-0 h-full w-full object-cover object-[65%_center] scale-105 transition-transform duration-[8s] hover:scale-110"
         loading="lazy"
       />
-      {/* Dark gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/55 to-black/20" />
+      {/* Dark gradient overlay — stronger on left for text readability */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-black/15" />
       {/* Brand violet glow */}
       <div className="absolute inset-0 bg-gradient-to-tr from-primary/40 via-transparent to-transparent" />
 

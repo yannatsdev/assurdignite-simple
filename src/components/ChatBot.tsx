@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, X, Send, Loader2, Sparkles } from 'lucide-react';
+import { MessageCircle, X, Send, Loader2, Sparkles, Minus, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ReactMarkdown from 'react-markdown';
 
@@ -27,6 +27,14 @@ function sanitizeMarkdown(text: string): string {
 
 export function ChatBot() {
   const [isOpen, setIsOpen] = useState(false);
+  const [minimized, setMinimized] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('chatbot_minimized') === '1';
+  });
+  const setMinimizedPersist = (v: boolean) => {
+    setMinimized(v);
+    try { localStorage.setItem('chatbot_minimized', v ? '1' : '0'); } catch {}
+  };
   const [messages, setMessages] = useState<Message[]>([
     { id: 0, text: "Bonjour ! 👋 Je suis l'assistant virtuel **AssurDignité** propulsé par l'IA. Comment puis-je vous aider ?", isBot: true, timestamp: new Date() }
   ]);
@@ -162,7 +170,19 @@ export function ChatBot() {
                   <p className="text-white/70 text-xs">Propulsé par IA • ASSURDIGNITE</p>
                 </div>
               </div>
-              <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white"><X className="w-5 h-5" /></button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => { setIsOpen(false); setMinimizedPersist(true); }}
+                  className="text-white/80 hover:text-white p-1"
+                  aria-label="Réduire"
+                  title="Réduire"
+                >
+                  <Minus className="w-5 h-5" />
+                </button>
+                <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white p-1" aria-label="Fermer">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-[360px]">
@@ -231,14 +251,41 @@ export function ChatBot() {
         )}
       </AnimatePresence>
 
-      <motion.button
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-4 sm:right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:shadow-xl transition-shadow"
-      >
-        {isOpen ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
-      </motion.button>
+      {minimized ? (
+        <motion.button
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => { setMinimizedPersist(false); setIsOpen(true); }}
+          className="fixed bottom-4 right-4 sm:right-6 z-50 w-9 h-9 rounded-full bg-primary/90 backdrop-blur text-primary-foreground shadow-md flex items-center justify-center hover:shadow-lg transition-shadow border border-white/20"
+          title="Ouvrir l'assistant"
+          aria-label="Ouvrir l'assistant"
+        >
+          <Maximize2 className="w-4 h-4" />
+        </motion.button>
+      ) : (
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setIsOpen(!isOpen)}
+          className="fixed bottom-6 right-4 sm:right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:shadow-xl transition-shadow group"
+        >
+          {isOpen ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
+          {!isOpen && (
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => { e.stopPropagation(); setMinimizedPersist(true); }}
+              className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-card border border-border text-muted-foreground hover:text-primary flex items-center justify-center shadow"
+              title="Réduire"
+              aria-label="Réduire"
+            >
+              <Minus className="w-3 h-3" />
+            </span>
+          )}
+        </motion.button>
+      )}
     </>
   );
 }

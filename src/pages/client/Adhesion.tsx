@@ -20,8 +20,8 @@ import jsPDF from 'jspdf';
 import { DiditVerification } from '@/components/kyc/DiditVerification';
 import { IdCardScanner } from '@/components/kyc/IdCardScanner';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { verifyBiometricForUser } from '@/lib/webauthn';
-import { Fingerprint } from 'lucide-react';
+import { PaymentMethodSelector } from '@/components/payment/PaymentMethodSelector';
+import { MarketingCarousel } from '@/components/client/MarketingCarousel';
 
 const STEPS = [
   'Simulation', 'Choix Formule', 'KYC Principal', 'Conjoint', 'Assurés Complémentaires',
@@ -334,27 +334,7 @@ export default function AdhesionPage() {
     setHasSignature(false);
   };
 
-  const [bioConfirming, setBioConfirming] = useState(false);
-  const [bioUnsupported, setBioUnsupported] = useState(false);
-
   const handleSign = async () => {
-    if (!user || !simResult) return;
-    setBioConfirming(true);
-    const bio = await verifyBiometricForUser(user.id, user.email);
-    setBioConfirming(false);
-    if (!bio.ok) {
-      if (bio.code === 'UNSUPPORTED') {
-        setBioUnsupported(true);
-        toast({ title: 'Biométrie non disponible', description: 'Vous pouvez continuer sans biométrie.' });
-        return;
-      }
-      toast({
-        title: 'Confirmation biométrique échouée',
-        description: bio.error || 'Réessayez ou continuez sans biométrie.',
-        variant: 'destructive',
-      });
-      return;
-    }
     await proceedAfterBio();
   };
 
@@ -574,6 +554,8 @@ export default function AdhesionPage() {
         <h1 className="text-2xl sm:text-3xl font-bold font-display">Formulaire d'Adhésion</h1>
         <p className="text-muted-foreground">Complétez les {STEPS.length} étapes pour souscrire à AssurDignité</p>
       </div>
+
+      <MarketingCarousel />
 
       {/* Progress */}
       <div className="space-y-2">
@@ -1149,92 +1131,50 @@ export default function AdhesionPage() {
                 </div>
               )}
 
-              {/* Step 11: Paiement */}
+              {/* Step 11: Paiement — moyens de paiement modernisés */}
               {step === 11 && (
                 <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">Paiement annuel — Mobile Money, virement bancaire ou espèces en agence. Prime annuelle : <strong className="text-primary">{simResult ? formatCFA(simResult.primeAnnuelle) : '—'}</strong></p>
                   {paymentDone ? (
                     <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="p-4 rounded-xl bg-secondary/10 border border-secondary/30 text-center">
                       <Check className="w-8 h-8 text-secondary mx-auto mb-2" />
                       <p className="font-semibold text-secondary">Paiement enregistré !</p>
-                      <p className="text-xs text-muted-foreground">Votre référence sera vérifiée par notre équipe. Passage à l'étape suivante…</p>
+                      <p className="text-xs text-muted-foreground">Validation par notre équipe en cours. Passage à l'étape suivante…</p>
                     </motion.div>
                   ) : (
-                    <div className="space-y-4">
-                      <div className="rounded-xl border-2 border-primary/30 p-4 sm:p-5 bg-accent/30 space-y-3">
-                        <div className="flex items-center gap-2">
-                          <Banknote className="w-5 h-5 text-primary" />
-                          <p className="font-semibold text-primary">Coordonnées bancaires SONAM VIE</p>
-                        </div>
-                        <div className="grid sm:grid-cols-2 gap-3 text-sm">
-                          <div className="bg-white rounded-lg p-3 border border-border">
-                            <p className="text-xs text-muted-foreground">Banque</p>
-                            <p className="font-semibold">SGBCI – SONAM VIE</p>
-                          </div>
-                          <div className="bg-white rounded-lg p-3 border border-border">
-                            <p className="text-xs text-muted-foreground">RIB / IBAN</p>
-                            <p className="font-mono text-xs sm:text-sm">CI93 CI108 01001 1234567890 12</p>
-                          </div>
-                          <div className="bg-white rounded-lg p-3 border border-border">
-                            <p className="text-xs text-muted-foreground">Mobile Money (Wave / Orange / MTN / Moov)</p>
-                            <p className="font-semibold">+225 27 20 31 71 82</p>
-                          </div>
-                          <div className="bg-white rounded-lg p-3 border border-border">
-                            <p className="text-xs text-muted-foreground">Référence à indiquer</p>
-                            <p className="font-semibold">AD-{(user?.id || '').slice(0, 8).toUpperCase() || 'XXXXXXXX'}</p>
-                          </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground">Après votre paiement, saisissez ci-dessous le numéro / référence de transaction. Notre équipe validera sous 24h ouvrées.</p>
-                      </div>
-
-                      <div className="rounded-xl border border-border p-4 space-y-3 bg-card">
-                        <Label>Méthode utilisée</Label>
-                        <Select value={paymentMethod || ''} onValueChange={setPaymentMethod}>
-                          <SelectTrigger><SelectValue placeholder="Choisir un mode de paiement" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="virement">Virement bancaire</SelectItem>
-                            <SelectItem value="wave">Wave</SelectItem>
-                            <SelectItem value="orange_money">Orange Money</SelectItem>
-                            <SelectItem value="mtn_momo">MTN MoMo</SelectItem>
-                            <SelectItem value="moov_money">Moov Money</SelectItem>
-                            <SelectItem value="especes">Espèces (agence)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Label>Référence / numéro de transaction</Label>
-                        <Input value={paymentNumber} onChange={e => setPaymentNumber(e.target.value)} placeholder="Ex : TXN-987654 ou nom du titulaire" />
-                        <Button
-                          className="w-full gap-2"
-                          disabled={!paymentMethod || !paymentNumber.trim() || !user || !simResult}
-                          onClick={async () => {
-                            if (!user || !simResult) return;
-                            const ref = paymentNumber.trim();
-                            const { error } = await supabase.from('paiements').insert({
-                              user_id: user.id,
-                              montant: simResult.primeAnnuelle,
-                              methode: paymentMethod,
-                              status: 'pending',
-                              reference: ref,
-                            });
-                            if (error) {
-                              toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
-                              return;
-                            }
-                            await supabase.from('notifications').insert({
-                              user_id: user.id,
-                              title: 'Paiement déclaré',
-                              message: `Référence ${ref} — ${formatCFA(simResult.primeAnnuelle)}. En attente de validation.`,
-                              type: 'info',
-                              link: '/client/paiements',
-                            });
-                            setPaymentDone(true);
-                            toast({ title: 'Paiement enregistré ✓', description: `Référence : ${ref}. Validation sous 24h.` });
-                            setTimeout(() => setStep(s => Math.min(s + 1, STEPS.length - 1)), 1500);
-                          }}
-                        >
-                          <Check className="w-4 h-4" /> Confirmer mon paiement
-                        </Button>
-                      </div>
-                    </div>
+                    <PaymentMethodSelector
+                      amount={simResult ? formatCFA(simResult.primeAnnuelle) : '—'}
+                      rib={{
+                        bank: 'SGBCI – SONAM VIE',
+                        iban: 'CI93 CI108 01001 1234567890 12',
+                        reference: `AD-${(user?.id || '').slice(0, 8).toUpperCase() || 'XXXXXXXX'}`,
+                      }}
+                      onSubmit={async ({ method, reference }) => {
+                        if (!user || !simResult) return;
+                        setPaymentMethod(method);
+                        setPaymentNumber(reference);
+                        const { error } = await supabase.from('paiements').insert({
+                          user_id: user.id,
+                          montant: simResult.primeAnnuelle,
+                          methode: method,
+                          status: 'pending',
+                          reference,
+                        });
+                        if (error) {
+                          toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+                          return;
+                        }
+                        await supabase.from('notifications').insert({
+                          user_id: user.id,
+                          title: 'Paiement déclaré',
+                          message: `Référence ${reference} — ${formatCFA(simResult.primeAnnuelle)}. En attente de validation.`,
+                          type: 'info',
+                          link: '/client/paiements',
+                        });
+                        setPaymentDone(true);
+                        toast({ title: 'Paiement enregistré ✓', description: `Référence : ${reference}. Validation sous 24h.` });
+                        setTimeout(() => setStep(s => Math.min(s + 1, STEPS.length - 1)), 1500);
+                      }}
+                    />
                   )}
                 </div>
               )}
@@ -1287,34 +1227,12 @@ export default function AdhesionPage() {
                         <Button variant="outline" size="sm" onClick={clearCanvas}>Effacer la signature</Button>
                       </div>
 
-                      {bioUnsupported ? (
-                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2 text-xs text-amber-800">
-                          <div className="flex items-start gap-2">
-                            <Fingerprint className="w-4 h-4 mt-0.5 shrink-0" />
-                            <span><strong>Biométrie non disponible sur cet appareil.</strong> Vous pouvez signer sans confirmation biométrique.</span>
-                          </div>
-                          <Button className="w-full gap-2" onClick={proceedAfterBio} disabled={!hasSignature}>
-                            <PenTool className="w-4 h-4" /> Signer sans biométrie
-                          </Button>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 flex items-start gap-2 text-xs">
-                            <Fingerprint className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                            <span>Une <strong>confirmation biométrique</strong> (empreinte/Face ID) sera demandée pour valider votre signature, garantissant qu'elle vous appartient bien.</span>
-                          </div>
-                          <Button className="w-full gap-2" onClick={handleSign} disabled={!hasSignature || bioConfirming}>
-                            {bioConfirming ? <><Loader2 className="w-4 h-4 animate-spin" /> Confirmation biométrique…</> : <><PenTool className="w-4 h-4" /> Signer avec biométrie</>}
-                          </Button>
-                          <button
-                            type="button"
-                            onClick={() => setBioUnsupported(true)}
-                            className="text-xs text-muted-foreground hover:text-primary underline mx-auto block"
-                          >
-                            Mon appareil ne supporte pas la biométrie
-                          </button>
-                        </>
-                      )}
+                      <Button className="w-full gap-2" onClick={proceedAfterBio} disabled={!hasSignature}>
+                        <PenTool className="w-4 h-4" /> Signer & finaliser ma souscription
+                      </Button>
+                      <p className="text-[11px] text-muted-foreground text-center">
+                        En signant, vous confirmez l'exactitude des informations fournies.
+                      </p>
                     </>
                   ) : (
                     <div className="text-center space-y-4">
