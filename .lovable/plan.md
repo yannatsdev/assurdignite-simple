@@ -1,97 +1,94 @@
-## Objectif
+## Plan de polissage UX & responsive AssurDignité
 
-Upgrader visuellement l'espace client (Dashboard, Contrats, Profil, Sinistre) au niveau "premium insurance app" inspiré de l'image 5, intégrer les bannières familles africaines (images 6 & 7) sur la landing **et** dans l'espace client, et ajouter dans **Profil** un scanner OCR pour pré-remplir automatiquement les informations personnelles (l'OCR existe déjà à l'étape 3 de l'adhésion).
+### 1. Carrousel "MarketingCarousel" (dashboard) — lisibilité
+Fichier : `src/components/client/MarketingCarousel.tsx`
+- Réduire les indicateurs (boutons ronds en bas-droite) : taille `h-1 w-1` (point), zone cliquable invisible plus grande, et **les déplacer en bas-centre** sur une seule ligne fine pour ne pas masquer les textes (notamment "Dignité jusqu'au dernier souffle").
+- Augmenter le `padding-bottom` du contenu (`pb-8`) pour dégager les indicateurs.
+- Renforcer le dégradé bas (`from-black/90 via-black/60 to-black/20`) afin que les sous-titres restent lisibles sur toutes les images.
+- Ajouter `pr-12` au bloc texte pour ne jamais passer sous l'indicateur.
 
-## Note sur la librairie demandée
+### 2. Chatbot — bouton réductible / réouvrir
+Fichier : `src/components/ChatBot.tsx`
+- Ajouter état `minimized` persisté dans `localStorage` (clé `chatbot_minimized`).
+- Quand minimisé : remplacer la bulle ronde violette par une mini-pastille discrète (icône `MessageCircle` h-8 w-8) en bas-droite avec tooltip "Ouvrir l'assistant".
+- Quand ouvert/fermé normal : ajouter un bouton "−" (Minimize2) dans l'en-tête du panneau et à côté du FAB pour le réduire.
+- S'applique automatiquement sur landing, dashboard user, dashboard admin (le composant est déjà monté à ces endroits).
 
-`@paper-design/shaders-react` (MeshGradient, PulsingBorder) est une librairie WebGL lourde (~500 ko) et instable sur mobile bas de gamme — risque sur le marché ivoirien. Je vais reproduire le rendu "shader premium" avec nos composants existants (`Sparkles` canvas + dégradés animés CSS `gradient-x` + `framer-motion`), zéro dépendance ajoutée. Si tu veux quand même la vraie lib shader, dis-le et je l'installe.
+### 3. Profil OCR — wording
+Fichier : `src/pages/client/Profil.tsx`
+- Remplacer "Vos images sont traitées par l'IA Lovable de manière sécurisée et ne sont pas stockées." par "Vos images sont traitées par notre IA de manière sécurisée et ne sont pas stockées."
 
-## Plan d'exécution
+### 4. Paiements annulés — ne plus afficher dans "Derniers paiements"
+Fichiers :
+- `src/pages/client/Dashboard.tsx` — la requête `paiements` ajoute `.neq('status', 'cancelled')`.
+- Le realtime channel rafraîchit déjà → ok.
+- `src/pages/client/Paiements.tsx` — vérifier que le tableau "Mes derniers paiements" applique aussi le filtre `cancelled` masqué (ou affiche dans un onglet "Annulés" séparé). Décision : masquer par défaut, conserver l'historique côté DB.
 
-### 1. Nouvelle carte hero "Policy Card" premium (Dashboard)
-Inspirée de la "Car Insurance Card" violette de l'image 5.
-- Carte arrondie 3xl, dégradé violet animé (`animate-gradient-x`), motifs de cercles concentriques en background SVG, glassmorphism intérieur
-- Affichage : numéro de police, formule, capital, prime, expiration, bouton "Renouveler / Voir détails"
-- Si pas de contrat → variante "Souscrire maintenant" avec bannière `family-united.jpg` en background floutée
-- Animation d'apparition framer-motion + halo `Sparkles` discret
+### 5. Sinistre Fast-Track — bannière lisible
+Fichier : `src/pages/client/Sinistre.tsx` (utilise `ClientHeroBanner`)
+- Augmenter la hauteur `h-52 sm:h-60` et appliquer un overlay plus marqué côté gauche (`from-black/85 via-black/60 to-black/15`) pour que "Sinistre Fast-Track" et le sous-texte s'affichent en entier sans coupure (le titre apparaît coupé en haut).
+- Utiliser `object-cover object-[60%_center]` pour recadrer l'image vers la droite afin de garder la zone texte sombre.
 
-### 2. Section "Health & Wellness" → "Mes Garanties" (Dashboard)
-Cartes horizontales scrollables (style image 5 : Health/Bike/Home/Travel) :
-- Couverture Principal, Conjoint, Enfants, Ascendants
-- Chaque carte = pastille colorée + icône + count + capital
-- `overflow-x-auto snap-x` pour mobile, grille sur desktop
+### 6. Étape 11 "Paiement" de l'Adhésion — refonte complète
+Fichier : `src/pages/client/Adhesion.tsx` (lignes ~1153-1240)
+Supprimer l'encart "Coordonnées bancaires SONAM VIE" (banque, RIB, mobile money, référence à indiquer, méthode utilisée, référence/numéro de transaction).
 
-### 3. Bannière marketing "AssurDignité" dans le dashboard
-Carrousel auto-play (3 slides) utilisant les 4 bannières familles existantes (`family-united`, `family-elderly`, `family-mother`, `family-pro`) avec textes superposés :
-- "Familles unies, protégées ensemble"
-- "Dignité jusqu'au dernier souffle"
-- "Bonus Fidélité jusqu'à 30%"
-- Auto-rotation 5s, indicateurs, animations fade
+Remplacer par une page **"Choisissez votre moyen de paiement"** :
+- En-tête : "Prime annuelle : XX XXX FCFA"
+- 3 onglets / cartes cliquables :
+  1. **Mobile Money** — grille 2x2 de logos circulaires (Wave, Orange Money, MTN MoMo, Moov Money) à partir des SVG uploadés. Au clic : champ téléphone + bouton "Payer".
+  2. **Carte bancaire** — icônes Visa/Mastercard, champs N° carte / Expiration / CVV / Nom porteur (front-end uniquement, paiement simulé).
+  3. **Virement bancaire (RIB)** — affiche le RIB SONAM avec bouton "Copier" + champ "Référence de virement effectué" + bouton "J'ai payé".
+- Au submit, même logique qu'avant : insert `paiements` (`status: 'pending'`), notification, passage à l'étape suivante.
 
-### 4. Page Contrats — refonte visuelle
-- Empty state premium : illustration + bannière `family-united` + CTA "Souscrire" coloré
-- Cartes contrat redesignées comme la "Policy Card" du dashboard (mini-version), avec QR code de la police (lib `qrcode` déjà ?? sinon SVG simple) pour l'identifier rapidement
-- Animations stagger d'apparition
+Copier les 4 SVG opérateurs dans `src/assets/operators/` (wave-circle.svg, orange-circle.svg, mtn-circle.svg, moov-circle.svg) — les fichiers existants `src/assets/operators/*` seront remplacés par les nouveaux SVG circulaires uploadés.
 
-### 5. Page Profil — nouvelle section OCR + design premium
-- Header avec bannière `family-pro.jpg` en background flou + avatar circulaire glassmorphism par-dessus
-- **Nouveau bloc "Remplissage automatique" en haut du profil** :
-  - Bouton "📷 Scanner ma pièce d'identité pour pré-remplir"
-  - Réutilise le composant `IdCardScanner` existant
-  - Sur extraction OK → pré-remplit `full_name` (= first_name + last_name), pas de champ DOB/CNI sur profil donc juste full_name + toast de confirmation
-  - Option : étendre la table `profiles` pour stocker `date_of_birth`, `id_document_number`, `id_document_type` → migration SQL
-- Cartes Notifications + Sécurité avec design premium (icônes colorées, hover scale)
+### 7. Étape 13 Signature — retirer la biométrie
+Fichier : `src/pages/client/Adhesion.tsx`
+- Supprimer toute la branche biométrie (lignes 1290-1316) : ne garder que le bouton "Signer et finaliser" (= comportement actuel `handleSign` sans `verifyBiometricForUser`).
+- Retirer l'import `verifyBiometricForUser`, l'état `bioConfirming`, et la fonction `proceedAfterBio` si non utilisée ailleurs.
+- Supprimer le champ `biometric_confirmed_at` posé à cette étape (laisser seulement à l'étape paiement si pertinent).
 
-### 6. Page Sinistre — touches premium
-- Stepper redesigné : pastilles numérotées avec connecteurs animés (au lieu des 4 boutons actuels)
-- Bannière de réassurance en haut : "Versement < 12h" avec image `fast-payout.jpg`
-- Étape "Confirmation" : confettis discrets + bannière succès animée
+### 8. Landing — supprimer la frise "Souscription → Cotisation → Protection"
+Fichier : `src/components/landing/PremiumShowcaseSection.tsx` (ligne 131)
+- Supprimer la ligne / le bloc contenant "Souscription → Cotisation annuelle → Protection garantie" et ses icônes parents.
 
-### 7. Composant réutilisable `ClientHeroBanner`
-Nouveau composant `src/components/client/ClientHeroBanner.tsx` :
-- Props : `image`, `title`, `subtitle`, `cta?`
-- Glassmorphism + dégradé sombre + animation entrée
-- Utilisé sur Dashboard, Contrats vide, Sinistre, Profil
+### 9. Simulateur landing — wording
+Fichier : `src/components/landing/SimulateurSection.tsx`
+- Ligne 245 et 262 : "Frais accessoires" → "Frais additionnels".
+- Ligne 249 : "PRIME ANNUELLE TOTALE (PTTC)" → "PRIME ANNUELLE TOTALE".
+- Ligne 263 : "= Prime annuelle TTC (PTTC)" → "= Prime annuelle TTC".
 
-### 8. Composant `MarqueeBanner` réutilisable
-Bandeau défilant (trust indicators) : "Agréé CIMA · Versement < 12h · 50 000+ familles protégées · Paiement sécurisé"
-- Utilise le composant `Marquee` existant
-- Ajouté en haut du Dashboard et de Souscrire
+### 10. Adhésion — bannière familles défilante
+Fichier : `src/pages/client/Adhesion.tsx` (en haut du formulaire, avant le stepper)
+- Insérer `<MarketingCarousel className="mb-6" />` (le composant existe déjà et utilise les bannières familles africaines).
+- Vérifier que les indicateurs corrigés au point 1 ne masquent pas le texte.
 
-### 9. Migration DB (pour OCR profil étendu)
-```sql
-ALTER TABLE public.profiles
-  ADD COLUMN IF NOT EXISTS date_of_birth date,
-  ADD COLUMN IF NOT EXISTS id_document_type text,
-  ADD COLUMN IF NOT EXISTS id_document_number text;
-```
+### 11. Responsive — passes ciblées
+- Dashboard user : carte hero + carrousel + actions rapides → vérifier breakpoints `sm/md/lg`, `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`.
+- Adhésion : stepper horizontal scrollable sur mobile (`overflow-x-auto snap-x`), padding `px-3 sm:px-6`.
+- Admin Dashboard / Sinistres / Contrats : envelopper les tableaux dans `overflow-x-auto`, cartes statistiques en `grid-cols-2 lg:grid-cols-4`.
+- Landing Header : menu burger mobile déjà présent → vérifier z-index et fermeture au tap.
 
-### 10. Animations & cohérence
-- Tous les nouveaux blocs : `motion.div` avec `whileInView` stagger
-- Hover : `hover:-translate-y-0.5 hover:shadow-premium`
-- Sparkles canvas léger (density=30) sur les hero cards uniquement (perf mobile)
-- Respect du token couleur SONAM VIE : violet `#4A0E78` + vert `#6AB04C`
-
-## Fichiers impactés
-
-**Créés**
-- `src/components/client/ClientHeroBanner.tsx`
-- `src/components/client/PolicyHeroCard.tsx`
-- `src/components/client/MarketingCarousel.tsx`
-- `src/components/client/TrustMarquee.tsx`
+### Fichiers impactés (récap)
 
 **Modifiés**
-- `src/pages/client/Dashboard.tsx` — refonte hero + carrousel + garanties
-- `src/pages/client/Contrats.tsx` — empty state + cartes premium
-- `src/pages/client/Profil.tsx` — bannière header + bloc OCR + cartes redesignées
-- `src/pages/client/Sinistre.tsx` — stepper + bannière réassurance
+- `src/components/client/MarketingCarousel.tsx`
+- `src/components/ChatBot.tsx`
+- `src/pages/client/Profil.tsx`
+- `src/pages/client/Dashboard.tsx`
+- `src/pages/client/Paiements.tsx`
+- `src/pages/client/Sinistre.tsx`
+- `src/pages/client/Adhesion.tsx` (étape paiement + signature + bannière)
+- `src/components/landing/PremiumShowcaseSection.tsx`
+- `src/components/landing/SimulateurSection.tsx`
+- `src/layouts/AdminLayout.tsx` / pages admin (responsive tables)
 
-**Migration**
-- Extension table `profiles` (3 colonnes nullable, sûr)
+**Créés**
+- `src/assets/operators/wave-circle.svg`, `orange-circle.svg`, `mtn-circle.svg`, `moov-circle.svg` (depuis les SVG uploadés)
+- `src/components/payment/PaymentMethodSelector.tsx` — nouveau sélecteur Mobile Money / Carte / Virement utilisé dans l'étape 11 d'Adhésion
 
-## Hors-scope (je ne touche pas)
-
-- Landing page : déjà refondue lors des tours précédents (PremiumShowcase, FamilyBanner). Sauf si tu confirmes vouloir y ajouter encore plus.
-- Espace admin
-- Édition de `IdCardScanner` ni de `kyc-ocr-extract` (déjà fonctionnels)
-- Pas d'installation de `@paper-design/shaders-react` (sauf demande explicite)
+### Hors-scope
+- Pas de vraie intégration paiement (Stripe/Paddle) — la nouvelle UI carte + mobile money reste en mode déclaratif (insert `paiements` pending), comme l'existant.
+- Pas de migration DB.
+- Pas de toucher à `kyc-ocr-extract` ni `IdCardScanner`.
