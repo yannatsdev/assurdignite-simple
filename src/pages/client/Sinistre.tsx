@@ -124,14 +124,30 @@ export default function SinistrePage() {
       <ClientHeroBanner
         image={fastPayout}
         title="Sinistre Fast-Track"
-        subtitle="Déclarez un sinistre en moins de 5 minutes — versement express en moins de 12h après analyse."
+        subtitle="Déclaration 100 % digitale — prise en charge < 1h, activation prestataire < 4h, versement cash Mobile Money < 12h."
         height="h-52 sm:h-60"
         cta={
           <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/95 backdrop-blur px-3 py-1.5 text-xs font-semibold text-white shadow">
-            <Clock className="w-3.5 h-3.5" /> Versement &lt; 12h
+            <Clock className="w-3.5 h-3.5" /> SLA &lt; 12h cash MoMo
           </span>
         }
       />
+
+      {/* Canaux officiels de déclaration */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[11px] sm:text-xs">
+        {[
+          { label: 'Application', sub: '24h/24' },
+          { label: 'Hotline', sub: '24h/24' },
+          { label: 'WhatsApp', sub: 'sécurisé' },
+          { label: 'Agence SONAM', sub: 'h. ouvrables' },
+          { label: 'Réseau commercial', sub: 'terrain' },
+        ].map((c) => (
+          <div key={c.label} className="rounded-xl border border-border bg-card px-3 py-2 text-center">
+            <p className="font-semibold text-foreground">{c.label}</p>
+            <p className="text-muted-foreground">{c.sub}</p>
+          </div>
+        ))}
+      </div>
 
       {/* Premium stepper with connectors */}
       <div className="relative px-2">
