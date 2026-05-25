@@ -55,6 +55,11 @@ export function Footer() {
             </ul>
           </div>
         </div>
+        <div className="border-t border-white/20 pt-6 mb-6">
+          <p className="text-xs text-white/70 leading-relaxed max-w-4xl">
+            Produit soumis au Code CIMA. <strong className="text-white">Porteur de risque :</strong> SONAM Vie. <strong className="text-white">Concepteur & architecte :</strong> AIF SARL. <strong className="text-white">Plateforme technologique :</strong> AssurDignité (ATS/AIF). Conditions détaillées : voir CG / CP SONAM Vie. Souscription soumise à acceptation. Données protégées et confidentialité garanties.
+          </p>
+        </div>
         <div className="border-t border-white/20 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-white/60">© {new Date().getFullYear()} SONAM VIE - AssurDignité. Tous droits réservés.</p>
           <div className="flex items-center gap-2">
