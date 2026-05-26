@@ -1,10 +1,11 @@
 import { motion } from 'framer-motion';
-import { Heart, Sparkles, Clock, Award, Globe, ShieldCheck, LucideIcon } from 'lucide-react';
-import familyUnited from '@/assets/banners/family-united.jpg';
-import familyElderly from '@/assets/banners/family-elderly.jpg';
-import familyMother from '@/assets/banners/family-mother.jpg';
-import familyPro from '@/assets/banners/family-pro.jpg';
-import fastPayout from '@/assets/banners/fast-payout.jpg';
+import { Smartphone, Stethoscope, HandHeart, Banknote, Plane, FileSignature, LucideIcon } from 'lucide-react';
+import imgMobile from '@/assets/kyc-3d-scan.jpg';
+import imgMulti from '@/assets/family-multigenerational.jpg';
+import imgSix from '@/assets/family-six-members.jpg';
+import imgBusiness from '@/assets/business-team.jpg';
+import imgHero4 from '@/assets/hero-family-4.jpg';
+import imgHero2 from '@/assets/hero-family-2.jpg';
 
 type Card = {
   image: string;
@@ -14,12 +15,12 @@ type Card = {
 };
 
 const cards: Card[] = [
-  { image: familyUnited, icon: Heart, title: 'Familles unies', text: 'Principal + conjoint + 4 enfants + 2 ascendants.' },
-  { image: familyElderly, icon: Sparkles, title: 'Dignité préservée', text: '70 % prestations nature + 30 % cash MoMo.' },
-  { image: fastPayout, icon: Clock, title: 'Versement < 12 h', text: 'Capital débloqué rapidement après dossier complet.' },
-  { image: familyMother, icon: Award, title: 'Bonus Fidélité 30 %', text: '3 ans sans sinistre = 30 % de vos primes restituées.' },
-  { image: familyPro, icon: Globe, title: 'Diaspora couverte', text: 'Rapatriement & assistance funéraire incluse.' },
-  { image: familyUnited, icon: ShieldCheck, title: 'Porteur CIMA', text: 'SONAM Vie, sécurité réglementaire garantie.' },
+  { image: imgMobile, icon: Smartphone, title: 'Souscription 100 % mobile', text: 'Scan CNI, signature et paiement MoMo en moins de 10 minutes.' },
+  { image: imgMulti, icon: HandHeart, title: 'Accompagnement humain', text: 'Un conseiller dédié pour chaque famille, 6 jours sur 7.' },
+  { image: imgSix, icon: Stethoscope, title: 'Assistance renforcée', text: 'Soins du dernier souffle, transport médicalisé, soutien psychologique.' },
+  { image: imgBusiness, icon: Banknote, title: 'Capital jusqu’à 5 M FCFA', text: 'Formules A à D Excellence — adaptez la couverture à votre budget.' },
+  { image: imgHero4, icon: Plane, title: 'Rapatriement international', text: 'Spécial diaspora : retour au pays organisé et pris en charge.' },
+  { image: imgHero2, icon: FileSignature, title: 'Contrat clair & sans surprise', text: 'CGV transparentes, certifiées CIMA, lisibles en 2 minutes.' },
 ];
 
 interface Props {
