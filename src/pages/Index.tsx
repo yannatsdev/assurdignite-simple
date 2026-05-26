@@ -8,6 +8,7 @@ import { FAQSection } from '@/components/landing/FAQSection';
 import { ConditionsSection } from '@/components/landing/ConditionsSection';
 import { GarantiesSection } from '@/components/landing/GarantiesSection';
 import { CiblesSection } from '@/components/landing/CiblesSection';
+import { BrandShowcaseMarquee } from '@/components/landing/BrandShowcaseMarquee';
 import { ContactSection } from '@/components/landing/ContactSection';
 import { Footer } from '@/components/landing/Footer';
 import { ChatBot } from '@/components/ChatBot';
@@ -76,6 +77,16 @@ const Index = () => {
       <GarantiesSection />
       <AvantagesSection />
       <CiblesSection />
+
+      {/* Brand showcase marquee */}
+      <section className="py-16 sm:py-20 bg-muted/20">
+        <div className="container mx-auto px-4 mb-8 text-center">
+          <span className="text-base text-secondary font-semibold uppercase tracking-wider">Pourquoi AssurDignité</span>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold font-display mt-2">Une protection pensée pour vous</h2>
+        </div>
+        <BrandShowcaseMarquee />
+      </section>
+
       <PremiumShowcaseSection />
       <SimulateurSection />
 
