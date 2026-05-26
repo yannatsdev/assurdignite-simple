@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Calculator, Shield, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Typewriter } from '@/components/ui/typewriter';
+
 import heroImg from '@/assets/hero-family.jpg';
 import heroImg2 from '@/assets/hero-family-2.jpg';
 import heroImg3 from '@/assets/hero-family-3.jpg';
@@ -109,15 +109,7 @@ export function HeroSection() {
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-[1.05] tracking-tight mb-6 font-editorial">
                 <span>{slide.title}</span>{' '}
                 <span className="relative inline-block">
-                  <span className="italic text-sonam-green">
-                    <Typewriter
-                      text={[slide.highlight, 'votre famille', 'vos parents', 'la diaspora', 'toute une vie']}
-                      speed={70}
-                      deleteSpeed={40}
-                      waitTime={1800}
-                      cursorClassName="ml-1 text-sonam-green"
-                    />
-                  </span>
+                  <span className="italic text-sonam-green">{slide.highlight}</span>
                   <svg className="absolute -bottom-2 left-0 w-full" height="10" viewBox="0 0 200 10" preserveAspectRatio="none" aria-hidden>
                     <path d="M2 7 Q 50 1 100 6 T 198 5" stroke="hsl(var(--sonam-green))" strokeWidth="2.5" fill="none" strokeLinecap="round" />
                   </svg>
