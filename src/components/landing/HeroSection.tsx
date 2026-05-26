@@ -116,6 +116,26 @@ export function HeroSection() {
             </motion.div>
           </AnimatePresence>
 
+          {/* Persistent typewriter tagline — values that scroll under the headline */}
+          <div className="mb-8 text-base sm:text-lg md:text-xl text-white/95 font-semibold drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]">
+            <span className="text-white/80 mr-2">AssurDignité, c'est&nbsp;:</span>
+            <Typewriter
+              text={[
+                'Digne 🕊️',
+                'Rapide < 12h ⚡',
+                '100% Famille 👨‍👩‍👧',
+                'Bonus Fidélité 30% 🎁',
+                'Cash MoMo immédiat 💸',
+                'Agréé CIMA ✅',
+              ]}
+              speed={70}
+              deleteSpeed={35}
+              waitTime={1800}
+              className="text-sonam-green"
+              cursorClassName="ml-1 text-sonam-green"
+            />
+          </div>
+
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.6 }} className="flex flex-col sm:flex-row gap-4 mb-16">
             <Button size="lg" className="bg-secondary hover:bg-secondary/90 text-white text-base sm:text-lg px-8 gap-2 font-semibold" asChild>
               <a href="#simulateur"><Calculator className="w-5 h-5" /> Simuler ma prime</a>
