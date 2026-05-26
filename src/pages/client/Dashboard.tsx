@@ -26,6 +26,7 @@ import { formatCFA } from '@/lib/actuarial-engine';
 import { PolicyHeroCard } from '@/components/client/PolicyHeroCard';
 import { MarketingCarousel } from '@/components/client/MarketingCarousel';
 import { TrustMarquee } from '@/components/client/TrustMarquee';
+import { BrandShowcaseMarquee } from '@/components/landing/BrandShowcaseMarquee';
 
 const quickActions = [
   { icon: AlertTriangle, label: 'Déclarer un sinistre', path: '/client/sinistre', color: 'bg-red-500/10 text-red-600', border: 'border-red-200' },
@@ -165,6 +166,8 @@ export default function ClientDashboard() {
 
       {/* Marketing carousel */}
       <MarketingCarousel />
+
+      <BrandShowcaseMarquee variant="compact" />
 
       {/* Quick Actions */}
       <div>

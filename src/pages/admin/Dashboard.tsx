@@ -7,6 +7,7 @@ import { formatCFA } from '@/lib/actuarial-engine';
 import { supabase } from '@/integrations/supabase/client';
 import { AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { useNavigate } from 'react-router-dom';
+import { BrandShowcaseMarquee } from '@/components/landing/BrandShowcaseMarquee';
 
 const COLORS = ['hsl(275, 82%, 27%)', 'hsl(93, 47%, 48%)', 'hsl(40, 80%, 55%)', 'hsl(215, 58%, 26%)'];
 
@@ -124,6 +125,8 @@ export default function AdminDashboard() {
       </div>
 
       {/* KPIs */}
+      <BrandShowcaseMarquee variant="compact" speed={55} />
+
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {kpis.map((kpi, i) => (
           <Card key={i} className="hover:shadow-md transition-all border">
