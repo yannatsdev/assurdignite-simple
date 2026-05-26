@@ -1,11 +1,11 @@
 import { motion } from 'framer-motion';
 import { Smartphone, Stethoscope, HandHeart, Banknote, Plane, FileSignature, LucideIcon } from 'lucide-react';
-import imgMobile from '@/assets/kyc-3d-scan.jpg';
-import imgMulti from '@/assets/family-multigenerational.jpg';
-import imgSix from '@/assets/family-six-members.jpg';
-import imgBusiness from '@/assets/business-team.jpg';
-import imgHero4 from '@/assets/hero-family-4.jpg';
-import imgHero2 from '@/assets/hero-family-2.jpg';
+import imgMobile from '@/assets/marquee/souscription-mobile.jpg';
+import imgConseil from '@/assets/marquee/conseiller-agence.jpg';
+import imgAssist from '@/assets/marquee/assistance-recueillie.jpg';
+import imgFamille from '@/assets/marquee/famille-serenite.jpg';
+import imgDiaspora from '@/assets/marquee/diaspora-avion.jpg';
+import imgSignature from '@/assets/marquee/signature-contrat.jpg';
 
 type Card = {
   image: string;
@@ -16,11 +16,11 @@ type Card = {
 
 const cards: Card[] = [
   { image: imgMobile, icon: Smartphone, title: 'Souscription 100 % mobile', text: 'Scan CNI, signature et paiement MoMo en moins de 10 minutes.' },
-  { image: imgMulti, icon: HandHeart, title: 'Accompagnement humain', text: 'Un conseiller dédié pour chaque famille, 6 jours sur 7.' },
-  { image: imgSix, icon: Stethoscope, title: 'Assistance renforcée', text: 'Soins du dernier souffle, transport médicalisé, soutien psychologique.' },
-  { image: imgBusiness, icon: Banknote, title: 'Capital jusqu’à 5 M FCFA', text: 'Formules A à D Excellence — adaptez la couverture à votre budget.' },
-  { image: imgHero4, icon: Plane, title: 'Rapatriement international', text: 'Spécial diaspora : retour au pays organisé et pris en charge.' },
-  { image: imgHero2, icon: FileSignature, title: 'Contrat clair & sans surprise', text: 'CGV transparentes, certifiées CIMA, lisibles en 2 minutes.' },
+  { image: imgConseil, icon: HandHeart, title: 'Accompagnement humain', text: 'Un conseiller dédié pour chaque famille, 6 jours sur 7.' },
+  { image: imgAssist, icon: Stethoscope, title: 'Assistance renforcée', text: 'Soins du dernier souffle, transport médicalisé, soutien psychologique.' },
+  { image: imgFamille, icon: Banknote, title: 'Capital jusqu’à 5 M FCFA', text: 'Formules A à D Excellence — adaptez la couverture à votre budget.' },
+  { image: imgDiaspora, icon: Plane, title: 'Rapatriement international', text: 'Spécial diaspora : retour au pays organisé et pris en charge.' },
+  { image: imgSignature, icon: FileSignature, title: 'Contrat clair & sans surprise', text: 'CGV transparentes, certifiées CIMA, lisibles en 2 minutes.' },
 ];
 
 interface Props {

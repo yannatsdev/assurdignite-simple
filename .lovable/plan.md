@@ -1,59 +1,40 @@
-
 ## Objectif
 
-Ajouter une bannière horizontale animée façon "carousel marquee" (cartes sombres défilant en boucle continue, image en fond, badge icône en haut à gauche, tag "AssurDignité" en haut à droite, titre + description en bas), inspirée des captures fournies mais aux couleurs et messages de SONAM Vie / AssurDignité.
+Remplacer les 6 images du composant `BrandShowcaseMarquee` (section "Une protection pensée pour vous") par des visuels inédits, afin d'éviter toute répétition avec :
+- HeroSection (hero-family, hero-family-2/3/4)
+- MarketingCarousel client (banners/family-united, family-elderly, family-mother, fast-payout)
+- Autres sections existantes
 
-## Nouveau composant : `BrandShowcaseMarquee.tsx`
+## Approche
 
-Emplacement : `src/components/landing/BrandShowcaseMarquee.tsx`
+Générer 6 images photo-réalistes uniques via `imagegen` (qualité `standard`, format paysage 1280×800), chacune illustrant un thème distinct cohérent avec AssurDignité / SONAM Vie. Style : photographie éditoriale africaine premium, lumière chaude, ton éditorial dignifiant.
 
-Caractéristiques :
-- Rangée horizontale de 6 cartes ~ 380×260 px, fond image avec dégradé sombre, coins arrondis `rounded-3xl`, ring subtil violet.
-- Défilement continu (CSS keyframes `marquee` + duplication de la liste) — vitesse ~ 40 s, pause au hover.
-- Bord gauche/droit estompé (mask gradient) pour effet "fading edges".
-- Animation d'apparition `whileInView` (fade + translate).
-- Sur mobile : cartes plus petites (260×220 px), même animation.
+| # | Thème carte | Visuel à générer |
+|---|---|---|
+| 1 | Souscription mobile | Main africaine tenant un smartphone affichant une interface d'assurance, lumière douce de bureau |
+| 2 | Accompagnement humain | Conseillère SONAM en costume parlant chaleureusement avec un couple ivoirien en agence |
+| 3 | Assistance funéraire dignifiée | Mains jointes en soutien, fleurs blanches, ambiance recueillie et respectueuse |
+| 4 | Capital famille / billets FCFA | Famille africaine prospère à la maison, ambiance sereine et lumineuse, plan large salon |
+| 5 | Diaspora / rapatriement | Avion au crépuscule au-dessus d'un aéroport africain, valise et passeport au premier plan |
+| 6 | Signature de contrat clair | Gros plan main signant un document d'assurance avec stylo et tablette, bureau moderne |
 
-Carte (structure) :
-```
-┌─────────────────────────────┐
-│ [icon]        • AssurDignité│
-│                              │
-│   (image famille africaine) │
-│                              │
-│  Titre éditorial (Fraunces) │
-│  Sous-titre court (DM Sans) │
-└─────────────────────────────┘
-```
+## Implémentation
 
-Cartes (6) — réutilisent les visuels existants `src/assets/banners/*`:
-1. **Heart** — "Familles unies" / "Principal + conjoint + 4 enfants + 2 ascendants"
-2. **Sparkles** — "Dignité préservée" / "70 % prestations nature + 30 % cash"
-3. **Clock** — "Versement < 12 h" / "Capital débloqué rapidement après dossier"
-4. **Award** — "Bonus Fidélité 30 %" / "3 ans sans sinistre = primes restituées"
-5. **Globe** — "Diaspora couverte" / "Rapatriement & assistance funéraire"
-6. **ShieldCheck** — "Porteur CIMA" / "SONAM Vie, sécurité réglementaire"
+1. Générer 6 fichiers dans `src/assets/marquee/` :
+   - `souscription-mobile.jpg`
+   - `conseiller-agence.jpg`
+   - `assistance-recueillie.jpg`
+   - `famille-serenite.jpg`
+   - `diaspora-avion.jpg`
+   - `signature-contrat.jpg`
 
-## Intégrations
-
-- **Landing (`src/pages/Index.tsx`)** : insérer `<BrandShowcaseMarquee />` entre `<CiblesSection />` et `<PremiumShowcaseSection />`, fond `bg-muted/20`, padding `py-16`.
-- **Dashboard client (`src/pages/client/Dashboard.tsx`)** : insérer une version compacte (`variant="compact"`, hauteur 200 px) sous `ClientHeroBanner`/`MarketingCarousel` existant.
-- **Dashboard admin (`src/pages/admin/Dashboard.tsx`)** : même version compacte en bas du header admin pour cohérence de marque.
-
-## Détails techniques
-
-- Pas de nouvelles dépendances : utiliser `framer-motion` (déjà présent) + CSS keyframes Tailwind.
-- Ajouter dans `tailwind.config.ts` :
-  ```
-  marquee: { '0%': {transform:'translateX(0)'}, '100%': {transform:'translateX(-50%)'} }
-  animation: { marquee: 'marquee 40s linear infinite' }
-  ```
-- Respect `prefers-reduced-motion` (animation paused).
-- Tokens design system : `bg-card`, `text-foreground`, accents `primary` (violet SONAM) et `secondary` (green).
-- Aucune modification de logique métier ni de base de données.
+2. Modifier `src/components/landing/BrandShowcaseMarquee.tsx` :
+   - Remplacer les 6 imports d'images existants par les nouveaux
+   - Conserver les icônes, titres et textes actuels (déjà différenciés)
 
 ## Fichiers touchés
 
-- Créé : `src/components/landing/BrandShowcaseMarquee.tsx`
-- Modifié : `tailwind.config.ts` (keyframes/animation marquee)
-- Modifié : `src/pages/Index.tsx`, `src/pages/client/Dashboard.tsx`, `src/pages/admin/Dashboard.tsx`
+- Créés : 6 fichiers dans `src/assets/marquee/`
+- Modifié : `src/components/landing/BrandShowcaseMarquee.tsx`
+
+Aucune autre section, aucune logique métier ni base de données affectée.
