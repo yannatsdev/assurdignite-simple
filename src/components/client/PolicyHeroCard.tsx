@@ -7,10 +7,10 @@ import { Sparkles } from '@/components/ui/sparkles';
 import familyUnited from '@/assets/banners/family-united.jpg';
 
 const FORMULE_NAMES: Record<string, string> = {
-  A: 'Essentielle',
-  B: 'Standard',
-  C: 'Premium',
-  D: 'Excellence Diaspora',
+  A: 'Dignité Simple',
+  B: 'Serein',
+  C: 'Prestige',
+  D: 'Excellence',
 };
 
 interface PolicyHeroCardProps {

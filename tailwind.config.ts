@@ -13,7 +13,6 @@ export default {
     extend: {
       fontFamily: {
         display: ['"Playfair Display"', 'serif'],
-        editorial: ['Fraunces', '"Playfair Display"', 'serif'],
         sans: ['"DM Sans"', 'sans-serif'],
       },
       colors: {

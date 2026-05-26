@@ -1,64 +1,94 @@
+## Plan de polissage UX & responsive AssurDignité
 
-## Objectif
-Ajouter le composant **Typewriter**, élever la typographie/design (réf. image Safeon), et compléter les zones incomplètes en alignant 100% du contenu sur les 2 documents officiels (Fiche Produit V03 + Processus Sinistres).
+### 1. Carrousel "MarketingCarousel" (dashboard) — lisibilité
+Fichier : `src/components/client/MarketingCarousel.tsx`
+- Réduire les indicateurs (boutons ronds en bas-droite) : taille `h-1 w-1` (point), zone cliquable invisible plus grande, et **les déplacer en bas-centre** sur une seule ligne fine pour ne pas masquer les textes (notamment "Dignité jusqu'au dernier souffle").
+- Augmenter le `padding-bottom` du contenu (`pb-8`) pour dégager les indicateurs.
+- Renforcer le dégradé bas (`from-black/90 via-black/60 to-black/20`) afin que les sous-titres restent lisibles sur toutes les images.
+- Ajouter `pr-12` au bloc texte pour ne jamais passer sous l'indicateur.
 
-## 1. Nouveau composant UI
-- **`src/components/ui/typewriter.tsx`** — composant fourni (corrigé : JSX wrappers `<span>` reconstruits, `framer-motion` déjà installé donc pas d'install).
-- Intégration dans **`HeroSection.tsx`** : titre principal avec mot final qui s'écrit en boucle (ex: « Une assurance obsèques pour… [votre famille | vos parents | la diaspora | toute une vie] »).
+### 2. Chatbot — bouton réductible / réouvrir
+Fichier : `src/components/ChatBot.tsx`
+- Ajouter état `minimized` persisté dans `localStorage` (clé `chatbot_minimized`).
+- Quand minimisé : remplacer la bulle ronde violette par une mini-pastille discrète (icône `MessageCircle` h-8 w-8) en bas-droite avec tooltip "Ouvrir l'assistant".
+- Quand ouvert/fermé normal : ajouter un bouton "−" (Minimize2) dans l'en-tête du panneau et à côté du FAB pour le réduire.
+- S'applique automatiquement sur landing, dashboard user, dashboard admin (le composant est déjà monté à ces endroits).
 
-## 2. Refonte typographique (inspirée image Safeon)
-- **`src/index.css`** : importer 2 nouvelles polices Google Fonts pour rivaliser avec Safeon — **Fraunces** (display serif éditorial pour gros titres) + maintenir **DM Sans** en corps. Conserver Playfair pour signatures secondaires.
-- Nouveau token `font-editorial` → Fraunces. Appliquer aux H1 landing, héros client, titres formules.
-- Augmenter `tracking-tight`, `leading-[1.05]` sur titres XL, italique sur mot clé (motif Safeon : « peace **of mind** »).
-- Ajouter soulignement décoratif SVG « wavy » sous un mot clé du H1 (réf. image : « mind » souligné).
+### 3. Profil OCR — wording
+Fichier : `src/pages/client/Profil.tsx`
+- Remplacer "Vos images sont traitées par l'IA Lovable de manière sécurisée et ne sont pas stockées." par "Vos images sont traitées par notre IA de manière sécurisée et ne sont pas stockées."
 
-## 3. Hero landing — refonte façon Safeon
-- Layout bento : grosse colonne titre + 2 cartes empilées à droite (visuel famille, badge « Protection fiable », mini-carte support).
-- Boutons façon Safeon : pill blanc + avatar group + flèche.
-- Bannière secondaire pleine largeur sur fond violet/sombre avec gros titre serif + stats (« 50 000+ familles », « < 12h paiement »).
+### 4. Paiements annulés — ne plus afficher dans "Derniers paiements"
+Fichiers :
+- `src/pages/client/Dashboard.tsx` — la requête `paiements` ajoute `.neq('status', 'cancelled')`.
+- Le realtime channel rafraîchit déjà → ok.
+- `src/pages/client/Paiements.tsx` — vérifier que le tableau "Mes derniers paiements" applique aussi le filtre `cancelled` masqué (ou affiche dans un onglet "Annulés" séparé). Décision : masquer par défaut, conserver l'historique côté DB.
 
-## 4. Compléter les parties incomplètes avec contenu officiel
+### 5. Sinistre Fast-Track — bannière lisible
+Fichier : `src/pages/client/Sinistre.tsx` (utilise `ClientHeroBanner`)
+- Augmenter la hauteur `h-52 sm:h-60` et appliquer un overlay plus marqué côté gauche (`from-black/85 via-black/60 to-black/15`) pour que "Sinistre Fast-Track" et le sous-texte s'affichent en entier sans coupure (le titre apparaît coupé en haut).
+- Utiliser `object-cover object-[60%_center]` pour recadrer l'image vers la droite afin de garder la zone texte sombre.
 
-### a) Section Formules (`FormulesSection.tsx`)
-Aligner sur la fiche officielle :
-- A – **Essentielle** 1 500 000 (Nature 1 050 000 / Cash 450 000)
-- B – **Standard** 2 000 000 (1 400 000 / 600 000)
-- C – **Premium** 3 000 000 (2 100 000 / 900 000)
-- D – **Excellence Diaspora** 5 000 000 (3 500 000 / 1 500 000)
+### 6. Étape 11 "Paiement" de l'Adhésion — refonte complète
+Fichier : `src/pages/client/Adhesion.tsx` (lignes ~1153-1240)
+Supprimer l'encart "Coordonnées bancaires SONAM VIE" (banque, RIB, mobile money, référence à indiquer, méthode utilisée, référence/numéro de transaction).
 
-Renommer partout dans l'app (mapping `FORMULE_NAMES` dans `PolicyHeroCard.tsx`, simulateur, contrats, admin).
+Remplacer par une page **"Choisissez votre moyen de paiement"** :
+- En-tête : "Prime annuelle : XX XXX FCFA"
+- 3 onglets / cartes cliquables :
+  1. **Mobile Money** — grille 2x2 de logos circulaires (Wave, Orange Money, MTN MoMo, Moov Money) à partir des SVG uploadés. Au clic : champ téléphone + bouton "Payer".
+  2. **Carte bancaire** — icônes Visa/Mastercard, champs N° carte / Expiration / CVV / Nom porteur (front-end uniquement, paiement simulé).
+  3. **Virement bancaire (RIB)** — affiche le RIB SONAM avec bouton "Copier" + champ "Référence de virement effectué" + bouton "J'ai payé".
+- Au submit, même logique qu'avant : insert `paiements` (`status: 'pending'`), notification, passage à l'étape suivante.
 
-### b) Page Sinistre client (`Sinistre.tsx` + `SinistreSuivi.tsx`)
-Refléter les 8 étapes officielles :
-1. Déclaration · 2. Pré-validation · 3. Activation assistance (<1h contact, <2h prestataire) · 4. Constitution dossier · 5. Validation SONAM · 6. Cash MoMo (<12h) · 7. Prestations nature · 8. Clôture.
-- Ajouter liste pièces obligatoires : acte décès, certificat médical, CNI défunt, CNI bénéficiaire, n° MoMo.
-- Canaux déclaration : app 24/24, hotline, WhatsApp, agence, réseau commercial.
-- Badge SLA cible (<1h accusé, <12h cash, <4h activation).
+Copier les 4 SVG opérateurs dans `src/assets/operators/` (wave-circle.svg, orange-circle.svg, mtn-circle.svg, moov-circle.svg) — les fichiers existants `src/assets/operators/*` seront remplacés par les nouveaux SVG circulaires uploadés.
 
-### c) Page Souscrire / Adhesion
-Aligner le stepper sur le parcours officiel 7 étapes (téléchargement → formule → KYC bio → bénéficiaires → CG/CP → paiement → activation).
+### 7. Étape 13 Signature — retirer la biométrie
+Fichier : `src/pages/client/Adhesion.tsx`
+- Supprimer toute la branche biométrie (lignes 1290-1316) : ne garder que le bouton "Signer et finaliser" (= comportement actuel `handleSign` sans `verifyBiometricForUser`).
+- Retirer l'import `verifyBiometricForUser`, l'état `bioConfirming`, et la fonction `proceedAfterBio` si non utilisée ailleurs.
+- Supprimer le champ `biometric_confirmed_at` posé à cette étape (laisser seulement à l'étape paiement si pertinent).
 
-### d) Section Avantages / PremiumShowcase
-Ajouter les 6 arguments commerciaux officiels (Dignité, Rapidité, Sérénité, Fidélité 30%, 100% digital, Famille élargie incl. ascendants 90 ans).
+### 8. Landing — supprimer la frise "Souscription → Cotisation → Protection"
+Fichier : `src/components/landing/PremiumShowcaseSection.tsx` (ligne 131)
+- Supprimer la ligne / le bloc contenant "Souscription → Cotisation annuelle → Protection garantie" et ses icônes parents.
 
-### e) Section FAQ
-Compléter avec : exclusions (carence, fraude, suicide CG, guerre), conditions d'éligibilité (18–59 ans AP, ascendants ≤90 ans), questionnaire médical, bonus 30% conditions.
+### 9. Simulateur landing — wording
+Fichier : `src/components/landing/SimulateurSection.tsx`
+- Ligne 245 et 262 : "Frais accessoires" → "Frais additionnels".
+- Ligne 249 : "PRIME ANNUELLE TOTALE (PTTC)" → "PRIME ANNUELLE TOTALE".
+- Ligne 263 : "= Prime annuelle TTC (PTTC)" → "= Prime annuelle TTC".
 
-### f) Footer / Conditions
-Mentions officielles : « Produit soumis au Code CIMA. Porteur de risque : SONAM Vie. Concepteur : AIF SARL. »
+### 10. Adhésion — bannière familles défilante
+Fichier : `src/pages/client/Adhesion.tsx` (en haut du formulaire, avant le stepper)
+- Insérer `<MarketingCarousel className="mb-6" />` (le composant existe déjà et utilise les bannières familles africaines).
+- Vérifier que les indicateurs corrigés au point 1 ne masquent pas le texte.
 
-### g) Admin — page Sinistres
-Ajouter les statuts officiels du workflow (Déclaré → Pré-validé → Assistance activée → Dossier constitué → Validé SONAM → Cash payé → Nature exécutée → Clôturé) + escalade niveaux 1/2/3 + KPIs cibles (>95% SLA, >90% satisfaction, <12h cash).
+### 11. Responsive — passes ciblées
+- Dashboard user : carte hero + carrousel + actions rapides → vérifier breakpoints `sm/md/lg`, `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`.
+- Adhésion : stepper horizontal scrollable sur mobile (`overflow-x-auto snap-x`), padding `px-3 sm:px-6`.
+- Admin Dashboard / Sinistres / Contrats : envelopper les tableaux dans `overflow-x-auto`, cartes statistiques en `grid-cols-2 lg:grid-cols-4`.
+- Landing Header : menu burger mobile déjà présent → vérifier z-index et fermeture au tap.
 
-## 5. Mentions ChatBot
-Mettre à jour le system prompt edge function `chat-ai` avec les contenus officiels (formules exactes, SLA, exclusions, partenaires) pour réponses 100% fiables.
+### Fichiers impactés (récap)
 
-## 6. Détails techniques
-- Pas de migration DB nécessaire (uniquement contenu + UI).
-- `framer-motion` déjà présent — confirmer via package.json sinon installer.
-- Aucune logique métier modifiée (moteur actuariel CIMA H inchangé).
-- Responsive : nouveau hero testé 375 / 768 / 1024 / 1440.
+**Modifiés**
+- `src/components/client/MarketingCarousel.tsx`
+- `src/components/ChatBot.tsx`
+- `src/pages/client/Profil.tsx`
+- `src/pages/client/Dashboard.tsx`
+- `src/pages/client/Paiements.tsx`
+- `src/pages/client/Sinistre.tsx`
+- `src/pages/client/Adhesion.tsx` (étape paiement + signature + bannière)
+- `src/components/landing/PremiumShowcaseSection.tsx`
+- `src/components/landing/SimulateurSection.tsx`
+- `src/layouts/AdminLayout.tsx` / pages admin (responsive tables)
 
-## Fichiers impactés
-**Créés** : `src/components/ui/typewriter.tsx`
-**Modifiés** : `src/index.css`, `tailwind.config.ts`, `HeroSection.tsx`, `FormulesSection.tsx`, `PremiumShowcaseSection.tsx`, `FAQSection.tsx`, `Footer.tsx`, `Sinistre.tsx`, `SinistreSuivi.tsx`, `Adhesion.tsx`, `pages/admin/Sinistres.tsx`, `PolicyHeroCard.tsx` (mapping noms formules), `supabase/functions/chat-ai/index.ts`.
+**Créés**
+- `src/assets/operators/wave-circle.svg`, `orange-circle.svg`, `mtn-circle.svg`, `moov-circle.svg` (depuis les SVG uploadés)
+- `src/components/payment/PaymentMethodSelector.tsx` — nouveau sélecteur Mobile Money / Carte / Virement utilisé dans l'étape 11 d'Adhésion
+
+### Hors-scope
+- Pas de vraie intégration paiement (Stripe/Paddle) — la nouvelle UI carte + mobile money reste en mode déclaratif (insert `paiements` pending), comme l'existant.
+- Pas de migration DB.
+- Pas de toucher à `kyc-ocr-extract` ni `IdCardScanner`.
