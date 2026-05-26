@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Calculator, Shield, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Typewriter } from '@/components/ui/typewriter';
 import heroImg from '@/assets/hero-family.jpg';
 import heroImg2 from '@/assets/hero-family-2.jpg';
 import heroImg3 from '@/assets/hero-family-3.jpg';
@@ -105,15 +106,35 @@ export function HeroSection() {
                 <Shield className="w-4 h-4" />
                 {slide.badge}
               </span>
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6 font-display">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-3 font-display drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]">
                 {slide.title}{' '}
                 <span className="text-sonam-green inline-block">{slide.highlight}</span>
               </h1>
-              <p className="text-lg sm:text-xl md:text-2xl text-white/90 mb-8 max-w-2xl font-sans leading-relaxed">
+              <p className="text-lg sm:text-xl md:text-2xl text-white/95 mb-8 max-w-2xl font-sans leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]">
                 {slide.desc}
               </p>
             </motion.div>
           </AnimatePresence>
+
+          {/* Persistent typewriter tagline — values that scroll under the headline */}
+          <div className="mb-8 text-base sm:text-lg md:text-xl text-white/95 font-semibold drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]">
+            <span className="text-white/80 mr-2">AssurDignité, c'est&nbsp;:</span>
+            <Typewriter
+              text={[
+                'Digne 🕊️',
+                'Rapide < 12h ⚡',
+                '100% Famille 👨‍👩‍👧',
+                'Bonus Fidélité 30% 🎁',
+                'Cash MoMo immédiat 💸',
+                'Agréé CIMA ✅',
+              ]}
+              speed={70}
+              deleteSpeed={35}
+              waitTime={1800}
+              className="text-sonam-green"
+              cursorClassName="ml-1 text-sonam-green"
+            />
+          </div>
 
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.6 }} className="flex flex-col sm:flex-row gap-4 mb-16">
             <Button size="lg" className="bg-secondary hover:bg-secondary/90 text-white text-base sm:text-lg px-8 gap-2 font-semibold" asChild>
