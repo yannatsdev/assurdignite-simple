@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { DateInput } from '@/components/ui/date-input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, CheckCircle, FileCheck2, Loader2, X, Clock } from 'lucide-react';
+import { Upload, CheckCircle, FileCheck2, Loader2, X, Clock, Phone, MessageCircle, Building2, Smartphone, Users } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ClientHeroBanner } from '@/components/client/ClientHeroBanner';
@@ -133,7 +133,57 @@ export default function SinistrePage() {
         }
       />
 
-      {/* Premium stepper with connectors */}
+      {/* Official process panel — SLA & canaux */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2 border-border/40">
+          <CardContent className="pt-5">
+            <h3 className="font-bold font-display text-base mb-3 flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-secondary" /> Le processus officiel AssurDignité — 8 étapes
+            </h3>
+            <ol className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+              {[
+                'Déclaration initiale (24/24)',
+                'Pré-validation du dossier',
+                'Activation immédiate de l\'assistance (< 1h)',
+                'Constitution du dossier (pièces)',
+                'Validation technique SONAM Vie',
+                'Versement cash MoMo (< 12h)',
+                'Exécution prestations nature (70%)',
+                'Clôture & archivage',
+              ].map((s, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className="mt-0.5 inline-flex w-5 h-5 shrink-0 rounded-full bg-primary/10 text-primary text-[10px] font-bold items-center justify-center">{i + 1}</span>
+                  <span>{s}</span>
+                </li>
+              ))}
+            </ol>
+            <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
+              <div className="bg-secondary/10 text-secondary rounded-lg p-2 text-center font-semibold">Prise en charge &lt; 1h</div>
+              <div className="bg-primary/10 text-primary rounded-lg p-2 text-center font-semibold">Cash &lt; 12h</div>
+              <div className="bg-[hsl(var(--sonam-blue))]/10 text-[hsl(var(--sonam-blue))] rounded-lg p-2 text-center font-semibold">Logistique 2–4h</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/40">
+          <CardContent className="pt-5">
+            <h3 className="font-bold font-display text-base mb-3 flex items-center gap-2">
+              <Phone className="w-4 h-4 text-primary" /> Canaux de déclaration
+            </h3>
+            <ul className="space-y-2 text-xs">
+              <li className="flex items-center gap-2"><Smartphone className="w-3.5 h-3.5 text-primary" /> Application — 24h/24</li>
+              <li className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-primary" /> Hotline dédiée — 24h/24</li>
+              <li className="flex items-center gap-2"><Building2 className="w-3.5 h-3.5 text-primary" /> Agence SONAM (heures ouvrables)</li>
+              <li className="flex items-center gap-2"><Users className="w-3.5 h-3.5 text-primary" /> Réseau commercial</li>
+              <li className="flex items-center gap-2"><MessageCircle className="w-3.5 h-3.5 text-primary" /> WhatsApp dédié</li>
+            </ul>
+            <p className="mt-3 text-[11px] text-muted-foreground leading-relaxed">
+              📞 +225 27 20 31 71 82 / 05 95 45 21 65<br />
+              ✉️ servicecommercialsonamvie@sonam.ci
+            </p>
+          </CardContent>
+        </Card>
+      </div>
       <div className="relative px-2">
         <div className="absolute top-4 left-0 right-0 h-0.5 bg-muted -z-0" />
         <motion.div
