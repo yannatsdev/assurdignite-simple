@@ -120,7 +120,10 @@
     background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--sonam-blue)));
   }
   .bg-gradient-hero {
-    background: linear-gradient(135deg, hsl(275 82% 27% / 0.95), hsl(215 58% 26% / 0.9));
+    /* Directional overlay — darker on the left for text readability, transparent on the right so the family photo stays visible */
+    background:
+      linear-gradient(90deg, hsl(0 0% 0% / 0.78) 0%, hsl(0 0% 0% / 0.45) 45%, hsl(0 0% 0% / 0.05) 100%),
+      linear-gradient(180deg, hsl(275 82% 27% / 0.35) 0%, hsl(215 58% 26% / 0.15) 100%);
   }
 }
 
