@@ -1,40 +1,28 @@
-## Objectif
+## Priorité 1 — Fix bloquant paiement
 
-Remplacer les 6 images du composant `BrandShowcaseMarquee` (section "Une protection pensée pour vous") par des visuels inédits, afin d'éviter toute répétition avec :
-- HeroSection (hero-family, hero-family-2/3/4)
-- MarketingCarousel client (banners/family-united, family-elderly, family-mother, fast-payout)
-- Autres sections existantes
+**Cause racine identifiée** : la fonction `public.has_role(uuid, app_role)` n'a pas le droit `EXECUTE` pour les rôles `anon` et `authenticated`. Toutes les policies RLS de `paiements`, `contracts`, `beneficiaires`, etc. appellent `has_role(...)` ; dès qu'un utilisateur connecté tente d'insérer un paiement, PostgreSQL évalue la policy admin, échoue sur la fonction et renvoie `permission denied for function has_role`. C'est ce qui bloque la finalisation du paiement.
 
-## Approche
+### Migration à appliquer
 
-Générer 6 images photo-réalistes uniques via `imagegen` (qualité `standard`, format paysage 1280×800), chacune illustrant un thème distinct cohérent avec AssurDignité / SONAM Vie. Style : photographie éditoriale africaine premium, lumière chaude, ton éditorial dignifiant.
+```sql
+GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO anon, authenticated;
+```
 
-| # | Thème carte | Visuel à générer |
-|---|---|---|
-| 1 | Souscription mobile | Main africaine tenant un smartphone affichant une interface d'assurance, lumière douce de bureau |
-| 2 | Accompagnement humain | Conseillère SONAM en costume parlant chaleureusement avec un couple ivoirien en agence |
-| 3 | Assistance funéraire dignifiée | Mains jointes en soutien, fleurs blanches, ambiance recueillie et respectueuse |
-| 4 | Capital famille / billets FCFA | Famille africaine prospère à la maison, ambiance sereine et lumineuse, plan large salon |
-| 5 | Diaspora / rapatriement | Avion au crépuscule au-dessus d'un aéroport africain, valise et passeport au premier plan |
-| 6 | Signature de contrat clair | Gros plan main signant un document d'assurance avec stylo et tablette, bureau moderne |
+Aucun changement de schéma, aucune policy modifiée, aucun risque de privilège : la fonction est `SECURITY DEFINER` et ne fait que lire `user_roles`.
 
-## Implémentation
+### Vérification après migration
+- Re-tenter un paiement depuis `/client/adhesion` → checkout.
+- Vérifier les logs auth/postgres : plus d'erreur `permission denied for function has_role`.
 
-1. Générer 6 fichiers dans `src/assets/marquee/` :
-   - `souscription-mobile.jpg`
-   - `conseiller-agence.jpg`
-   - `assistance-recueillie.jpg`
-   - `famille-serenite.jpg`
-   - `diaspora-avion.jpg`
-   - `signature-contrat.jpg`
+---
 
-2. Modifier `src/components/landing/BrandShowcaseMarquee.tsx` :
-   - Remplacer les 6 imports d'images existants par les nouveaux
-   - Conserver les icônes, titres et textes actuels (déjà différenciés)
+## Priorité 2 — Clarifications nécessaires avant d'aller plus loin
 
-## Fichiers touchés
+Tu demandes aussi « améliorer la landing, la plateforme, ajouter de l'innovation, la rendre plus smart, fixer toutes les autres erreurs ». C'est trop large pour partir tête baissée sans casser ce qui marche. Je propose de livrer d'abord le fix paiement ci-dessus, puis de cadrer le reste avec toi via 2-3 questions ciblées (sections de la landing à retravailler, fonctionnalités « smart » souhaitées : recommandation de formule par IA, pré-remplissage KYC, assistant sinistre, etc., et liste précise des autres erreurs que tu observes avec captures/messages).
 
-- Créés : 6 fichiers dans `src/assets/marquee/`
-- Modifié : `src/components/landing/BrandShowcaseMarquee.tsx`
+### Hors scope de ce plan
+- Refonte visuelle de la landing
+- Nouvelles fonctionnalités IA
+- Autres bugs non encore décrits
 
-Aucune autre section, aucune logique métier ni base de données affectée.
+Valide ce plan pour que j'applique le fix paiement, ensuite je te pose les questions de cadrage pour la suite.
