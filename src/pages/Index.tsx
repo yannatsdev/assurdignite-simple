@@ -9,6 +9,7 @@ import { ConditionsSection } from '@/components/landing/ConditionsSection';
 import { GarantiesSection } from '@/components/landing/GarantiesSection';
 import { CiblesSection } from '@/components/landing/CiblesSection';
 import { BrandShowcaseMarquee } from '@/components/landing/BrandShowcaseMarquee';
+import { SmartRecommender } from '@/components/landing/SmartRecommender';
 import { ContactSection } from '@/components/landing/ContactSection';
 import { Footer } from '@/components/landing/Footer';
 import { ChatBot } from '@/components/ChatBot';
@@ -46,6 +47,9 @@ const Index = () => {
     <div className="min-h-screen">
       <Header />
       <HeroSection />
+      <SmartRecommender />
+
+
 
       {/* How it works */}
       <section className="py-16 sm:py-20 bg-muted/30">
