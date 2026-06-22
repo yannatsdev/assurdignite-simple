@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { formatCFA } from '@/lib/actuarial-engine';
 import {
   newPdf, pdfHeader, pdfTitle, pdfSection, pdfKeyValueGrid, pdfTable, pdfFooter,
+  pdfSonamStamp, pdfSignatureBlock,
   formatDateFR, FORMULE_NAMES, SONAM_BRAND,
 } from '@/lib/pdf-shared';
 
