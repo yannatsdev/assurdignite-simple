@@ -37,22 +37,28 @@ export function GarantiesSection() {
         </motion.div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-6xl mx-auto">
-          {garanties.map((g, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.06 }}
-              className="group relative bg-card border border-border rounded-2xl p-6 hover:border-primary/40 hover:shadow-lg transition-all"
-            >
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-[hsl(var(--sonam-blue))] flex items-center justify-center mb-4 shadow-md group-hover:scale-110 transition-transform">
-                <g.icon className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="font-bold font-display text-lg mb-2">{g.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{g.desc}</p>
-            </motion.div>
-          ))}
+          {garanties.map((g, i) => {
+            // 7 cards in 3-col grid: rows of 3, 3, 1 — center the orphan 7th card
+            const isOrphanLast = i === garanties.length - 1 && garanties.length % 3 === 1;
+            return (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.06 }}
+                className={`group relative bg-card border border-border rounded-2xl p-6 hover:border-primary/40 hover:shadow-lg transition-all ${
+                  isOrphanLast ? 'lg:col-start-2' : ''
+                }`}
+              >
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-[hsl(var(--sonam-blue))] flex items-center justify-center mb-4 shadow-md group-hover:scale-110 transition-transform">
+                  <g.icon className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="font-bold font-display text-lg mb-2">{g.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{g.desc}</p>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </section>

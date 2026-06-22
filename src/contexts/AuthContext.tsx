@@ -70,6 +70,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  /**
+   * Watchdog: if an admin deletes or deactivates the current user's profile,
+   * sign them out immediately so their dashboard is wiped in real time.
+   */
+  useEffect(() => {
+    if (!user?.id) return;
+    const channel = supabase
+      .channel(`profile-watchdog-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+        (payload) => {
+          const newRow: any = payload.new;
+          const isDeletedEvent = payload.eventType === 'DELETE';
+          const isDisabled = newRow && (newRow.status === 'deleted' || newRow.status === 'disabled');
+          if (isDeletedEvent || isDisabled) {
+            supabase.auth.signOut().then(() => {
+              window.location.href = '/';
+            });
+          }
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error };

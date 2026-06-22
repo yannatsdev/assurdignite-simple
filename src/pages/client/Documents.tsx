@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { formatCFA } from '@/lib/actuarial-engine';
 import {
   newPdf, pdfHeader, pdfTitle, pdfSection, pdfKeyValueGrid, pdfTable, pdfFooter,
+  pdfSonamStamp, pdfSignatureBlock,
   formatDateFR, FORMULE_NAMES, SONAM_BRAND,
 } from '@/lib/pdf-shared';
 
@@ -105,16 +106,20 @@ export default function DocumentsPage() {
       );
     }
 
-    if (y > 235) { doc.addPage(); pdfHeader(doc); y = 52; }
+    if (y > 225) { doc.addPage(); pdfHeader(doc); y = 52; }
     y = pdfSection(doc, '5. Signatures', y);
     doc.setFontSize(9); doc.setTextColor(110);
-    doc.text("Fait à Abidjan, le " + new Date().toLocaleDateString('fr-FR'), 18, y); y += 14;
+    doc.text("Fait à Abidjan, le " + new Date().toLocaleDateString('fr-FR'), 18, y); y += 10;
     doc.setFont('helvetica', 'bold'); doc.setTextColor(74, 14, 120);
     doc.text("Le Souscripteur", 30, y);
-    doc.text("La Direction Générale", 140, y);
+    doc.text("La Direction Générale", 130, y);
+    // Souscripteur signature (captured at adhesion) or fallback line
+    pdfSignatureBlock(doc, 30, y + 3, contract.signature_data_url || null, profile?.full_name || contract.principal_name || '—', 55, 18);
+    // SONAM VIE official circular stamp on the right
+    pdfSonamStamp(doc, 158, y + 14, 17, 'SONAM VIE', new Date().toLocaleDateString('fr-FR'));
     doc.setFont('helvetica', 'normal'); doc.setTextColor(33, 24, 48);
-    doc.text(profile?.full_name || '—', 30, y + 18);
-    doc.text(SONAM_BRAND.name, 140, y + 18);
+    doc.setFontSize(8);
+    doc.text(SONAM_BRAND.name, 130, y + 28);
 
     pdfFooter(doc);
     doc.save(`Police_AssurDignite_${contract.police_number}.pdf`);
@@ -160,16 +165,9 @@ export default function DocumentsPage() {
       );
     }
 
-    // Stamp
-    doc.setDrawColor(106, 176, 76);
-    doc.setLineWidth(1.2);
-    doc.roundedRect(140, y + 6, 55, 24, 3, 3, 'S');
-    doc.setTextColor(106, 176, 76);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
-    doc.text('PAYÉ', 167.5, y + 18, { align: 'center' });
-    doc.setFontSize(7); doc.setFont('helvetica', 'normal');
-    doc.text(formatDateFR(paiement.date_paiement), 167.5, y + 25, { align: 'center' });
+    // SONAM VIE official circular stamp
+    pdfSonamStamp(doc, 165, y + 18, 18, 'PAYÉ', formatDateFR(paiement.date_paiement));
+
     doc.setTextColor(33, 24, 48);
     doc.setFontSize(8);
     doc.text('Ce reçu est généré automatiquement par AssurDignité', 18, y + 18);
@@ -205,7 +203,13 @@ export default function DocumentsPage() {
     doc.setFont('helvetica', 'bold'); doc.setTextColor(74, 14, 120);
     doc.text('La Direction Générale', 130, y);
     doc.setFont('helvetica', 'normal'); doc.setTextColor(33, 24, 48);
+    doc.setFontSize(8);
     doc.text(SONAM_BRAND.name, 130, y + 6);
+
+    // Official stamp next to the Direction Générale signature
+    pdfSonamStamp(doc, 165, y + 18, 18, 'CERTIFIÉ', new Date().toLocaleDateString('fr-FR'));
+    // Souscripteur signature (if captured) on the left
+    pdfSignatureBlock(doc, 18, y, contract.signature_data_url || null, profile?.full_name || contract.principal_name || '—', 55, 18);
 
     pdfFooter(doc);
     doc.save(`Attestation_AssurDignite_${contract.police_number}.pdf`);

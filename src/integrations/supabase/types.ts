@@ -158,6 +158,7 @@ export type Database = {
       }
       contracts: {
         Row: {
+          ai_assisted: boolean
           capital_total: number
           conjoint_dob: string | null
           conjoint_name: string | null
@@ -173,11 +174,13 @@ export type Database = {
           prime_annuelle: number
           principal_dob: string | null
           principal_name: string | null
+          signature_data_url: string | null
           status: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          ai_assisted?: boolean
           capital_total: number
           conjoint_dob?: string | null
           conjoint_name?: string | null
@@ -193,11 +196,13 @@ export type Database = {
           prime_annuelle: number
           principal_dob?: string | null
           principal_name?: string | null
+          signature_data_url?: string | null
           status?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          ai_assisted?: boolean
           capital_total?: number
           conjoint_dob?: string | null
           conjoint_name?: string | null
@@ -213,6 +218,7 @@ export type Database = {
           prime_annuelle?: number
           principal_dob?: string | null
           principal_name?: string | null
+          signature_data_url?: string | null
           status?: string | null
           updated_at?: string | null
           user_id?: string

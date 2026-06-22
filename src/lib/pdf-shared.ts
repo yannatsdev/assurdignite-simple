@@ -25,38 +25,39 @@ const PAGE_W = 210;
 const PAGE_H = 297;
 
 export function pdfHeader(doc: jsPDF, subtitle?: string) {
-  // Violet bar
+  // Violet bar — taller for a more premium feel
   doc.setFillColor(...VIOLET);
-  doc.rect(0, 0, PAGE_W, 36, 'F');
+  doc.rect(0, 0, PAGE_W, 40, 'F');
 
-  // White rounded panel containing both logos (keeps aspect ratios visually consistent)
+  // White rounded panel with both logos, larger and better balanced
   doc.setFillColor(255, 255, 255);
-  doc.roundedRect(10, 6, 70, 24, 3, 3, 'F');
-  try { doc.addImage(SONAM_LOGO_B64, 'PNG', 13, 9, 30, 18, undefined, 'FAST'); } catch {}
+  doc.roundedRect(10, 6, 82, 28, 3.5, 3.5, 'F');
+  try { doc.addImage(SONAM_LOGO_B64, 'PNG', 13, 9, 36, 22, undefined, 'FAST'); } catch {}
   doc.setDrawColor(220, 220, 230);
-  doc.setLineWidth(0.3);
-  doc.line(46, 10, 46, 26);
-  try { doc.addImage(ASSURDIGNITE_LOGO_B64, 'PNG', 49, 10, 28, 16, undefined, 'FAST'); } catch {}
+  doc.setLineWidth(0.4);
+  doc.line(52, 10, 52, 30);
+  try { doc.addImage(ASSURDIGNITE_LOGO_B64, 'PNG', 55, 10, 34, 20, undefined, 'FAST'); } catch {}
 
-  // Right-side coordinates
+  // Right-side coordinates — larger and clearer
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.text('SONAM VIE — AssurDignité', PAGE_W - 10, 13, { align: 'right' });
+  doc.setFontSize(12);
+  doc.text('SONAM VIE — AssurDignité', PAGE_W - 10, 14, { align: 'right' });
   doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text(SONAM_BRAND.tel, PAGE_W - 10, 21, { align: 'right' });
+  doc.text(SONAM_BRAND.email, PAGE_W - 10, 26, { align: 'right' });
   doc.setFontSize(7.5);
-  doc.text(SONAM_BRAND.tel, PAGE_W - 10, 19, { align: 'right' });
-  doc.text(SONAM_BRAND.email, PAGE_W - 10, 24, { align: 'right' });
-  doc.text(SONAM_BRAND.address, PAGE_W - 10, 29, { align: 'right' });
+  doc.text(SONAM_BRAND.address, PAGE_W - 10, 31, { align: 'right' });
 
   // Optional sub-bar
   if (subtitle) {
     doc.setFillColor(...GREEN);
-    doc.rect(0, 36, PAGE_W, 9, 'F');
+    doc.rect(0, 40, PAGE_W, 9, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.text(subtitle.toUpperCase(), PAGE_W / 2, 42.5, { align: 'center' });
+    doc.text(subtitle.toUpperCase(), PAGE_W / 2, 46.5, { align: 'center' });
   }
   doc.setTextColor(...TEXT);
 }
@@ -187,6 +188,108 @@ export function pdfFooter(doc: jsPDF) {
 
 export function newPdf(): jsPDF {
   return new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+}
+
+/**
+ * Draws a circular SONAM VIE official stamp at (cx, cy) with given radius (mm).
+ * Vectorized — no image asset required. Slightly tilted for an authentic look.
+ */
+export function pdfSonamStamp(
+  doc: jsPDF,
+  cx: number,
+  cy: number,
+  radius = 18,
+  label = 'PAYÉ',
+  dateText?: string,
+) {
+  // Outer ring
+  doc.setDrawColor(...VIOLET);
+  doc.setLineWidth(1.1);
+  doc.circle(cx, cy, radius, 'S');
+  // Inner ring
+  doc.setLineWidth(0.4);
+  doc.circle(cx, cy, radius - 2.2, 'S');
+
+  // Top arc text: SONAM VIE S.A.
+  doc.setTextColor(...VIOLET);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  const topText = 'SONAM  VIE  S.A.';
+  const topChars = topText.split('');
+  const topArc = Math.PI * 0.55; // arc span
+  topChars.forEach((ch, i) => {
+    const t = -topArc / 2 + (topArc * i) / Math.max(1, topChars.length - 1);
+    const angle = -Math.PI / 2 + t; // start at top
+    const r = radius - 4.5;
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle) + 1.2;
+    const rot = (angle + Math.PI / 2) * (180 / Math.PI);
+    doc.text(ch, x, y, { angle: -rot });
+  });
+
+  // Bottom arc text: ASSURDIGNITÉ
+  const bottomText = 'A S S U R D I G N I T É';
+  const bChars = bottomText.split('');
+  const bArc = Math.PI * 0.6;
+  doc.setFontSize(6);
+  bChars.forEach((ch, i) => {
+    const t = -bArc / 2 + (bArc * i) / Math.max(1, bChars.length - 1);
+    const angle = Math.PI / 2 + t;
+    const r = radius - 4.5;
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle) + 1.2;
+    const rot = (angle - Math.PI / 2) * (180 / Math.PI);
+    doc.text(ch, x, y, { angle: -rot });
+  });
+
+  // Center: label + date
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(label.length > 6 ? 9 : 12);
+  doc.setTextColor(...VIOLET);
+  doc.text(label, cx, cy + (dateText ? -1 : 2), { align: 'center' });
+  if (dateText) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.text(dateText, cx, cy + 4, { align: 'center' });
+  }
+  doc.setTextColor(...TEXT);
+}
+
+/**
+ * Inserts a signature image (dataURL PNG/JPEG) into the document, or a fallback
+ * placeholder line if no signature data was captured.
+ */
+export function pdfSignatureBlock(
+  doc: jsPDF,
+  x: number,
+  y: number,
+  signatureDataUrl?: string | null,
+  printedName?: string,
+  width = 50,
+  height = 18,
+) {
+  if (signatureDataUrl && signatureDataUrl.startsWith('data:image')) {
+    try {
+      const fmt = signatureDataUrl.includes('image/png') ? 'PNG' : 'JPEG';
+      doc.addImage(signatureDataUrl, fmt, x, y, width, height, undefined, 'FAST');
+    } catch {
+      // fallback to line
+      doc.setDrawColor(...MUTED);
+      doc.setLineWidth(0.3);
+      doc.line(x, y + height - 2, x + width, y + height - 2);
+    }
+  } else {
+    doc.setDrawColor(...MUTED);
+    doc.setLineWidth(0.3);
+    doc.line(x, y + height - 2, x + width, y + height - 2);
+  }
+  if (printedName) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...MUTED);
+    doc.text(printedName, x, y + height + 4);
+    doc.setTextColor(...TEXT);
+  }
 }
 
 export const FORMULE_NAMES: Record<string, string> = {
