@@ -715,6 +715,30 @@ export default function AdhesionPage() {
                   </div>
                   <div><Label>Adresse complète</Label><Input value={kyc.adresse} onChange={e => setKyc({ ...kyc, adresse: e.target.value })} /></div>
 
+                  {/* AI OCR scanner — auto-fill above fields from a photo of the ID */}
+                  <div className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-4">
+                    <h4 className="font-semibold font-display mb-2 flex items-center gap-2 text-primary">
+                      <Sparkles className="w-4 h-4" /> Remplissage automatique par IA
+                    </h4>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Prenez en photo votre CNI ou passeport — notre IA extrait automatiquement vos informations.
+                    </p>
+                    <IdCardScanner
+                      onExtracted={(d) => {
+                        setKyc(prev => ({
+                          ...prev,
+                          nom: d.last_name || prev.nom,
+                          prenom: d.first_name || prev.prenom,
+                          dob: d.date_of_birth || prev.dob,
+                          cni: d.document_number || prev.cni,
+                          adresse: d.address || prev.adresse,
+                        }));
+                        setKycAutoFilled(true);
+                        toast({ title: 'Informations extraites ✓', description: 'Vos champs ont été pré-remplis automatiquement.' });
+                      }}
+                    />
+                  </div>
+
                   <div className="border-t pt-4 mt-4">
                     <h4 className="font-semibold font-display mb-3 flex items-center gap-2"><Shield className="w-4 h-4" /> Vérification d'identité</h4>
                     <DiditVerification
