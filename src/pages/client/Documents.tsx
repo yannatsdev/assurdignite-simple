@@ -116,7 +116,7 @@ export default function DocumentsPage() {
     // Souscripteur signature (captured at adhesion) or fallback line
     pdfSignatureBlock(doc, 30, y + 3, contract.signature_data_url || null, profile?.full_name || contract.principal_name || '—', 55, 18);
     // SONAM VIE official circular stamp on the right
-    pdfSonamStamp(doc, 158, y + 14, 17, 'SONAM\nVIE', new Date().toLocaleDateString('fr-FR'));
+    pdfSonamStamp(doc, 158, y + 14, 17, 'SONAM VIE', new Date().toLocaleDateString('fr-FR'));
     doc.setFont('helvetica', 'normal'); doc.setTextColor(33, 24, 48);
     doc.setFontSize(8);
     doc.text(SONAM_BRAND.name, 130, y + 28);
