@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, ArrowRight, Check, Calculator, Users, FileText, Heart, Shield, CreditCard, PenTool, Download, Plus, Minus, AlertCircle, Building2, Upload, X, Camera, Banknote, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Calculator, Users, FileText, Heart, Shield, CreditCard, PenTool, Download, Plus, Minus, AlertCircle, Building2, Upload, X, Camera, Banknote, Loader2, Sparkles } from 'lucide-react';
 import { simulatePrime, formatCFA, OPTIONS_CAPITALS, type OptionKey, type SimulationResult } from '@/lib/actuarial-engine';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
