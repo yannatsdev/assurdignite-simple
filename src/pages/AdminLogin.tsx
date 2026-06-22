@@ -106,7 +106,7 @@ export default function AdminLoginPage() {
                   <Label>Code d'accès admin</Label>
                   <div className="relative">
                     <KeyRound className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                    <Input type="password" placeholder="Code fourni par SONAM VIE" className="pl-10" value={accessCode} onChange={e => setAccessCode(e.target.value)} required />
+                    <Input type="password" placeholder="Code SONAM (ex. SONAM2026)" className="pl-10" value={accessCode} onChange={e => setAccessCode(e.target.value)} required />
                   </div>
                 </div>
               </>
