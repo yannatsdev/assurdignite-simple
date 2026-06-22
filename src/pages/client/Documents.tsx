@@ -165,16 +165,9 @@ export default function DocumentsPage() {
       );
     }
 
-    // Stamp
-    doc.setDrawColor(106, 176, 76);
-    doc.setLineWidth(1.2);
-    doc.roundedRect(140, y + 6, 55, 24, 3, 3, 'S');
-    doc.setTextColor(106, 176, 76);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
-    doc.text('PAYÉ', 167.5, y + 18, { align: 'center' });
-    doc.setFontSize(7); doc.setFont('helvetica', 'normal');
-    doc.text(formatDateFR(paiement.date_paiement), 167.5, y + 25, { align: 'center' });
+    // SONAM VIE official circular stamp
+    pdfSonamStamp(doc, 165, y + 18, 18, 'PAYÉ', formatDateFR(paiement.date_paiement));
+
     doc.setTextColor(33, 24, 48);
     doc.setFontSize(8);
     doc.text('Ce reçu est généré automatiquement par AssurDignité', 18, y + 18);
