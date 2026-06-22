@@ -25,38 +25,39 @@ const PAGE_W = 210;
 const PAGE_H = 297;
 
 export function pdfHeader(doc: jsPDF, subtitle?: string) {
-  // Violet bar
+  // Violet bar — taller for a more premium feel
   doc.setFillColor(...VIOLET);
-  doc.rect(0, 0, PAGE_W, 36, 'F');
+  doc.rect(0, 0, PAGE_W, 40, 'F');
 
-  // White rounded panel containing both logos (keeps aspect ratios visually consistent)
+  // White rounded panel with both logos, larger and better balanced
   doc.setFillColor(255, 255, 255);
-  doc.roundedRect(10, 6, 70, 24, 3, 3, 'F');
-  try { doc.addImage(SONAM_LOGO_B64, 'PNG', 13, 9, 30, 18, undefined, 'FAST'); } catch {}
+  doc.roundedRect(10, 6, 82, 28, 3.5, 3.5, 'F');
+  try { doc.addImage(SONAM_LOGO_B64, 'PNG', 13, 9, 36, 22, undefined, 'FAST'); } catch {}
   doc.setDrawColor(220, 220, 230);
-  doc.setLineWidth(0.3);
-  doc.line(46, 10, 46, 26);
-  try { doc.addImage(ASSURDIGNITE_LOGO_B64, 'PNG', 49, 10, 28, 16, undefined, 'FAST'); } catch {}
+  doc.setLineWidth(0.4);
+  doc.line(52, 10, 52, 30);
+  try { doc.addImage(ASSURDIGNITE_LOGO_B64, 'PNG', 55, 10, 34, 20, undefined, 'FAST'); } catch {}
 
-  // Right-side coordinates
+  // Right-side coordinates — larger and clearer
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.text('SONAM VIE — AssurDignité', PAGE_W - 10, 13, { align: 'right' });
+  doc.setFontSize(12);
+  doc.text('SONAM VIE — AssurDignité', PAGE_W - 10, 14, { align: 'right' });
   doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text(SONAM_BRAND.tel, PAGE_W - 10, 21, { align: 'right' });
+  doc.text(SONAM_BRAND.email, PAGE_W - 10, 26, { align: 'right' });
   doc.setFontSize(7.5);
-  doc.text(SONAM_BRAND.tel, PAGE_W - 10, 19, { align: 'right' });
-  doc.text(SONAM_BRAND.email, PAGE_W - 10, 24, { align: 'right' });
-  doc.text(SONAM_BRAND.address, PAGE_W - 10, 29, { align: 'right' });
+  doc.text(SONAM_BRAND.address, PAGE_W - 10, 31, { align: 'right' });
 
   // Optional sub-bar
   if (subtitle) {
     doc.setFillColor(...GREEN);
-    doc.rect(0, 36, PAGE_W, 9, 'F');
+    doc.rect(0, 40, PAGE_W, 9, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.text(subtitle.toUpperCase(), PAGE_W / 2, 42.5, { align: 'center' });
+    doc.text(subtitle.toUpperCase(), PAGE_W / 2, 46.5, { align: 'center' });
   }
   doc.setTextColor(...TEXT);
 }
