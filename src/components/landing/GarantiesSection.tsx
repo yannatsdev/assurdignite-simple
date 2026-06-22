@@ -36,11 +36,10 @@ export function GarantiesSection() {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-6xl mx-auto">
           {garanties.map((g, i) => {
-            // Last 3 cards (indices 4, 5, 6) center on the second row with lg:grid-cols-4
-            // Layout: row 1 = 4 cards, row 2 = 3 cards centered (start col 2)
-            const isFirstOnRow2 = i === 4;
+            // 7 cards in 3-col grid: rows of 3, 3, 1 — center the orphan 7th card
+            const isOrphanLast = i === garanties.length - 1 && garanties.length % 3 === 1;
             return (
               <motion.div
                 key={i}
@@ -49,9 +48,8 @@ export function GarantiesSection() {
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.06 }}
                 className={`group relative bg-card border border-border rounded-2xl p-6 hover:border-primary/40 hover:shadow-lg transition-all ${
-                  isFirstOnRow2 ? 'lg:col-start-1 xl:col-start-1' : ''
+                  isOrphanLast ? 'lg:col-start-2' : ''
                 }`}
-                style={isFirstOnRow2 ? { gridColumnStart: 1 } : undefined}
               >
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-[hsl(var(--sonam-blue))] flex items-center justify-center mb-4 shadow-md group-hover:scale-110 transition-transform">
                   <g.icon className="w-6 h-6 text-white" />
