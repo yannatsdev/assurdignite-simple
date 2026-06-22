@@ -203,7 +203,13 @@ export default function DocumentsPage() {
     doc.setFont('helvetica', 'bold'); doc.setTextColor(74, 14, 120);
     doc.text('La Direction Générale', 130, y);
     doc.setFont('helvetica', 'normal'); doc.setTextColor(33, 24, 48);
+    doc.setFontSize(8);
     doc.text(SONAM_BRAND.name, 130, y + 6);
+
+    // Official stamp next to the Direction Générale signature
+    pdfSonamStamp(doc, 165, y + 18, 18, 'CERTIFIÉ', new Date().toLocaleDateString('fr-FR'));
+    // Souscripteur signature (if captured) on the left
+    pdfSignatureBlock(doc, 18, y, contract.signature_data_url || null, profile?.full_name || contract.principal_name || '—', 55, 18);
 
     pdfFooter(doc);
     doc.save(`Attestation_AssurDignite_${contract.police_number}.pdf`);
