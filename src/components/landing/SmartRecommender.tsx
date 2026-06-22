@@ -384,9 +384,6 @@ export function SmartRecommender() {
           )}
         </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          Conseil IA non contractuel · Confirmation par un conseiller SONAM VIE avant souscription
-        </p>
       </div>
     </section>
   );
