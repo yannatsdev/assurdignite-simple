@@ -202,55 +202,40 @@ export function pdfSonamStamp(
   label = 'PAYÉ',
   dateText?: string,
 ) {
-  // Outer ring
+  // Outer ring (thicker, red-violet — looks like an official ink stamp)
   doc.setDrawColor(...VIOLET);
-  doc.setLineWidth(1.1);
+  doc.setLineWidth(1.4);
   doc.circle(cx, cy, radius, 'S');
-  // Inner ring
   doc.setLineWidth(0.4);
-  doc.circle(cx, cy, radius - 2.2, 'S');
+  doc.circle(cx, cy, radius - 2.4, 'S');
 
-  // Top arc text: SONAM VIE S.A.
+  // Soft violet wash inside so the stamp is clearly visible even on white
+  doc.setFillColor(245, 235, 252);
+  doc.circle(cx, cy, radius - 3, 'F');
+  // Re-stroke the inner ring on top of the fill
+  doc.setDrawColor(...VIOLET);
+  doc.setLineWidth(0.4);
+  doc.circle(cx, cy, radius - 2.4, 'S');
+
+  // Top label (straight, centered, bold)
   doc.setTextColor(...VIOLET);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  const topText = 'SONAM  VIE  S.A.';
-  const topChars = topText.split('');
-  const topArc = Math.PI * 0.55; // arc span
-  topChars.forEach((ch, i) => {
-    const t = -topArc / 2 + (topArc * i) / Math.max(1, topChars.length - 1);
-    const angle = -Math.PI / 2 + t; // start at top
-    const r = radius - 4.5;
-    const x = cx + r * Math.cos(angle);
-    const y = cy + r * Math.sin(angle) + 1.2;
-    const rot = (angle + Math.PI / 2) * (180 / Math.PI);
-    doc.text(ch, x, y, { angle: -rot });
-  });
+  doc.setFontSize(7.8);
+  doc.text('SONAM VIE S.A.', cx, cy - radius + 6, { align: 'center' });
 
-  // Bottom arc text: ASSURDIGNITÉ
-  const bottomText = 'A S S U R D I G N I T É';
-  const bChars = bottomText.split('');
-  const bArc = Math.PI * 0.6;
-  doc.setFontSize(6);
-  bChars.forEach((ch, i) => {
-    const t = -bArc / 2 + (bArc * i) / Math.max(1, bChars.length - 1);
-    const angle = Math.PI / 2 + t;
-    const r = radius - 4.5;
-    const x = cx + r * Math.cos(angle);
-    const y = cy + r * Math.sin(angle) + 1.2;
-    const rot = (angle - Math.PI / 2) * (180 / Math.PI);
-    doc.text(ch, x, y, { angle: -rot });
-  });
+  // Bottom label
+  doc.setFontSize(6.8);
+  doc.text('ASSURDIGNITÉ', cx, cy + radius - 3.5, { align: 'center' });
 
-  // Center: label + date
+  // Center: label (bigger) + date
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(label.length > 6 ? 9 : 12);
+  doc.setFontSize(label.length > 7 ? 9.5 : 13);
   doc.setTextColor(...VIOLET);
-  doc.text(label, cx, cy + (dateText ? -1 : 2), { align: 'center' });
+  doc.text(label, cx, cy + (dateText ? -0.5 : 2), { align: 'center' });
   if (dateText) {
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6.5);
-    doc.text(dateText, cx, cy + 4, { align: 'center' });
+    doc.setFontSize(6.8);
+    doc.text(dateText, cx, cy + 4.5, { align: 'center' });
   }
   doc.setTextColor(...TEXT);
 }

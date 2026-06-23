@@ -148,18 +148,14 @@ function CameraSelfie({ onCapture, existingFile, onRemove, uploading }: {
       ) : (
         <>
           <Button size="sm" variant="outline" onClick={startCamera} className="gap-1"><Camera className="w-4 h-4" /> Ouvrir la caméra</Button>
-          {cameraError && (
-            <>
-              <p className="text-xs text-destructive">Caméra non disponible</p>
-              <label className="cursor-pointer text-xs text-primary underline">
-                Uploader une photo à la place
-                <input type="file" accept="image/*" capture="user" className="hidden" onChange={e => {
-                  const f = e.target.files?.[0];
-                  if (f) onCapture(f);
-                }} />
-              </label>
-            </>
-          )}
+          <label className="cursor-pointer text-xs text-primary underline block mt-2">
+            {cameraError ? 'Caméra non disponible — uploader une photo' : 'Ou uploader une photo depuis la galerie'}
+            <input type="file" accept="image/*" className="hidden" onChange={e => {
+              const f = e.target.files?.[0];
+              if (f) onCapture(f);
+              e.target.value = '';
+            }} />
+          </label>
         </>
       )}
     </div>
@@ -341,6 +337,12 @@ export default function AdhesionPage() {
   const proceedAfterBio = async () => {
     if (!user || !simResult) return;
 
+    // Capture signature as data URL before any save
+    let signatureDataUrl: string | null = null;
+    if (canvasRef.current && hasSignature) {
+      try { signatureDataUrl = canvasRef.current.toDataURL('image/png'); } catch {}
+    }
+
     const newPolice = `POL-AD-${Date.now().toString(36).toUpperCase()}`;
     setPoliceNumber(newPolice);
     const { data, error } = await supabase.from('contracts').insert({
@@ -355,6 +357,8 @@ export default function AdhesionPage() {
       nb_enfants: enfants.length, nb_ascendants: ascendants.length,
       capital_total: simResult.capitaux.principal,
       kyc_documents: kycFiles,
+      signature_data_url: signatureDataUrl,
+      status: paymentDone ? 'active' : 'pending_payment',
     } as any).select('id').single();
 
     if (error) { toast({ title: 'Erreur', description: error.message, variant: 'destructive' }); return; }
@@ -369,12 +373,23 @@ export default function AdhesionPage() {
     for (const a of ascendants) {
       await supabase.from('assures_complementaires').insert({ contract_id: data.id, nom: a.nom, dob: a.dob || null, lien_parente: a.lien, prestation_nature: a.prestation, type_assure: 'ascendant' });
     }
-    const newPayRef = `PAY-${Date.now().toString(36).toUpperCase()}`;
-    setPaymentRef(newPayRef);
-    await supabase.from('paiements').insert({
-      user_id: user.id, contract_id: data.id, montant: simResult.primeAnnuelle, methode: paymentMethod,
-      status: 'paid', reference: newPayRef, biometric_confirmed_at: new Date().toISOString(),
-    } as any);
+
+    // Attach the payment (declared during step 11) to this new contract instead of creating a duplicate
+    if (paymentNumber) {
+      setPaymentRef(paymentNumber);
+      await supabase
+        .from('paiements')
+        .update({ contract_id: data.id })
+        .eq('user_id', user.id)
+        .eq('reference', paymentNumber);
+    } else {
+      const newPayRef = `PAY-${Date.now().toString(36).toUpperCase()}`;
+      setPaymentRef(newPayRef);
+      await supabase.from('paiements').insert({
+        user_id: user.id, contract_id: data.id, montant: simResult.primeAnnuelle, methode: paymentMethod,
+        status: 'paid', reference: newPayRef, biometric_confirmed_at: new Date().toISOString(),
+      } as any);
+    }
 
     setSigned(true);
     toast({ title: 'Contrat signé !', description: `Votre contrat ${newPolice} a été créé avec succès.` });
@@ -386,11 +401,11 @@ export default function AdhesionPage() {
 
   const generatePDF = async () => {
     if (!simResult) return;
-    const { newPdf, pdfHeader, pdfTitle, pdfSection, pdfKeyValueGrid, pdfTable, pdfFooter, formatDateFR: fmt } = await import('@/lib/pdf-shared');
+    const { newPdf, pdfHeader, pdfTitle, pdfSection, pdfKeyValueGrid, pdfTable, pdfFooter, pdfSonamStamp, pdfSignatureBlock, formatDateFR: fmt } = await import('@/lib/pdf-shared');
     const doc = newPdf();
     pdfHeader(doc, 'Reçu de souscription');
     let y = 52;
-    y = pdfTitle(doc, 'REÇU DE SOUSCRIPTION', y, `Référence ${quoteDate}`);
+    y = pdfTitle(doc, 'REÇU DE SOUSCRIPTION', y, `Référence ${paymentRef || quoteDate}`);
 
     y = pdfSection(doc, 'Souscripteur', y);
     y = pdfKeyValueGrid(doc, [
@@ -405,25 +420,10 @@ export default function AdhesionPage() {
       ['Formule choisie', `${formule} — ${FORMULE_DETAILS[formule].name}`],
       ['Capital principal', formatCFA(simResult.capitaux.principal)],
       ['Capital conjoint', hasConjoint ? formatCFA(simResult.capitaux.conjoint || 0) : 'Non inclus'],
-      ['Capital enfant (par)', formatCFA(simResult.capitaux.enfant || 0)],
-      ['Capital ascendant (par)', formatCFA(simResult.capitaux.ascendant || 0)],
       ['Prime annuelle', formatCFA(simResult.primeAnnuelle)],
       ['Mode de paiement', String(paymentMethod || '—').replace('simulation_', 'Simulation ')],
       ['Couverture', '70% nature + 30% espèces'],
     ], y);
-
-    if (hasConjoint || enfants.length || ascendants.length) {
-      y = pdfSection(doc, 'Assurés complémentaires', y);
-      const rows: string[][] = [];
-      const fullName = (p: any, fallback: string) => {
-        const n = `${p?.prenom ?? ''} ${p?.nom ?? ''}`.replace(/\s+/g, ' ').trim();
-        return n || fallback;
-      };
-      if (hasConjoint) rows.push([fullName(conjoint, 'Conjoint(e)'), 'Conjoint(e)', fmt(conjoint.dob)]);
-      enfants.forEach((e: any, i: number) => rows.push([fullName(e, `Enfant ${i + 1}`), 'Enfant', fmt(e.dob)]));
-      ascendants.forEach((a: any, i: number) => rows.push([fullName(a, `Ascendant ${i + 1}`), a.lien || 'Ascendant', fmt(a.dob)]));
-      y = pdfTable(doc, ['Nom & prénom', 'Lien', 'Né(e) le'], rows, y, [85, 50, 45]);
-    }
 
     if (beneficiaires?.length) {
       y = pdfSection(doc, 'Bénéficiaires désignés', y);
@@ -435,22 +435,22 @@ export default function AdhesionPage() {
       );
     }
 
-    if (canvasRef.current && hasSignature) {
-      if (y > 235) { doc.addPage(); pdfHeader(doc); y = 52; }
-      y = pdfSection(doc, 'Signature du souscripteur', y);
-      try {
-        const imgData = canvasRef.current.toDataURL('image/png');
-        doc.addImage(imgData, 'PNG', 20, y, 60, 25);
-      } catch {}
-    }
+    // Signature + stamp block (force new page if not enough room)
+    if (y > 215) { doc.addPage(); pdfHeader(doc); y = 52; }
+    y = pdfSection(doc, 'Signature & cachet', y);
+    doc.setFontSize(9); doc.setTextColor(110);
+    doc.text('Fait à Abidjan, le ' + new Date().toLocaleDateString('fr-FR'), 18, y); y += 8;
+    const sigData = (canvasRef.current && hasSignature) ? canvasRef.current.toDataURL('image/png') : null;
+    pdfSignatureBlock(doc, 20, y + 2, sigData, `${kyc.prenom} ${kyc.nom}`.trim() || '—', 60, 22);
+    pdfSonamStamp(doc, 160, y + 16, 18, 'PAYÉ', new Date().toLocaleDateString('fr-FR'));
 
     pdfFooter(doc);
-    doc.save(`AssurDignite_Recu_${quoteDate}.pdf`);
+    doc.save(`AssurDignite_Recu_${paymentRef || quoteDate}.pdf`);
   };
 
   const generatePolicePDF = async () => {
     if (!simResult) return;
-    const { newPdf, pdfHeader, pdfTitle, pdfSection, pdfKeyValueGrid, pdfTable, pdfFooter, formatDateFR: fmt, FORMULE_NAMES, SONAM_BRAND } = await import('@/lib/pdf-shared');
+    const { newPdf, pdfHeader, pdfTitle, pdfSection, pdfKeyValueGrid, pdfTable, pdfFooter, pdfSonamStamp, pdfSignatureBlock, formatDateFR: fmt, FORMULE_NAMES, SONAM_BRAND } = await import('@/lib/pdf-shared');
     const doc = newPdf();
     pdfHeader(doc, "Police d'assurance obsèques");
     let y = 52;
@@ -488,26 +488,26 @@ export default function AdhesionPage() {
         beneficiaires.filter((b: any) => b.nom).map((b: any) => [b.nom, b.lien || '—', b.telephone || '—']),
         y, [80, 60, 40]);
     }
-    if (y > 235) { doc.addPage(); pdfHeader(doc); y = 52; }
+    if (y > 215) { doc.addPage(); pdfHeader(doc); y = 52; }
     y = pdfSection(doc, '5. Signatures', y);
     doc.setFontSize(9); doc.setTextColor(110);
-    doc.text('Fait à Abidjan, le ' + new Date().toLocaleDateString('fr-FR'), 18, y); y += 14;
+    doc.text('Fait à Abidjan, le ' + new Date().toLocaleDateString('fr-FR'), 18, y); y += 10;
     doc.setFont('helvetica', 'bold'); doc.setTextColor(74, 14, 120);
     doc.text('Le Souscripteur', 30, y);
-    doc.text('La Direction Générale', 140, y);
+    doc.text('La Direction Générale', 130, y);
+    const sigData = (canvasRef.current && hasSignature) ? canvasRef.current.toDataURL('image/png') : null;
+    pdfSignatureBlock(doc, 25, y + 4, sigData, `${kyc.prenom} ${kyc.nom}`.trim() || '—', 60, 22);
+    pdfSonamStamp(doc, 160, y + 16, 18, 'SONAM VIE', new Date().toLocaleDateString('fr-FR'));
     doc.setFont('helvetica', 'normal'); doc.setTextColor(33, 24, 48);
-    doc.text(`${kyc.prenom} ${kyc.nom}`.trim() || '—', 30, y + 18);
-    doc.text(SONAM_BRAND.name, 140, y + 18);
-    if (canvasRef.current && hasSignature) {
-      try { doc.addImage(canvasRef.current.toDataURL('image/png'), 'PNG', 25, y + 4, 50, 18); } catch {}
-    }
+    doc.setFontSize(8);
+    doc.text(SONAM_BRAND.name, 130, y + 32);
     pdfFooter(doc);
     doc.save(`Police_AssurDignite_${policeNumber}.pdf`);
   };
 
   const generateAttestationPDF = async () => {
     if (!simResult) return;
-    const { newPdf, pdfHeader, pdfTitle, pdfSection, pdfKeyValueGrid, pdfFooter, formatDateFR: fmt, FORMULE_NAMES, SONAM_BRAND } = await import('@/lib/pdf-shared');
+    const { newPdf, pdfHeader, pdfTitle, pdfSection, pdfKeyValueGrid, pdfFooter, pdfSonamStamp, pdfSignatureBlock, formatDateFR: fmt, FORMULE_NAMES, SONAM_BRAND } = await import('@/lib/pdf-shared');
     const doc = newPdf();
     pdfHeader(doc, "Attestation d'assurance");
     let y = 56;
@@ -524,14 +524,20 @@ export default function AdhesionPage() {
       ['Prime annuelle', formatCFA(simResult.primeAnnuelle)],
       ['Statut', 'Actif'],
     ], y);
-    y += 8;
+    if (y > 215) { doc.addPage(); pdfHeader(doc); y = 60; }
+    y += 6;
     doc.setFontSize(10);
     doc.text('Fait à Abidjan, le ' + new Date().toLocaleDateString('fr-FR'), 18, y);
-    y += 18;
+    y += 12;
     doc.setFont('helvetica', 'bold'); doc.setTextColor(74, 14, 120);
+    doc.text('Le Souscripteur', 30, y);
     doc.text('La Direction Générale', 130, y);
+    const sigData = (canvasRef.current && hasSignature) ? canvasRef.current.toDataURL('image/png') : null;
+    pdfSignatureBlock(doc, 25, y + 4, sigData, `${kyc.prenom} ${kyc.nom}`.trim() || '—', 60, 22);
+    pdfSonamStamp(doc, 160, y + 16, 18, 'CERTIFIÉ', new Date().toLocaleDateString('fr-FR'));
     doc.setFont('helvetica', 'normal'); doc.setTextColor(33, 24, 48);
-    doc.text(SONAM_BRAND.name, 130, y + 6);
+    doc.setFontSize(8);
+    doc.text(SONAM_BRAND.name, 130, y + 32);
     pdfFooter(doc);
     doc.save(`Attestation_AssurDignite_${policeNumber}.pdf`);
   };

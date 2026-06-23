@@ -1,65 +1,43 @@
+Objectif : stabiliser l’OCR sur web/mobile, garantir que les signatures et le stamp SONAM VIE apparaissent dans tous les PDF, et corriger les incohérences principales entre souscription, paiement et documents.
 
-# Plan — Vague 2 complète + corrections
+Plan d’implémentation :
 
-## 1. Compte super-admin (correctif)
-- Pré-créer le compte `yannsuperadminnirva@gmail.com` / `Yannedge50$` via migration + edge function `admin-signup` (forcer email_confirm=true, rôle `admin`).
-- Vérifier que `ADMIN_ACCESS_CODE = "SONAM2026"` est bien la valeur acceptée par `admin-signup` ET par le formulaire `AdminLogin.tsx` (sinon corriger).
-- Tester la connexion après migration.
+1. Corriger l’OCR caméra et upload mobile
+- Séparer clairement deux actions : “Prendre une photo” et “Choisir depuis galerie/fichiers”.
+- Retirer `capture="environment"` du bouton upload pour éviter que le mobile force la caméra au lieu de la galerie.
+- Ajouter un second input dédié caméra avec `capture="environment"`, déclenché uniquement par le bouton caméra si besoin.
+- Rendre la vidéo visible et fiable : `autoPlay`, `playsInline`, `muted`, fond clair d’erreur si la caméra ne démarre pas, message permissions navigateur, et appel caméra directement depuis le clic utilisateur.
+- Ajouter un fallback mobile propre si `getUserMedia` échoue : proposer immédiatement galerie/fichier.
+- Réinitialiser la valeur de l’input après sélection pour permettre de re-sélectionner la même image.
 
-## 2. Souscription — Étape 3 : Scanner CNI + OCR auto-fill
-- Nouveau composant `IdCardScanWizard.tsx` (caméra + upload) dans `src/pages/client/Souscrire.tsx` étape 3.
-- Réutiliser/étendre l'edge function `kyc-ocr-extract` : envoyer l'image (base64) → Lovable AI Gemini vision → JSON structuré `{nom, prenom, date_naissance, numero_cni, lieu_naissance, sexe, adresse}`.
-- Pré-remplissage automatique des champs du formulaire + indicateur "Champs détectés via OCR" éditables.
-- Stockage de l'image dans bucket `kyc-documents`.
+2. Corriger la logique d’OCR dans le formulaire
+- Garder le scanner sur l’étape KYC principal et l’ajouter aussi à l’étape conjoint si demandé, pour pré-remplir nom/prénom/date de naissance du conjoint.
+- Mapper les champs extraits de façon plus tolérante (`first_name`, `prenom`, `last_name`, `nom`, `date_naissance`, etc.) afin que l’auto-remplissage fonctionne même si l’IA renvoie des clés légèrement différentes.
+- Afficher clairement les aperçus recto/verso et permettre “Analyser maintenant” dès le recto chargé.
 
-## 3. Documents PDF (police, attestation, reçu)
-- Ajouter capture de signature manuscrite (`react-signature-canvas`) à la fin de l'adhésion → stockée en `signature_data_url` sur le contrat.
-- `src/lib/pdf-shared.ts` : 
-  - Insérer la signature client (image PNG) dans la zone "Le Souscripteur".
-  - Ajouter un tampon circulaire "SONAM VIE • PAYÉ • date" (SVG vectoriel violet incliné -15°) côté Direction Générale.
-  - Refondre `pdfHeader` : logo SONAM VIE + logo AssurDignité plus grands, mieux espacés, alignement responsive A4.
-  - Harmoniser tailles titres/sections, footer plus aéré.
-- Appliquer à : police, attestation, reçu de paiement, rapport admin.
+3. Persister la signature utilisateur dans le contrat
+- Dans `Adhesion.tsx`, convertir la signature canvas en `data:image/png` au moment de finaliser.
+- Enregistrer cette valeur dans `contracts.signature_data_url` lors de la création du contrat.
+- Corriger le paiement créé avant contrat : l’étape paiement de l’adhésion crée actuellement un paiement sans `contract_id`, puis un second paiement signé peut être créé comme payé. Je vais éviter les doublons en gardant la référence paiement déclarée et en la rattachant/validant au contrat final quand possible.
 
-## 4. Dashboard admin — gestion utilisateurs live
-- Page `src/pages/admin/Utilisateurs.tsx` : actions suppression / désactivation / réactivation / ajout-retrait de rôle déjà câblées sur `admin-users` edge function.
-- Renforcer la suppression : cascade applicative (contrats, bénéficiaires, paiements, sinistres, notifications, kyc) via nouvelle edge function `admin-delete-user-cascade` utilisant service_role.
-- Realtime : `supabase.channel` sur `profiles`, `contracts`, `paiements`, `sinistres` → rafraîchit la liste sans reload.
-- Activer publication realtime sur ces tables (migration `ALTER PUBLICATION supabase_realtime ADD TABLE …`).
-- Côté client : si le profil de l'utilisateur connecté disparaît → `signOut` automatique + redirection landing.
+4. Corriger les PDF générés à la fin de l’adhésion
+- Utiliser les helpers partagés `pdfSignatureBlock` et `pdfSonamStamp` dans les PDF de souscription immédiats : police, attestation et reçu.
+- Ajouter le stamp SONAM VIE visible dans la police PDF, le reçu PDF et l’attestation PDF.
+- Ajouter la signature du souscripteur dans la police PDF et le reçu PDF; dans l’attestation, ajouter un bloc souscripteur plus propre si pertinent.
+- Ajuster les positions pour éviter que stamp/signature soient trop bas, hors page ou recouverts.
 
-## 5. Landing — corrections demandées
-- `HeroSection.tsx` / `SmartRecommender.tsx` : retirer la mention « Conseil IA non contractuel · Confirmation par un conseiller SONAM VIE avant souscription ».
-- `GarantiesSection.tsx` : 7 catégories → grille `lg:grid-cols-4` avec dernière ligne centrée (`justify-center`) pour éviter l'orpheline "Garantie Accident". Alternative : passer à `lg:grid-cols-3` (3+3+1 centré) ou réorganiser en `2-2-3` selon ce qui rend mieux visuellement.
+5. Améliorer les PDF dans la page Documents
+- Renforcer le stamp vectoriel : couleur plus visible, label central plus lisible, pas de texte courbe fragile si cela rend mal dans jsPDF.
+- Agrandir/équilibrer les logos dans l’en-tête et ajouter des protections contre débordement du texte contact.
+- Uniformiser police, attestation, reçu et conditions particulières avec le même header/footer, blocs signature, cachet et espacement.
+- Prévoir un saut de page automatique avant les signatures/stamps quand le contenu est trop long.
 
-## 6. Innovation — IA peut souscrire pour l'utilisateur
-- Nouveau composant `AiSubscribeAssistant.tsx` (drawer accessible depuis le chatbot ET le dashboard client).
-- Edge function `ai-subscribe-agent` :
-  - Conversation guidée (3-5 questions max : âge, situation familiale, budget, MoMo opérateur, bénéficiaires).
-  - Appelle `recommend-formula` puis crée automatiquement : contrat (statut `pending_payment`), bénéficiaires, ligne paiement → redirige vers OTP MoMo.
-  - Confirmation finale obligatoire avant insert (RGPD/consentement).
-- Badge "Souscription assistée par IA" sur le contrat.
+6. Corriger les incohérences web/mobile principales liées au paiement et aux documents
+- Faire en sorte que les documents actifs utilisent le contrat le plus récent/pertinent et non un ancien contrat actif arbitraire.
+- Après finalisation de signature, créer/mettre à jour les paiements avec `contract_id` et statut cohérent.
+- Harmoniser les messages : paiement déclaré/en attente vs paiement simulé/payé afin que le reçu ne soit disponible que lorsque le paiement est marqué payé.
+- Vérifier les inputs fichiers/selfie existants pour retirer les `capture` forcés là où l’utilisateur doit pouvoir choisir galerie/fichier.
 
-## 7. Innovations supplémentaires (admin + client)
-- **Admin** : widget "Anomalies détectées par IA" sur dashboard (paiements en retard, sinistres suspects, KYC incomplets) + bouton "Générer rapport mensuel IA".
-- **Client** : 
-  - Notifications push in-app realtime (cloche).
-  - Rappel intelligent renouvellement annuel (J-30, J-7, J-1).
-  - Score "Protection famille" gamifié (% complétude bénéficiaires, KYC, paiements à jour).
-
-## Détails techniques
-- Migrations SQL : seed admin user, realtime publications, colonne `signature_data_url` sur `contracts`, colonne `ai_assisted` boolean.
-- Edge functions nouvelles : `admin-delete-user-cascade`, `ai-subscribe-agent`. Existantes modifiées : `kyc-ocr-extract` (vision), `admin-signup`.
-- Dépendances : `react-signature-canvas`.
-- Tests Playwright rapides : login admin, OCR mock, génération PDF avec signature+tampon.
-
-## Ordre d'exécution
-1. Correctif admin (migration + test login)
-2. PDF : signature + tampon + logos
-3. OCR auto-fill étape 3
-4. Landing corrections (mention + grille garanties)
-5. Admin live + cascade delete
-6. AI souscription assistée
-7. Innovations bonus (anomalies, gamification, rappels)
-
-Je confirme « go » et j'enchaîne en build mode.
+7. Vérification
+- Tester dans le navigateur local les chemins principaux : OCR upload, caméra fallback, signature, finalisation, génération PDF.
+- Inspecter visuellement les PDF générés en les convertissant en images pour confirmer : logos visibles, signature visible, stamp SONAM VIE visible, aucun chevauchement majeur.

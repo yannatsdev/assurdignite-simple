@@ -32,7 +32,7 @@ export default function DocumentsPage() {
     const fetch = async () => {
       const [{ data: prof }, { data: contracts }] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
-        supabase.from('contracts').select('*').eq('user_id', user.id).eq('status', 'active').limit(1),
+        supabase.from('contracts').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1),
       ]);
       setProfile(prof);
       const c = contracts?.[0];
