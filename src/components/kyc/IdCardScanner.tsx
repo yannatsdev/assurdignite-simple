@@ -201,7 +201,7 @@ export function IdCardScanner({ onExtracted, className }: Props) {
       <AnimatePresence>
         {streaming && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="relative rounded-xl overflow-hidden bg-black">
-            <video ref={videoRef} className="w-full aspect-[3/2] object-cover" playsInline muted />
+            <video ref={videoRef} className="w-full aspect-[3/2] object-cover bg-black" playsInline autoPlay muted />
             {/* Frame overlay */}
             <div className="absolute inset-6 rounded-lg border-2 border-sonam-green/80 pointer-events-none">
               {['top-0 left-0 border-t-4 border-l-4', 'top-0 right-0 border-t-4 border-r-4', 'bottom-0 left-0 border-b-4 border-l-4', 'bottom-0 right-0 border-b-4 border-r-4'].map((c, i) => (
@@ -225,23 +225,29 @@ export function IdCardScanner({ onExtracted, className }: Props) {
 
       {error && <p className="text-xs text-destructive">{error}</p>}
 
+      {/* Hidden inputs — camera (mobile native) and gallery (file picker) */}
+      <input
+        ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden"
+        onChange={e => { const f = e.target.files?.[0]; if (f) onUpload(f); e.target.value = ''; }}
+      />
+      <input
+        ref={galleryInputRef} type="file" accept="image/*" className="hidden"
+        onChange={e => { const f = e.target.files?.[0]; if (f) onUpload(f); e.target.value = ''; }}
+      />
+
       {/* Action buttons */}
       {!streaming && (
         <div className="flex flex-wrap gap-2">
-          {!recto || (recto && !verso) ? (
+          {(!recto || (recto && !verso)) && (
             <>
               <Button onClick={startCamera} className="gap-1 flex-1 sm:flex-none">
-                <Camera className="h-4 w-4" /> {recto ? 'Scanner verso' : 'Scanner recto'}
+                <Camera className="h-4 w-4" /> {recto ? 'Caméra (verso)' : 'Caméra (recto)'}
               </Button>
-              <label className="cursor-pointer">
-                <Button asChild variant="outline" className="gap-1">
-                  <span><Upload className="h-4 w-4" /> Uploader</span>
-                </Button>
-                <input type="file" accept="image/*" capture="environment" className="hidden"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) onUpload(f); }} />
-              </label>
+              <Button type="button" variant="outline" onClick={() => galleryInputRef.current?.click()} className="gap-1 flex-1 sm:flex-none">
+                <Upload className="h-4 w-4" /> Galerie / Fichier
+              </Button>
             </>
-          ) : null}
+          )}
 
           {recto && (
             <>
