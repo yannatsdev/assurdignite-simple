@@ -341,6 +341,12 @@ export default function AdhesionPage() {
   const proceedAfterBio = async () => {
     if (!user || !simResult) return;
 
+    // Capture signature as data URL before any save
+    let signatureDataUrl: string | null = null;
+    if (canvasRef.current && hasSignature) {
+      try { signatureDataUrl = canvasRef.current.toDataURL('image/png'); } catch {}
+    }
+
     const newPolice = `POL-AD-${Date.now().toString(36).toUpperCase()}`;
     setPoliceNumber(newPolice);
     const { data, error } = await supabase.from('contracts').insert({
@@ -355,6 +361,8 @@ export default function AdhesionPage() {
       nb_enfants: enfants.length, nb_ascendants: ascendants.length,
       capital_total: simResult.capitaux.principal,
       kyc_documents: kycFiles,
+      signature_data_url: signatureDataUrl,
+      status: paymentDone ? 'active' : 'pending_payment',
     } as any).select('id').single();
 
     if (error) { toast({ title: 'Erreur', description: error.message, variant: 'destructive' }); return; }
@@ -369,12 +377,23 @@ export default function AdhesionPage() {
     for (const a of ascendants) {
       await supabase.from('assures_complementaires').insert({ contract_id: data.id, nom: a.nom, dob: a.dob || null, lien_parente: a.lien, prestation_nature: a.prestation, type_assure: 'ascendant' });
     }
-    const newPayRef = `PAY-${Date.now().toString(36).toUpperCase()}`;
-    setPaymentRef(newPayRef);
-    await supabase.from('paiements').insert({
-      user_id: user.id, contract_id: data.id, montant: simResult.primeAnnuelle, methode: paymentMethod,
-      status: 'paid', reference: newPayRef, biometric_confirmed_at: new Date().toISOString(),
-    } as any);
+
+    // Attach the payment (declared during step 11) to this new contract instead of creating a duplicate
+    if (paymentNumber) {
+      setPaymentRef(paymentNumber);
+      await supabase
+        .from('paiements')
+        .update({ contract_id: data.id })
+        .eq('user_id', user.id)
+        .eq('reference', paymentNumber);
+    } else {
+      const newPayRef = `PAY-${Date.now().toString(36).toUpperCase()}`;
+      setPaymentRef(newPayRef);
+      await supabase.from('paiements').insert({
+        user_id: user.id, contract_id: data.id, montant: simResult.primeAnnuelle, methode: paymentMethod,
+        status: 'paid', reference: newPayRef, biometric_confirmed_at: new Date().toISOString(),
+      } as any);
+    }
 
     setSigned(true);
     toast({ title: 'Contrat signé !', description: `Votre contrat ${newPolice} a été créé avec succès.` });
