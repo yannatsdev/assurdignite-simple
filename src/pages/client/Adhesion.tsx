@@ -148,18 +148,14 @@ function CameraSelfie({ onCapture, existingFile, onRemove, uploading }: {
       ) : (
         <>
           <Button size="sm" variant="outline" onClick={startCamera} className="gap-1"><Camera className="w-4 h-4" /> Ouvrir la caméra</Button>
-          {cameraError && (
-            <>
-              <p className="text-xs text-destructive">Caméra non disponible</p>
-              <label className="cursor-pointer text-xs text-primary underline">
-                Uploader une photo à la place
-                <input type="file" accept="image/*" capture="user" className="hidden" onChange={e => {
-                  const f = e.target.files?.[0];
-                  if (f) onCapture(f);
-                }} />
-              </label>
-            </>
-          )}
+          <label className="cursor-pointer text-xs text-primary underline block mt-2">
+            {cameraError ? 'Caméra non disponible — uploader une photo' : 'Ou uploader une photo depuis la galerie'}
+            <input type="file" accept="image/*" className="hidden" onChange={e => {
+              const f = e.target.files?.[0];
+              if (f) onCapture(f);
+              e.target.value = '';
+            }} />
+          </label>
         </>
       )}
     </div>
