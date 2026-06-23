@@ -31,9 +31,33 @@ const fileToBase64 = (file: File | Blob): Promise<string> =>
     r.readAsDataURL(file);
   });
 
+// Tolerant field-name mapping for the AI response
+function normalizeExtracted(raw: any): OcrExtractedData {
+  if (!raw || typeof raw !== 'object') return {};
+  const pick = (...keys: string[]) => {
+    for (const k of keys) {
+      const v = raw[k];
+      if (typeof v === 'string' && v.trim()) return v.trim();
+    }
+    return undefined;
+  };
+  return {
+    first_name: pick('first_name', 'firstName', 'prenom', 'prénom', 'given_name', 'givenName'),
+    last_name: pick('last_name', 'lastName', 'nom', 'surname', 'family_name', 'familyName'),
+    date_of_birth: pick('date_of_birth', 'dateOfBirth', 'dob', 'date_naissance', 'birth_date', 'birthdate'),
+    document_number: pick('document_number', 'documentNumber', 'numero_cni', 'cni', 'numero', 'id_number', 'idNumber', 'passport_number'),
+    document_type: (pick('document_type', 'documentType', 'type_document') as any),
+    address: pick('address', 'adresse', 'lieu_residence', 'residence'),
+    nationality: pick('nationality', 'nationalite', 'nationalité'),
+    gender: pick('gender', 'sexe', 'sex'),
+  };
+}
+
 export function IdCardScanner({ onExtracted, className }: Props) {
   const { toast } = useToast();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [streaming, setStreaming] = useState(false);
   const [recto, setRecto] = useState<string | null>(null);
@@ -46,18 +70,30 @@ export function IdCardScanner({ onExtracted, className }: Props) {
 
   const startCamera = async () => {
     setError(null);
+    // Detect feature availability synchronously so we can fall back without breaking the gesture chain
+    if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+      // Mobile in-app browsers / iOS PWA: open the native camera input instead
+      cameraInputRef.current?.click();
+      return;
+    }
     try {
       const s = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
       });
-      if (videoRef.current) {
-        videoRef.current.srcObject = s;
-        await videoRef.current.play();
-      }
       setStream(s);
       setStreaming(true);
+      // Attach stream after render so the <video> element exists
+      setTimeout(async () => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = s;
+          try { await videoRef.current.play(); } catch {}
+        }
+      }, 50);
     } catch (e: any) {
-      setError("Caméra indisponible. Utilisez l'option d'upload.");
+      setError("Caméra indisponible. Autorisez l'accès dans votre navigateur, ou utilisez l'option « Galerie ».");
+      // Best-effort fallback: open native camera input
+      cameraInputRef.current?.click();
     }
   };
 
@@ -70,8 +106,8 @@ export function IdCardScanner({ onExtracted, className }: Props) {
   const capture = () => {
     if (!videoRef.current) return;
     const c = document.createElement('canvas');
-    c.width = videoRef.current.videoWidth;
-    c.height = videoRef.current.videoHeight;
+    c.width = videoRef.current.videoWidth || 1280;
+    c.height = videoRef.current.videoHeight || 720;
     c.getContext('2d')?.drawImage(videoRef.current, 0, 0);
     const data = c.toDataURL('image/jpeg', 0.9);
     if (side === 'recto') { setRecto(data); setSide('verso'); }
@@ -99,8 +135,8 @@ export function IdCardScanner({ onExtracted, className }: Props) {
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
-      const extracted = data?.data as OcrExtractedData;
-      if (!extracted) throw new Error('Aucune donnée extraite');
+      const extracted = normalizeExtracted(data?.data ?? data);
+      if (!extracted || Object.values(extracted).every(v => !v)) throw new Error('Aucune donnée extraite — essayez une photo plus nette.');
       onExtracted(extracted);
       toast({
         title: '✓ Pièce scannée avec succès',
