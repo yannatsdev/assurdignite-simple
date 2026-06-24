@@ -17,7 +17,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
-import { DiditVerification } from '@/components/kyc/DiditVerification';
+import { BasicKyc } from '@/components/kyc/BasicKyc';
+import { useLocation } from 'react-router-dom';
 import { IdCardScanner } from '@/components/kyc/IdCardScanner';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { PaymentMethodSelector } from '@/components/payment/PaymentMethodSelector';
@@ -165,7 +166,9 @@ function CameraSelfie({ onCapture, existingFile, onRemove, uploading }: {
 export default function AdhesionPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [step, setStep] = useState(0);
+  const location = useLocation();
+  const incomingSim = (location.state as { simResult?: SimulationResult } | null)?.simResult ?? null;
+  const [step, setStep] = useState(incomingSim ? 1 : 0);
   const cgRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -173,7 +176,7 @@ export default function AdhesionPage() {
 
   // Step 0: Simulation
   const [simPrincipalDob, setSimPrincipalDob] = useState('');
-  const [simResult, setSimResult] = useState<SimulationResult | null>(null);
+  const [simResult, setSimResult] = useState<SimulationResult | null>(incomingSim);
   const [isGroupSubscription, setIsGroupSubscription] = useState(false);
 
   // Step 1: Formule
@@ -746,11 +749,22 @@ export default function AdhesionPage() {
                   </div>
 
                   <div className="border-t pt-4 mt-4">
-                    <h4 className="font-semibold font-display mb-3 flex items-center gap-2"><Shield className="w-4 h-4" /> Vérification d'identité</h4>
-                    <DiditVerification
-                      label="Démarrer la vérification KYC"
-                      onApproved={() => setKycFiles(prev => ({ ...prev, cni: 'didit-verified', photo: 'didit-verified' }))}
-                      onExtractedData={(d) => {
+                    <h4 className="font-semibold font-display mb-3 flex items-center gap-2"><Shield className="w-4 h-4" /> Vérification d'identité — KYC simple</h4>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Importez ou photographiez vos pièces : la pièce d'identité sera analysée automatiquement pour pré-remplir vos informations ci-dessus.
+                    </p>
+                    <BasicKyc
+                      scope="principal"
+                      onUploaded={(f) => {
+                        if (f.doc_type === 'cni_recto') {
+                          setKycFiles(prev => ({ ...prev, cni: f.storage_path }));
+                        } else if (f.doc_type === 'selfie') {
+                          setKycFiles(prev => ({ ...prev, photo: f.storage_path }));
+                        } else if (f.doc_type === 'domicile') {
+                          setKycFiles(prev => ({ ...prev, domicile: f.storage_path }));
+                        }
+                      }}
+                      onOcrExtracted={(d) => {
                         setKyc(prev => ({
                           ...prev,
                           nom: prev.nom || d.last_name || '',
@@ -760,17 +774,13 @@ export default function AdhesionPage() {
                           adresse: prev.adresse || d.address || '',
                         }));
                         setKycAutoFilled(true);
-                        toast({ title: 'Informations récupérées', description: 'Vos données ont été pré-remplies depuis votre pièce d\'identité.' });
                       }}
                     />
-                    <p className="text-xs text-muted-foreground mt-2">
-                      La vérification d'identité est traitée de manière sécurisée par notre partenaire Nirva.
-                    </p>
                   </div>
                 </div>
               )}
 
-              {/* Step 3: Conjoint — KYC via Didit */}
+              {/* Step 3: Conjoint — KYC basic */}
               {step === 3 && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -784,10 +794,16 @@ export default function AdhesionPage() {
                         <div><Label>Prénom</Label><Input value={conjoint.prenom} onChange={e => setConjoint({ ...conjoint, prenom: e.target.value })} /></div>
                         <div><Label>Date de naissance</Label><DateInput value={conjoint.dob} onChange={e => setConjoint({ ...conjoint, dob: e })} /></div>
                       </div>
-                      <DiditVerification
-                        vendorDataSuffix="conjoint"
-                        label="Vérifier l'identité du conjoint"
-                        onApproved={() => setKycFiles(prev => ({ ...prev, cniConjoint: 'didit-verified', photoConjoint: 'didit-verified' }))}
+                      <BasicKyc
+                        scope="conjoint"
+                        compact
+                        onUploaded={(f) => {
+                          if (f.doc_type === 'cni_recto') {
+                            setKycFiles(prev => ({ ...prev, cniConjoint: f.storage_path }));
+                          } else if (f.doc_type === 'selfie') {
+                            setKycFiles(prev => ({ ...prev, photoConjoint: f.storage_path }));
+                          }
+                        }}
                       />
                     </div>
                   )}

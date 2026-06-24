@@ -5,7 +5,7 @@ import { AvantagesSection } from '@/components/landing/AvantagesSection';
 import { SimulateurSection } from '@/components/landing/SimulateurSection';
 import { PremiumShowcaseSection } from '@/components/landing/PremiumShowcaseSection';
 import { FAQSection } from '@/components/landing/FAQSection';
-import { ConditionsSection } from '@/components/landing/ConditionsSection';
+
 import { GarantiesSection } from '@/components/landing/GarantiesSection';
 import { CiblesSection } from '@/components/landing/CiblesSection';
 import { BrandShowcaseMarquee } from '@/components/landing/BrandShowcaseMarquee';
@@ -178,7 +178,6 @@ const Index = () => {
       </section>
 
       <FAQSection />
-      <ConditionsSection />
       <ContactSection />
 
       {/* Final CTA — Parlons de votre protection */}
