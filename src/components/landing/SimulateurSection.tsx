@@ -264,7 +264,7 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
                             <div className="flex justify-between text-xs text-muted-foreground pt-1"><span>Engagement global Assureur</span><span className="font-mono">{formatCFA(result.engagementGlobal)}</span></div>
                             <div className="flex justify-between text-xs text-muted-foreground"><span>Durée du contrat</span><span className="font-mono">{result.duree} an(s)</span></div>
                           </div>
-                          <p className="text-[11px] text-muted-foreground italic pt-2">Modèle CIMA H · taux 3,5% · fc=0,1% · fa=15% · fi=3% · accessoire annuel 2 500 FCFA (Excel Module_TD).</p>
+                          <p className="text-[11px] text-muted-foreground italic pt-2">Modèle CIMA H · taux 3,5% · fc=0,15% du capital · fa=18% · accessoire annuel 2 500 FCFA (Note Technique 26/05/2026).</p>
                         </CardContent>
                       </Card>
                     </TabsContent>
@@ -272,7 +272,9 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
                 </Tabs>
 
                 <Button className="w-full bg-secondary hover:bg-secondary/90 text-lg gap-2" size="lg" asChild>
-                  <a href="/login"><TrendingUp className="w-5 h-5" /> Souscrire maintenant</a>
+                  <Link to={user ? '/client/adhesion' : '/login'} state={{ simResult: result }}>
+                    <TrendingUp className="w-5 h-5" /> Souscrire maintenant
+                  </Link>
                 </Button>
               </motion.div>
             ) : (
