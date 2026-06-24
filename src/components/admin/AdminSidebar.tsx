@@ -1,6 +1,6 @@
 import { NavLink } from '@/components/NavLink';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, Settings, FileText, CreditCard, AlertTriangle, ShieldAlert, BarChart3, Users, MessageSquare, Wrench } from 'lucide-react';
+import { LayoutDashboard, Settings, FileText, CreditCard, AlertTriangle, ShieldAlert, BarChart3, Users, MessageSquare, Wrench, ShieldCheck } from 'lucide-react';
 import logoSonam from '@/assets/logo-sonamvie.png';
 import logoAssurDignite from '@/assets/logo-assurdignite.png';
 
@@ -8,6 +8,7 @@ const menuItems = [
   { title: 'Tableau de bord', url: '/admin', icon: LayoutDashboard },
   { title: 'Paramétrage Produit', url: '/admin/parametrage', icon: Settings },
   { title: 'Gestion Contrats', url: '/admin/contrats', icon: FileText },
+  { title: 'KYC & Documents', url: '/admin/kyc', icon: ShieldCheck },
   { title: 'Encaissements', url: '/admin/finances', icon: CreditCard },
   { title: 'Gestion Sinistres', url: '/admin/sinistres', icon: AlertTriangle },
   { title: 'Anti-fraude', url: '/admin/fraude', icon: ShieldAlert },
