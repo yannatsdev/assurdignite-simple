@@ -225,6 +225,62 @@ export type Database = {
         }
         Relationships: []
       }
+      kyc_documents: {
+        Row: {
+          contract_id: string | null
+          created_at: string
+          doc_type: string
+          id: string
+          mime_type: string | null
+          ocr_payload: Json | null
+          reject_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          storage_path: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contract_id?: string | null
+          created_at?: string
+          doc_type: string
+          id?: string
+          mime_type?: string | null
+          ocr_payload?: Json | null
+          reject_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          storage_path: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contract_id?: string | null
+          created_at?: string
+          doc_type?: string
+          id?: string
+          mime_type?: string | null
+          ocr_payload?: Json | null
+          reject_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          storage_path?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kyc_documents_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           contract_id: string | null
