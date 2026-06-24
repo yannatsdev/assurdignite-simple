@@ -756,7 +756,7 @@ export default function AdhesionPage() {
                     <BasicKyc
                       scope="principal"
                       onUploaded={(f) => {
-                        if (f.doc_type === 'cni_recto' || f.doc_type === 'passport') {
+                        if (f.doc_type === 'cni_recto') {
                           setKycFiles(prev => ({ ...prev, cni: f.storage_path }));
                         } else if (f.doc_type === 'selfie') {
                           setKycFiles(prev => ({ ...prev, photo: f.storage_path }));
