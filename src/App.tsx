@@ -34,6 +34,7 @@ import AdminReporting from "./pages/admin/Reporting";
 import AdminUtilisateurs from "./pages/admin/Utilisateurs";
 import AdminCommunication from "./pages/admin/Communication";
 import AdminOutils from "./pages/admin/Outils";
+import AdminKycDocuments from "./pages/admin/KycDocuments";
 
 const queryClient = new QueryClient();
 
@@ -99,6 +100,7 @@ const App = () => (
               <Route path="utilisateurs" element={<AdminUtilisateurs />} />
               <Route path="communication" element={<AdminCommunication />} />
               <Route path="outils" element={<AdminOutils />} />
+              <Route path="kyc" element={<AdminKycDocuments />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
