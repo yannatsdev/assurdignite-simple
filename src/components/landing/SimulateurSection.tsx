@@ -29,7 +29,7 @@ interface SimulateurSectionProps {
 }
 
 export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionProps = {}) {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const canSeeBreakdown = showActuarialBreakdown ?? role === 'admin';
   const [option, setOption] = useState<OptionKey>('D');
   const [quoteDate, setQuoteDate] = useState(new Date().toISOString().slice(0, 10));
