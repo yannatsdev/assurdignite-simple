@@ -291,7 +291,38 @@ export function IdCardScanner({ onExtracted, className }: Props) {
         )}
       </AnimatePresence>
 
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {/* Progress / phase indicator */}
+      <AnimatePresence>
+        {(scanning || phase === 'done' || phase === 'error') && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className={cn(
+              'rounded-xl border p-3 space-y-2',
+              phase === 'error' ? 'border-destructive/40 bg-destructive/5' :
+              phase === 'done'  ? 'border-emerald-500/40 bg-emerald-500/5' :
+                                  'border-primary/30 bg-primary/5',
+            )}
+          >
+            <div className="flex items-center gap-2 text-xs font-semibold">
+              {phase === 'done' ? <Check className="h-3.5 w-3.5 text-emerald-600" />
+                : phase === 'error' ? <X className="h-3.5 w-3.5 text-destructive" />
+                : <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
+              <span className={phase === 'error' ? 'text-destructive' : phase === 'done' ? 'text-emerald-700' : 'text-primary'}>
+                {PHASE_LABEL[phase]}
+              </span>
+              <span className="ml-auto tabular-nums text-muted-foreground">{PHASE_PROGRESS[phase]}%</span>
+            </div>
+            <Progress value={PHASE_PROGRESS[phase]} className="h-1.5" />
+            {phase === 'retrying' && (
+              <p className="text-[11px] text-muted-foreground">Une seconde tentative est en cours en haute qualité…</p>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {error && !scanning && <p className="text-xs text-destructive">{error}</p>}
 
       {/* Hidden inputs — camera (mobile native) and gallery (file picker) */}
       <input
