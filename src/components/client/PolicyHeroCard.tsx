@@ -113,8 +113,10 @@ export function PolicyHeroCard({ contract }: PolicyHeroCardProps) {
             { label: 'Prime annuelle', value: formatCFA(contract.prime_annuelle) },
             {
               label: 'Expiration',
-              value: contract.date_expiration,
-              icon: <Calendar className="w-3 h-3" />,
+              value: contract.date_expiration
+                ? new Date(contract.date_expiration).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                : '—',
+              icon: <Calendar className="w-3 h-3 shrink-0" />,
             },
           ].map((s, i) => (
             <motion.div
@@ -122,14 +124,14 @@ export function PolicyHeroCard({ contract }: PolicyHeroCardProps) {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 + i * 0.08 }}
-              className="rounded-xl bg-white/10 backdrop-blur-md ring-1 ring-white/15 px-3 py-2.5"
+              className="rounded-xl bg-white/10 backdrop-blur-md ring-1 ring-white/15 px-3 py-2.5 min-w-0"
             >
               <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-white/70">
                 {s.label}
               </p>
-              <p className="text-xs sm:text-sm font-bold mt-1 flex items-center gap-1 truncate">
+              <p className="text-[11px] sm:text-sm font-bold mt-1 flex items-center gap-1 whitespace-nowrap">
                 {s.icon}
-                {s.value}
+                <span className="truncate">{s.value}</span>
               </p>
             </motion.div>
           ))}

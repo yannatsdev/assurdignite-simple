@@ -191,51 +191,34 @@ export function newPdf(): jsPDF {
 }
 
 /**
- * Draws a circular SONAM VIE official stamp at (cx, cy) with given radius (mm).
- * Vectorized — no image asset required. Slightly tilted for an authentic look.
+ * Renders a flat text-only stamp (no circle): a large bold label centered at (cx, cy),
+ * optionally with a subtle violet underline and a date below.
  */
 export function pdfSonamStamp(
   doc: jsPDF,
   cx: number,
   cy: number,
-  radius = 18,
+  _radius = 18,
   label = 'PAYÉ',
   dateText?: string,
 ) {
-  // Outer ring (thicker, red-violet — looks like an official ink stamp)
-  doc.setDrawColor(...VIOLET);
-  doc.setLineWidth(1.4);
-  doc.circle(cx, cy, radius, 'S');
-  doc.setLineWidth(0.4);
-  doc.circle(cx, cy, radius - 2.4, 'S');
-
-  // Soft violet wash inside so the stamp is clearly visible even on white
-  doc.setFillColor(245, 235, 252);
-  doc.circle(cx, cy, radius - 3, 'F');
-  // Re-stroke the inner ring on top of the fill
-  doc.setDrawColor(...VIOLET);
-  doc.setLineWidth(0.4);
-  doc.circle(cx, cy, radius - 2.4, 'S');
-
-  // Top label (straight, centered, bold)
   doc.setTextColor(...VIOLET);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.8);
-  doc.text('SONAM VIE S.A.', cx, cy - radius + 6, { align: 'center' });
+  const isLong = label.length > 8;
+  const size = isLong ? 18 : 24;
+  doc.setFontSize(size);
+  doc.text(label, cx, cy, { align: 'center' });
 
-  // Bottom label
-  doc.setFontSize(6.8);
-  doc.text('ASSURDIGNITÉ', cx, cy + radius - 3.5, { align: 'center' });
+  const w = doc.getTextWidth(label);
+  doc.setDrawColor(...VIOLET);
+  doc.setLineWidth(0.6);
+  doc.line(cx - w / 2 - 2, cy + 2, cx + w / 2 + 2, cy + 2);
 
-  // Center: label (bigger) + date
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(label.length > 7 ? 9.5 : 13);
-  doc.setTextColor(...VIOLET);
-  doc.text(label, cx, cy + (dateText ? -0.5 : 2), { align: 'center' });
   if (dateText) {
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6.8);
-    doc.text(dateText, cx, cy + 4.5, { align: 'center' });
+    doc.setFontSize(8.5);
+    doc.setTextColor(...MUTED);
+    doc.text(dateText, cx, cy + 8, { align: 'center' });
   }
   doc.setTextColor(...TEXT);
 }

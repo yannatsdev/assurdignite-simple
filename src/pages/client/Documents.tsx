@@ -165,13 +165,14 @@ export default function DocumentsPage() {
       );
     }
 
-    // SONAM VIE official circular stamp
-    pdfSonamStamp(doc, 165, y + 18, 18, 'PAYÉ', formatDateFR(paiement.date_paiement));
+    // Signature & cachet section
+    y = pdfSection(doc, 'Signature & cachet', y + 4);
+    doc.setFontSize(9); doc.setTextColor(110);
+    doc.text('Fait à Abidjan, le ' + formatDateFR(paiement.date_paiement), 18, y); y += 12;
+    pdfSignatureBlock(doc, 18, y, contract.signature_data_url || null, profile?.full_name || contract.principal_name || '—', 60, 22);
+    // Flat "PAYÉ" mention on the right
+    pdfSonamStamp(doc, 165, y + 12, 0, 'PAYÉ', formatDateFR(paiement.date_paiement));
 
-    doc.setTextColor(33, 24, 48);
-    doc.setFontSize(8);
-    doc.text('Ce reçu est généré automatiquement par AssurDignité', 18, y + 18);
-    doc.text('et fait foi de paiement auprès de SONAM VIE S.A.', 18, y + 23);
 
     pdfFooter(doc);
     doc.save(`Recu_AssurDignite_${paiement.reference || contract.police_number}.pdf`);
