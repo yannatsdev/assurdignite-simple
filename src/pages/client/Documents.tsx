@@ -7,9 +7,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { formatCFA } from '@/lib/actuarial-engine';
 import {
   newPdf, pdfHeader, pdfTitle, pdfSection, pdfKeyValueGrid, pdfTable, pdfFooter,
-  pdfSonamStamp, pdfSignatureBlock,
+  pdfDocumentSignatures,
   formatDateFR, FORMULE_NAMES, SONAM_BRAND,
 } from '@/lib/pdf-shared';
+import { trackSync } from '@/lib/telemetry';
 
 const FORMULE_TAGLINES: Record<string, string> = {
   A: "L'essentiel pour une cérémonie digne",
@@ -106,20 +107,13 @@ export default function DocumentsPage() {
       );
     }
 
-    if (y > 225) { doc.addPage(); pdfHeader(doc); y = 52; }
+    if (y > 215) { doc.addPage(); pdfHeader(doc); y = 52; }
     y = pdfSection(doc, '5. Signatures', y);
-    doc.setFontSize(9); doc.setTextColor(110);
-    doc.text("Fait à Abidjan, le " + new Date().toLocaleDateString('fr-FR'), 18, y); y += 10;
-    doc.setFont('helvetica', 'bold'); doc.setTextColor(74, 14, 120);
-    doc.text("Le Souscripteur", 30, y);
-    doc.text("La Direction Générale", 130, y);
-    // Souscripteur signature (captured at adhesion) or fallback line
-    pdfSignatureBlock(doc, 30, y + 3, contract.signature_data_url || null, profile?.full_name || contract.principal_name || '—', 55, 18);
-    // SONAM VIE official circular stamp on the right
-    pdfSonamStamp(doc, 158, y + 14, 17, 'SONAM VIE', new Date().toLocaleDateString('fr-FR'));
-    doc.setFont('helvetica', 'normal'); doc.setTextColor(33, 24, 48);
-    doc.setFontSize(8);
-    doc.text(SONAM_BRAND.name, 130, y + 28);
+    pdfDocumentSignatures(doc, y, {
+      subscriberSig: contract.signature_data_url,
+      subscriberName: profile?.full_name || contract.principal_name,
+      stampLabel: 'SONAM VIE',
+    });
 
     pdfFooter(doc);
     doc.save(`Police_AssurDignite_${contract.police_number}.pdf`);
