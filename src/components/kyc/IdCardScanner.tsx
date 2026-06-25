@@ -123,26 +123,28 @@ export function IdCardScanner({ onExtracted, className }: Props) {
     setStreaming(false);
   };
 
-  const capture = () => {
+  const capture = async () => {
     if (!videoRef.current) return;
     const c = document.createElement('canvas');
     c.width = videoRef.current.videoWidth || 1280;
     c.height = videoRef.current.videoHeight || 720;
     c.getContext('2d')?.drawImage(videoRef.current, 0, 0);
-    const data = c.toDataURL('image/jpeg', 0.9);
+    const raw = c.toDataURL('image/jpeg', 0.85);
+    const data = await compressDataUrl(raw);
     if (side === 'recto') { setRecto(data); setSide('verso'); }
     else { setVerso(data); }
     stopCamera();
   };
 
   const onUpload = async (file: File) => {
-    if (file.size > 8 * 1024 * 1024) {
-      toast({ title: 'Image trop volumineuse', description: 'Max 8 Mo', variant: 'destructive' });
+    if (file.size > 12 * 1024 * 1024) {
+      toast({ title: 'Image trop volumineuse', description: 'Max 12 Mo', variant: 'destructive' });
       return;
     }
     const b64 = await fileToBase64(file);
-    if (side === 'recto') { setRecto(b64); setSide('verso'); }
-    else { setVerso(b64); }
+    const compressed = await compressDataUrl(b64);
+    if (side === 'recto') { setRecto(compressed); setSide('verso'); }
+    else { setVerso(compressed); }
   };
 
   const runOcr = async () => {
@@ -150,8 +152,13 @@ export function IdCardScanner({ onExtracted, className }: Props) {
     setScanning(true);
     setError(null);
     try {
+      // Ensure payload size is minimal
+      const [r2, v2] = await Promise.all([
+        compressDataUrl(recto, 1024, 0.7),
+        verso ? compressDataUrl(verso, 1024, 0.7) : Promise.resolve<string | null>(null),
+      ]);
       const { data, error } = await supabase.functions.invoke('kyc-ocr-extract', {
-        body: { image: recto, image2: verso || undefined },
+        body: { image: r2, image2: v2 || undefined },
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
