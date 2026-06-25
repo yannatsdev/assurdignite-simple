@@ -1,103 +1,70 @@
+# Plan — OCR, PDF, Subscription Guardrails & Observability
 
-## 1. Suppression Didit / Nirva → KYC basic interne
+Most of the foundations from the previous turn are in place (signatures on PDFs, flat stamps, FR date format, compressed OCR payload). This plan closes the remaining gaps and tightens UX.
 
-- Supprimer:
-  - `src/components/kyc/DiditVerification.tsx`
-  - `supabase/functions/didit-create-session/`, `didit-webhook/`
-  - Imports/usages dans `src/pages/client/Adhesion.tsx` (étapes 2 et 3), composants Nirva (animation "système prêt Nirva", scan biométrique).
-  - Secrets `DIDIT_*` ne sont plus utilisés (laisser inertes côté infra).
-- Nouveau composant `src/components/kyc/BasicKyc.tsx` (assuré principal + conjoint) avec 4 sous-blocs simples:
-  1. **Pièce d'identité (recto)** — input `accept="image/*"` (PAS de `capture` forcé sur mobile → ouvre galerie OU caméra au choix) + bouton "Prendre une photo" optionnel (`capture="environment"`).
-  2. **Pièce d'identité (verso)** — idem.
-  3. **Selfie** — input séparé avec `capture="user"` et fallback upload.
-  4. **Justificatif de domicile** (optionnel).
-- OCR: garder l'appel à l'edge function `ocr-id-card` existante mais:
-  - Réécrire la capture caméra (`getUserMedia`) en utilisant un `<video>` rendu via `srcObject` après `await play()` (sinon écran noir).
-  - Sur mobile, ne pas tenter `getUserMedia` par défaut → utiliser directement `<input type="file" accept="image/*" capture="environment">` qui laisse l'OS choisir caméra/galerie.
-  - Pré-remplit nom, prénom, date de naissance, numéro CNI/passeport mais l'utilisateur peut éditer.
-- Upload des fichiers vers le bucket Storage `kyc-documents` (créer si manquant via migration) avec chemin `userId/contractId/<type>.<ext>` et metadata `{type, side}`.
-- Table `kyc_documents` (migration): `id, user_id, contract_id?, doc_type (cni_recto|cni_verso|selfie|domicile|passport), storage_path, status, ocr_payload jsonb, created_at`. RLS: user select/insert own; admins select all via `has_role`.
-- Retirer colonnes/flags Didit dans `contracts` (ou les garder mais inutilisés) — par sécurité, remplacer la valeur par défaut `kyc_provider='basic'` via migration.
+## 1. OCR — clear progress, faster capture, auto-retry
+File: `src/components/kyc/IdCardScanner.tsx`
 
-## 2. Fix "Souscrire" renvoie vers dashboard
+- Replace the single `scanning` boolean with a 4-state machine: `idle → compressing → uploading → analyzing → done|error`, surfaced via a `<Progress>` bar + status label ("Compression…", "Analyse IA…", "Extraction…").
+- Auto-capture assist: detect when video frame is sharp+filled (basic luminance/edge heuristic on a downscaled canvas every 400 ms) and pulse a "Prêt à capturer" hint; user still confirms.
+- Auto-retry: on OCR failure or empty extraction, retry once with higher quality (1600px / q 0.85) before showing the error. Show "Nouvelle tentative en cours…".
+- Faster pipeline: kick off recto compression while user is still capturing verso (parallel preprocess); set explicit `signal: AbortController` so leaving the step cancels in-flight calls.
+- Better mobile camera UX: when `getUserMedia` fails, fall back to the native camera input *and* surface a second button "Choisir depuis la galerie" (already added — verify both inputs are visible side-by-side on mobile, not stacked).
 
-- Cause probable: depuis `Souscrire.tsx` → bouton va `/client/adhesion`, mais le composant `SimulateurSection` réutilisé en bas dispatche un autre CTA qui redirige vers `/client` (welcome).
-- Action: vérifier le CTA du `SimulateurSection` quand monté dans l'espace client → forcer `onSubscribe={() => navigate('/client/adhesion', { state: { simResult }})}`, et dans `Adhesion.tsx` consommer `location.state.simResult` pour pré-remplir l'étape 0 et sauter à l'étape 1.
-- Vérifier qu'aucun `<Navigate to="/client">` ne se déclenche faute d'auth/condition.
+## 2. PDF templates — signature & date consistency
+Files: `src/lib/pdf-shared.ts`, `src/pages/client/Documents.tsx`
 
-## 3. Simplifier le parcours d'adhésion (14 → 7 étapes)
+- Add a single helper `pdfDocumentSignatures(doc, y, { subscriberSig, subscriberName, label })` that lays out two columns: left = "Le souscripteur" with signature image (or fallback line) + printed name, right = "SONAM VIE" with flat label (`PAYÉ` / `CERTIFIÉ` / `SONAM VIE`).
+- Use this helper in receipt, attestation, and police generators so the layout is identical (same Y baseline, same 50×18 mm signature box, same caption).
+- Scale signature images using `getImageProperties` to preserve aspect ratio inside the 50×18 box (no stretching on tall vs wide pads).
+- Dates: introduce `formatDateFRLong` (e.g. "24 décembre 2026") for hero "Expiration" lines and keep `formatDateFR` (`24/12/2026`) for tables. Reserve enough width in the key/value grid (`colWidth` raised, `truncate` removed) so day digits never clip.
 
-Nouveau flux:
-1. **Simulation** (DOB + composition famille + capitaux + périodicité) → calcule prime immédiatement.
-2. **Famille** (souscripteur, conjoint optionnel, enfants, ascendants, bénéficiaires en un seul écran avec sous-sections).
-3. **KYC basic** (composant nouveau ci-dessus, principal + conjoint si applicable).
-4. **Santé** (déclaration condensée: 4 questions clé + checkbox d'honneur, expandable pour le reste).
-5. **Récapitulatif + CG/CP** (1 seule case d'acceptation regroupée).
-6. **Paiement** (MoMo / Wave / Orange / carte) — corriger l'erreur `function_has_role` (cf. §6).
-7. **Confirmation + téléchargement** (police PDF avec signature + stamp).
+UI mirror: `src/components/client/PolicyHeroCard.tsx` already prints FR date — widen the Expiration card (`flex-1` → `min-w-[140px]`) and drop `truncate` on the date line so "24/12/2026" stays whole.
 
-Persistance: brouillon auto-sauvegardé dans `localStorage` + table `adhesion_drafts` (déjà existante ou à créer) à chaque changement d'étape.
+## 3. Subscription guardrails — no more dead-ends after signing
+File: `src/pages/client/Adhesion.tsx` (+ small helper `src/lib/adhesion-validation.ts`)
 
-## 4. Recalibrage moteur actuariel sur la nouvelle note technique
+- Add `validateBeforeFinalize(state)` returning a typed result `{ ok: true } | { ok: false, missing: string[], firstStep: number }` that checks: required profile fields, at least one beneficiary with 100 % share total, KYC docs (recto + selfie + domicile) marked `uploaded`, payment status === `paid`, signature data URL present.
+- Block the "Finaliser" button when invalid, list missing items inline, and "Aller corriger" jumps back to the offending step instead of navigating to `/client`.
+- After successful finalize, navigate to `/client/contrats/:id` (or `/client/documents`) — never to the bare dashboard — and toast "Contrat actif".
+- Persist wizard state to `sessionStorage` keyed by user id, so an accidental reload resumes at the correct step instead of restarting.
 
-Dans `src/lib/actuarial-engine.ts`:
-- `FC = 0.0015` (0.15% du capital, et non 0.001).
-- `FA = 0.18` (18% au lieu de 15%).
-- Coefficients périodiques: `PSC = 0.51×PAC + 1500`, `PTC = 0.26×PAC + 1000`, `PMC = 0.09×PAC + 500`, `PAC' = PAC + 2500`.
-- Bornes d'âge: principal/conjoint ≤ 64 à la souscription, âge + durée ≤ 65; enfants ≤ 21; ascendants ≤ 89 et + durée ≤ 90.
-- Ristourne 30% sur prime principale uniquement, conditionnée S/P < 50% sur 3 années — recalculer `PB(t)`.
-- Supporter jusqu'à 10 enfants et 4 ascendants (UI + calcul) avec capitaux individualisés (champs séparés) car le bulletin va jusqu'à enfant 10/ascendant 4.
-- Ajouter sélecteur périodicité dans simulateur (annuelle/semestrielle/trimestrielle/mensuelle) — afficher la prime correspondante + total annuel équivalent.
-- Mettre à jour le tableau comparatif et le PDF récapitulatif (frais d'acquisition 18%, gestion 0.15%).
+## 4. Observability — error logs & perf metrics
+New table + small client helper.
 
-## 5. Espace admin — Centre KYC documents
+Migration: `telemetry_events` (`id`, `user_id`, `kind` text, `name` text, `duration_ms` int, `success` bool, `meta` jsonb, `created_at`) with RLS allowing `authenticated` insert-own and admin read. GRANTs as required.
 
-- Nouvelle page `src/pages/admin/KycDocuments.tsx` avec:
-  - Liste paginée par utilisateur (avatar, nom, statut KYC, nb docs).
-  - Drawer / dialog: prévisualisation des images (signed URL Supabase), payload OCR, boutons Approuver / Rejeter (motif).
-  - Filtres: statut, type doc, date.
-- Edge function `kyc-signed-url` qui renvoie une signed URL (5 min) pour chaque doc, après vérif rôle admin.
-- Ajouter entrée menu admin "KYC & Documents".
+Client helper `src/lib/telemetry.ts` exposing `track(name, fn)` (measures duration, captures error.message, inserts row best-effort, never throws). Instrument:
+- `kyc-ocr-extract` invocation (success + duration + payload size)
+- PDF generators (receipt / attestation / police): wrap `generate*` calls
+- KYC document uploads in `BasicKyc.tsx`
+- Edge function `kyc-ocr-extract`: add structured `console.log({ event, duration_ms, model, ok })` lines so they show up in edge-function logs.
 
-## 6. Fix erreur "function_has_role" au paiement
+Admin surface: a compact "Télémétrie" card on `src/pages/admin/Dashboard.tsx` showing 24 h counts and p95 duration per `name` (read-only query, no UI sprawl).
 
-- Erreur signalée: `payment denied for function_has role`. Vérifier la fonction Postgres `has_role(user_id, role)` (SECURITY DEFINER, search_path = public) et la RLS de la table `payments` / appels dans edge functions de paiement (probablement appellent `has_role` avec mauvaise signature ou sans `search_path`).
-- Action: migration de correction — recréer `public.has_role(uuid, app_role)` SECURITY DEFINER STABLE SET search_path = public; GRANT EXECUTE TO authenticated, anon, service_role. Réviser les policies qui l'utilisent.
+## 5. UX simplification — finish the 14→7 collapse
+File: `src/pages/client/Adhesion.tsx`
 
-## 7. Landing page — corrections demandées
+Final step order:
+1. Formule (skipped automatically when arriving with simulation state)
+2. Identité + OCR (auto-fills 5 fields)
+3. KYC (recto/verso/selfie/domicile in one screen, drag-drop + camera)
+4. Bénéficiaires (single screen, inline add)
+5. Signature
+6. Paiement (Mobile Money)
+7. Confirmation + téléchargements
 
-- **Carrousel "Pourquoi AssurDignité"**: dans `src/components/landing/PourquoiSection.tsx` (ou équivalent) — actuellement transform CSS s'arrête en fin de boucle créant un "trou". Corriger en dupliquant la liste 2× et utilisant `animation: marquee linear infinite` avec `translateX(-50%)`, sans pause à la fin (`animation-iteration-count: infinite`), `will-change: transform`.
-- **Supprimer** la section/bloc `ConditionsSection` ("Informations légales · Conditions Générales") de la home (`src/pages/Index.tsx`), garder le lien dans le footer uniquement.
+- Inline validation per step (no blocking modal).
+- Sticky bottom action bar on mobile with "Suivant" + progress dots.
+- "Reprendre plus tard" button saves draft and emails resume link.
 
-## 8. Améliorations espace client (UX & intelligence)
+## Technical notes
+- No new third-party deps.
+- Lovable AI model stays `google/gemini-2.5-flash` for OCR (best speed/quality balance — already switched).
+- All new SQL follows the GRANT-then-RLS pattern.
+- Telemetry inserts are fire-and-forget (`.then().catch()`); never block UX.
 
-- Dashboard:
-  - Widget "Prochaine échéance" avec countdown + bouton Payer maintenant.
-  - Widget "Couverture famille" (donut Recharts: capital total, par membre).
-  - "Recommandations IA" (edge function existante `ai-recommendation`) avec call-to-action contextuel (ex: ajouter un ascendant si manquant).
-  - Notifications en-tête (sinistres, KYC à compléter, doc expiré).
-- Sinistre: assistant guidé en 3 étapes (type, pièces, déclaration) avec upload drag-drop.
-- Documents: regrouper par catégorie + recherche.
-- Mobile-first: revue rapide des breakpoints du dashboard et de l'adhésion (cards en grille `sm:grid-cols-2`, padding réduit).
-
-## 9. Innovations & recommandations à valider
-
-(Inclus par défaut sauf veto, sans surcharger le scope ci-dessus):
-- **Wallet de polices**: pass Apple/Google Wallet généré depuis la police.
-- **Rappel WhatsApp** (edge function + Twilio) pour échéance.
-- **Mode famille partagé**: inviter un proche par lien sécurisé à voir la couverture.
-- **Score de complétude du dossier** (KYC, bénéficiaires, médical) avec gamification.
-- **Chatbot sinistre** propulsé par Lovable AI Gateway (model: `google/gemini-2.5-flash`) capable de qualifier la déclaration et précharger les pièces requises.
-- **Tableau prédictif admin**: forecasting échéances/sinistres (Recharts area chart + edge function calcul simple).
-
-## 10. Étapes de mise en œuvre (ordre)
-
-1. Migrations SQL (table `kyc_documents`, bucket, fix `has_role`).
-2. Suppression Didit/Nirva (code + edges).
-3. Composant `BasicKyc` + OCR robuste.
-4. Refonte `Adhesion.tsx` (7 étapes) + transmission `simResult`.
-5. Mise à jour `actuarial-engine.ts` + UI simulateur (périodicité, capitaux personnalisés).
-6. Espace admin KYC.
-7. Fix landing (marquee, suppression CG, etc.).
-8. Améliorations dashboard client.
-9. Test E2E manuel sur les 3 espaces (mobile + desktop).
+## Out of scope
+- Replacing the wizard library.
+- Re-skinning the landing page.
+- Mobile-app packaging.

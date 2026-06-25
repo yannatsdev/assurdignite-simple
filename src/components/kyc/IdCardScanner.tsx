@@ -1,11 +1,27 @@
 import * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { Loader2, Camera, Upload, X, Check, RotateCcw, ScanLine, FileText, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { track } from '@/lib/telemetry';
 import { cn } from '@/lib/utils';
+
+type ScanPhase = 'idle' | 'compressing' | 'analyzing' | 'retrying' | 'done' | 'error';
+
+const PHASE_LABEL: Record<ScanPhase, string> = {
+  idle: '',
+  compressing: 'Préparation de l\'image…',
+  analyzing: 'Analyse IA en cours…',
+  retrying: 'Nouvelle tentative en haute qualité…',
+  done: 'Extraction réussie ✓',
+  error: 'Échec de l\'extraction',
+};
+const PHASE_PROGRESS: Record<ScanPhase, number> = {
+  idle: 0, compressing: 25, analyzing: 65, retrying: 80, done: 100, error: 100,
+};
 
 export type OcrExtractedData = {
   first_name?: string;
@@ -84,6 +100,7 @@ export function IdCardScanner({ onExtracted, className }: Props) {
   const [verso, setVerso] = useState<string | null>(null);
   const [side, setSide] = useState<'recto' | 'verso'>('recto');
   const [scanning, setScanning] = useState(false);
+  const [phase, setPhase] = useState<ScanPhase>('idle');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => () => { stream?.getTracks().forEach(t => t.stop()); }, [stream]);
@@ -151,11 +168,12 @@ export function IdCardScanner({ onExtracted, className }: Props) {
     if (!recto) return;
     setScanning(true);
     setError(null);
-    try {
-      // Ensure payload size is minimal
+    setPhase('compressing');
+
+    const attempt = async (quality: number, maxDim: number) => {
       const [r2, v2] = await Promise.all([
-        compressDataUrl(recto, 1024, 0.7),
-        verso ? compressDataUrl(verso, 1024, 0.7) : Promise.resolve<string | null>(null),
+        compressDataUrl(recto, maxDim, quality),
+        verso ? compressDataUrl(verso, maxDim, quality) : Promise.resolve<string | null>(null),
       ]);
       const { data, error } = await supabase.functions.invoke('kyc-ocr-extract', {
         body: { image: r2, image2: v2 || undefined },
@@ -163,17 +181,40 @@ export function IdCardScanner({ onExtracted, className }: Props) {
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
       const extracted = normalizeExtracted(data?.data ?? data);
-      if (!extracted || Object.values(extracted).every(v => !v)) throw new Error('Aucune donnée extraite — essayez une photo plus nette.');
+      if (!extracted || Object.values(extracted).every((v) => !v)) {
+        throw new Error('Aucune donnée extraite');
+      }
+      return extracted;
+    };
+
+    try {
+      const extracted = await track({ kind: 'ocr', name: 'kyc_ocr_extract' }, async () => {
+        setPhase('analyzing');
+        try {
+          return await attempt(0.7, 1024);
+        } catch (e) {
+          // Auto-retry once at higher fidelity before giving up
+          setPhase('retrying');
+          return await attempt(0.85, 1600);
+        }
+      });
+      setPhase('done');
       onExtracted(extracted);
       toast({
         title: '✓ Pièce scannée avec succès',
         description: 'Vos informations ont été pré-remplies automatiquement.',
       });
     } catch (e: any) {
-      setError(e.message || 'Échec de la lecture');
-      toast({ title: 'Échec OCR', description: e.message || 'Réessayez avec une image plus nette.', variant: 'destructive' });
+      setPhase('error');
+      const msg = e?.message?.includes('Aucune donnée')
+        ? 'Aucune donnée détectée. Essayez une photo plus nette, bien éclairée.'
+        : (e?.message || 'Échec de la lecture');
+      setError(msg);
+      toast({ title: 'Échec OCR', description: msg, variant: 'destructive' });
     } finally {
       setScanning(false);
+      // Reset phase after a short delay so the "done/error" state stays visible
+      setTimeout(() => setPhase((p) => (p === 'done' || p === 'error' ? 'idle' : p)), 2200);
     }
   };
 
@@ -250,7 +291,38 @@ export function IdCardScanner({ onExtracted, className }: Props) {
         )}
       </AnimatePresence>
 
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {/* Progress / phase indicator */}
+      <AnimatePresence>
+        {(scanning || phase === 'done' || phase === 'error') && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className={cn(
+              'rounded-xl border p-3 space-y-2',
+              phase === 'error' ? 'border-destructive/40 bg-destructive/5' :
+              phase === 'done'  ? 'border-emerald-500/40 bg-emerald-500/5' :
+                                  'border-primary/30 bg-primary/5',
+            )}
+          >
+            <div className="flex items-center gap-2 text-xs font-semibold">
+              {phase === 'done' ? <Check className="h-3.5 w-3.5 text-emerald-600" />
+                : phase === 'error' ? <X className="h-3.5 w-3.5 text-destructive" />
+                : <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
+              <span className={phase === 'error' ? 'text-destructive' : phase === 'done' ? 'text-emerald-700' : 'text-primary'}>
+                {PHASE_LABEL[phase]}
+              </span>
+              <span className="ml-auto tabular-nums text-muted-foreground">{PHASE_PROGRESS[phase]}%</span>
+            </div>
+            <Progress value={PHASE_PROGRESS[phase]} className="h-1.5" />
+            {phase === 'retrying' && (
+              <p className="text-[11px] text-muted-foreground">Une seconde tentative est en cours en haute qualité…</p>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {error && !scanning && <p className="text-xs text-destructive">{error}</p>}
 
       {/* Hidden inputs — camera (mobile native) and gallery (file picker) */}
       <input

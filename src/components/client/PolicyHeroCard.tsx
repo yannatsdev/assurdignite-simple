@@ -107,7 +107,7 @@ export function PolicyHeroCard({ contract }: PolicyHeroCardProps) {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3 sm:gap-4 mt-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-6">
           {[
             { label: 'Capital garanti', value: formatCFA(contract.capital_total) },
             { label: 'Prime annuelle', value: formatCFA(contract.prime_annuelle) },
@@ -124,14 +124,14 @@ export function PolicyHeroCard({ contract }: PolicyHeroCardProps) {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 + i * 0.08 }}
-              className="rounded-xl bg-white/10 backdrop-blur-md ring-1 ring-white/15 px-3 py-2.5 min-w-0"
+              className="rounded-xl bg-white/10 backdrop-blur-md ring-1 ring-white/15 px-3 py-2.5"
             >
               <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-white/70">
                 {s.label}
               </p>
-              <p className="text-[11px] sm:text-sm font-bold mt-1 flex items-center gap-1 whitespace-nowrap">
+              <p className="text-xs sm:text-sm font-bold mt-1 flex items-center gap-1.5 tabular-nums">
                 {s.icon}
-                <span className="truncate">{s.value}</span>
+                <span>{s.value}</span>
               </p>
             </motion.div>
           ))}
