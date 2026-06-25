@@ -260,6 +260,43 @@ export function pdfSignatureBlock(
   }
 }
 
+/**
+ * Unified two-column signature/stamp block used by every contractual document
+ * (police, attestation, reçu). Reserves enough vertical room for the signature
+ * AND the stamp label, returning the new Y cursor.
+ */
+export function pdfDocumentSignatures(
+  doc: jsPDF,
+  y: number,
+  args: {
+    subscriberSig?: string | null;
+    subscriberName?: string;
+    stampLabel: string; // e.g. "PAYÉ" | "CERTIFIÉ" | "SONAM VIE"
+    dateText?: string;
+  },
+) {
+  const date = args.dateText || new Date().toLocaleDateString('fr-FR');
+  doc.setFontSize(9);
+  doc.setTextColor(110, 110, 130);
+  doc.text(`Fait à Abidjan, le ${date}`, 18, y);
+  y += 8;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(74, 14, 120);
+  doc.setFontSize(10);
+  doc.text('Le Souscripteur', 25, y);
+  doc.text('SONAM VIE', 145, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(33, 24, 48);
+
+  // Subscriber signature (image or fallback line) — fixed 60x22 box
+  pdfSignatureBlock(doc, 18, y + 3, args.subscriberSig || null, args.subscriberName || '—', 60, 22);
+  // Flat stamp label on the right (no circle)
+  pdfSonamStamp(doc, 165, y + 16, 0, args.stampLabel, date);
+
+  return y + 36;
+}
+
 export const FORMULE_NAMES: Record<string, string> = {
   A: 'Dignité Simple',
   B: 'Serein',
@@ -269,5 +306,13 @@ export const FORMULE_NAMES: Record<string, string> = {
 
 export const formatDateFR = (d: string | undefined | null): string => {
   if (!d) return '—';
-  try { return new Date(d).toLocaleDateString('fr-FR'); } catch { return d; }
+  try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }); }
+  catch { return d; }
+};
+
+export const formatDateFRLong = (d: string | undefined | null): string => {
+  if (!d) return '—';
+  try {
+    return new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch { return d; }
 };
