@@ -334,6 +334,21 @@ export default function AdhesionPage() {
   };
 
   const handleSign = async () => {
+    // Final validation gate — prevents silent redirects after signing.
+    const { validateBeforeFinalize } = await import('@/lib/adhesion-validation');
+    const check = validateBeforeFinalize({
+      kyc, beneficiaires, kycFiles, paymentDone, cgAccepted, cpAccepted,
+      hasSignature, simResult,
+    });
+    if (!check.ok) {
+      toast({
+        title: 'Souscription incomplète',
+        description: check.missing.map((m) => `• ${m.label}`).join('\n'),
+        variant: 'destructive',
+      });
+      if (check.firstStep !== null) setStep(check.firstStep);
+      return;
+    }
     await proceedAfterBio();
   };
 
