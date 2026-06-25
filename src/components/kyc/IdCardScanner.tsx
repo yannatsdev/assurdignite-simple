@@ -1,11 +1,27 @@
 import * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { Loader2, Camera, Upload, X, Check, RotateCcw, ScanLine, FileText, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { track } from '@/lib/telemetry';
 import { cn } from '@/lib/utils';
+
+type ScanPhase = 'idle' | 'compressing' | 'analyzing' | 'retrying' | 'done' | 'error';
+
+const PHASE_LABEL: Record<ScanPhase, string> = {
+  idle: '',
+  compressing: 'Préparation de l\'image…',
+  analyzing: 'Analyse IA en cours…',
+  retrying: 'Nouvelle tentative en haute qualité…',
+  done: 'Extraction réussie ✓',
+  error: 'Échec de l\'extraction',
+};
+const PHASE_PROGRESS: Record<ScanPhase, number> = {
+  idle: 0, compressing: 25, analyzing: 65, retrying: 80, done: 100, error: 100,
+};
 
 export type OcrExtractedData = {
   first_name?: string;
