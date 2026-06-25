@@ -31,6 +31,26 @@ const fileToBase64 = (file: File | Blob): Promise<string> =>
     r.readAsDataURL(file);
   });
 
+/** Downscale a dataURL to max dimension and JPEG quality — speeds up OCR drastically. */
+const compressDataUrl = (dataUrl: string, maxDim = 1280, quality = 0.72): Promise<string> =>
+  new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      if (!ctx) return resolve(dataUrl);
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(c.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+
+
 // Tolerant field-name mapping for the AI response
 function normalizeExtracted(raw: any): OcrExtractedData {
   if (!raw || typeof raw !== 'object') return {};
