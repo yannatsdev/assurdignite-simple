@@ -161,12 +161,12 @@ export default function DocumentsPage() {
 
     // Signature & cachet section
     y = pdfSection(doc, 'Signature & cachet', y + 4);
-    doc.setFontSize(9); doc.setTextColor(110);
-    doc.text('Fait à Abidjan, le ' + formatDateFR(paiement.date_paiement), 18, y); y += 12;
-    pdfSignatureBlock(doc, 18, y, contract.signature_data_url || null, profile?.full_name || contract.principal_name || '—', 60, 22);
-    // Flat "PAYÉ" mention on the right
-    pdfSonamStamp(doc, 165, y + 12, 0, 'PAYÉ', formatDateFR(paiement.date_paiement));
-
+    pdfDocumentSignatures(doc, y, {
+      subscriberSig: contract.signature_data_url,
+      subscriberName: profile?.full_name || contract.principal_name,
+      stampLabel: 'PAYÉ',
+      dateText: formatDateFR(paiement.date_paiement),
+    });
 
     pdfFooter(doc);
     doc.save(`Recu_AssurDignite_${paiement.reference || contract.police_number}.pdf`);
@@ -192,19 +192,11 @@ export default function DocumentsPage() {
     ], y);
 
     y += 8;
-    doc.setFontSize(10);
-    doc.text('Fait à Abidjan, le ' + new Date().toLocaleDateString('fr-FR'), 18, y);
-    y += 18;
-    doc.setFont('helvetica', 'bold'); doc.setTextColor(74, 14, 120);
-    doc.text('La Direction Générale', 130, y);
-    doc.setFont('helvetica', 'normal'); doc.setTextColor(33, 24, 48);
-    doc.setFontSize(8);
-    doc.text(SONAM_BRAND.name, 130, y + 6);
-
-    // Official stamp next to the Direction Générale signature
-    pdfSonamStamp(doc, 165, y + 18, 18, 'CERTIFIÉ', new Date().toLocaleDateString('fr-FR'));
-    // Souscripteur signature (if captured) on the left
-    pdfSignatureBlock(doc, 18, y, contract.signature_data_url || null, profile?.full_name || contract.principal_name || '—', 55, 18);
+    pdfDocumentSignatures(doc, y, {
+      subscriberSig: contract.signature_data_url,
+      subscriberName: profile?.full_name || contract.principal_name,
+      stampLabel: 'CERTIFIÉ',
+    });
 
     pdfFooter(doc);
     doc.save(`Attestation_AssurDignite_${contract.police_number}.pdf`);
