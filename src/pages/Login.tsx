@@ -155,25 +155,14 @@ export default function LoginPage() {
                 </div>
               </div>
             )}
-
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {isSignUp && (
-              <div className="space-y-1.5">
-                <Label className="text-xs">Nom complet</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                  <Input placeholder="Votre nom complet" className="pl-10 h-11" value={fullName} onChange={e => setFullName(e.target.value)} required />
-                </div>
-              </div>
-            )}
             <div className="space-y-1.5">
               <Label className="text-xs">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                <Input type="email" placeholder="votre@email.com" className="pl-10 h-11" value={email} onChange={e => setEmail(e.target.value)} required />
+                <Input ref={emailRef} type="email" placeholder="votre@email.com" className="pl-10 h-11" value={email} onChange={e => setEmail(e.target.value)} required />
               </div>
             </div>
+
             <div className="space-y-1.5">
               <Label className="text-xs">Mot de passe</Label>
               <div className="relative">
