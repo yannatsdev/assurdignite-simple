@@ -99,15 +99,62 @@ export default function AdminTelemetrie() {
 
   const errors = useMemo(() => filtered.filter((r) => !r.success).slice(0, 50), [filtered]);
 
+  /** Per-kind daily series: latency p95 + error rate (%) per kind. */
+  const perKindSeries = useMemo(() => {
+    const kinds = ['ocr', 'pdf', 'kyc'] as const;
+    const dayMap = new Map<string, Record<string, { dur: number[]; err: number; total: number }>>();
+    filtered.forEach((r) => {
+      if (!kinds.includes(r.kind as any)) return;
+      const day = r.created_at.slice(0, 10);
+      if (!dayMap.has(day)) dayMap.set(day, {});
+      const bucket = dayMap.get(day)!;
+      if (!bucket[r.kind]) bucket[r.kind] = { dur: [], err: 0, total: 0 };
+      bucket[r.kind].total += 1;
+      if (!r.success) bucket[r.kind].err += 1;
+      if (r.duration_ms != null) bucket[r.kind].dur.push(r.duration_ms);
+    });
+    return Array.from(dayMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, kinds]) => ({
+        date,
+        ocr_p95: Math.round(p95(kinds.ocr?.dur || [])),
+        pdf_p95: Math.round(p95(kinds.pdf?.dur || [])),
+        kyc_p95: Math.round(p95(kinds.kyc?.dur || [])),
+        ocr_err: kinds.ocr ? +((kinds.ocr.err / kinds.ocr.total) * 100).toFixed(1) : 0,
+        pdf_err: kinds.pdf ? +((kinds.pdf.err / kinds.pdf.total) * 100).toFixed(1) : 0,
+        kyc_err: kinds.kyc ? +((kinds.kyc.err / kinds.kyc.total) * 100).toFixed(1) : 0,
+      }));
+  }, [filtered]);
+
+  const exportCsv = () => {
+    const header = ['created_at', 'kind', 'name', 'duration_ms', 'success', 'user_id', 'error_message'];
+    const escape = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lines = [header.join(',')].concat(
+      filtered.map((r) => [r.created_at, r.kind, r.name, r.duration_ms ?? '', r.success, r.user_id ?? '', r.error_message ?? ''].map(escape).join(',')),
+    );
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `telemetrie_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-display">Télémétrie & qualité</h1>
-          <p className="text-muted-foreground text-sm">OCR, PDF, KYC, paiements — performance et erreurs en temps réel.</p>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold font-display">Télémétrie & qualité</h1>
+            <p className="text-muted-foreground text-sm">OCR, PDF, KYC, paiements — performance et erreurs en temps réel.</p>
+          </div>
+          <Button onClick={exportCsv} variant="outline" size="sm" className="gap-1.5 self-start sm:self-auto">
+            <Download className="h-4 w-4" /> Exporter CSV ({filtered.length})
+          </Button>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Select value={range} onValueChange={(v) => setRange(v as keyof typeof RANGES)}>
+          <Select value={range} onValueChange={(v) => { setRange(v as keyof typeof RANGES); setFromDate(''); setToDate(''); }}>
             <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
             <SelectContent>{Object.keys(RANGES).map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
           </Select>
@@ -115,6 +162,8 @@ export default function AdminTelemetrie() {
             <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
             <SelectContent>{KINDS.map((k) => <SelectItem key={k} value={k}>{k === 'all' ? 'Tous' : k}</SelectItem>)}</SelectContent>
           </Select>
+          <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-40" aria-label="Du" />
+          <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-40" aria-label="Au" />
           <Input placeholder="Filtrer par user_id…" value={userFilter} onChange={(e) => setUserFilter(e.target.value)} className="w-48" />
         </div>
       </div>
@@ -126,8 +175,45 @@ export default function AdminTelemetrie() {
         <KpiCard icon={<AlertTriangle className="h-4 w-4 text-destructive" />} label="Erreurs" value={kpis.errors.toString()} loading={loading} />
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Latence p95 par catégorie (ms)</CardTitle></CardHeader>
+          <CardContent className="h-64">
+            {loading ? <Skeleton className="w-full h-full" /> : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={perKindSeries}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} /><YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip /><Legend />
+                  <Line type="monotone" dataKey="ocr_p95" name="OCR" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="pdf_p95" name="PDF" stroke="hsl(var(--sonam-blue))" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="kyc_p95" name="KYC" stroke="hsl(var(--accent))" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Taux d'erreur par catégorie (%)</CardTitle></CardHeader>
+          <CardContent className="h-64">
+            {loading ? <Skeleton className="w-full h-full" /> : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={perKindSeries}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} /><YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip /><Legend />
+                  <Bar dataKey="ocr_err" name="OCR" fill="hsl(var(--primary))" />
+                  <Bar dataKey="pdf_err" name="PDF" fill="hsl(var(--sonam-blue))" />
+                  <Bar dataKey="kyc_err" name="KYC" fill="hsl(var(--destructive))" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-sm">Latence (p50 / p95) par jour</CardTitle></CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="text-sm">Latence globale (p50 / p95) par jour</CardTitle></CardHeader>
         <CardContent className="h-64">
           {loading ? <Skeleton className="w-full h-full" /> : (
             <ResponsiveContainer width="100%" height="100%">
@@ -142,6 +228,7 @@ export default function AdminTelemetrie() {
           )}
         </CardContent>
       </Card>
+
 
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm">Performance par opération</CardTitle></CardHeader>
