@@ -1313,7 +1313,7 @@ export default function AdhesionPage() {
                         <Button variant="outline" size="sm" onClick={clearCanvas}>Effacer la signature</Button>
                       </div>
 
-                      <Button className="w-full gap-2" onClick={proceedAfterBio} disabled={!hasSignature}>
+                      <Button className="w-full gap-2" onClick={handleSign} disabled={!hasSignature}>
                         <PenTool className="w-4 h-4" /> Signer & finaliser ma souscription
                       </Button>
                       <p className="text-[11px] text-muted-foreground text-center">
