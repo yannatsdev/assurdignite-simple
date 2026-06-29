@@ -140,10 +140,22 @@ export default function LoginPage() {
 
           {bioFailed && (
             <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
-              className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs text-foreground">
-              <p>L'empreinte n'a pas fonctionné. Connectez-vous avec votre email et votre mot de passe ci-dessous.</p>
+              className="rounded-xl border border-amber-500/30 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-foreground">
+              <p>{bioMessage || "L'empreinte n'a pas fonctionné. Connectez-vous avec votre email et votre mot de passe ci-dessous."}</p>
             </motion.div>
           )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignUp && (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Nom complet</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                  <Input placeholder="Votre nom complet" className="pl-10 h-11" value={fullName} onChange={e => setFullName(e.target.value)} required />
+                </div>
+              </div>
+            )}
+
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp && (
