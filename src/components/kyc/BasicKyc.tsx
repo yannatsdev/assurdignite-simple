@@ -319,7 +319,19 @@ function DocCard({
         </div>
       )}
 
+      {error && (
+        <div className="mt-2 rounded-lg bg-destructive/10 text-destructive p-2 text-xs flex items-center justify-between gap-2">
+          <span className="truncate">⚠ {error}</span>
+          {onRetry && (
+            <button type="button" onClick={onRetry} className="inline-flex items-center gap-1 underline font-medium shrink-0">
+              <RotateCw className="h-3 w-3" /> Réessayer
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Hidden inputs — gallery vs camera */}
+
       <input
         ref={galleryRef}
         type="file"
