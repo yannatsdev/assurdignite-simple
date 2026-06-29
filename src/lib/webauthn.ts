@@ -94,7 +94,8 @@ export async function registerPasskey(deviceName?: string): Promise<{ ok: boolea
         deviceName: deviceName || `${navigator.platform} • ${new Date().toLocaleDateString("fr-FR")}`,
       },
     });
-    if (error || (data as any)?.error) return { ok: false, error: error?.message || (data as any)?.error };
+    if (error) return { ok: false, error: error.message || "Service indisponible" };
+    if (data && (data as any).ok === false) return { ok: false, error: (data as any).message };
 
     const { data: { user } } = await supabase.auth.getUser();
     if (user) localStorage.setItem(`passkey_enrolled_${user.id}`, "1");
@@ -106,17 +107,22 @@ export async function registerPasskey(deviceName?: string): Promise<{ ok: boolea
   }
 }
 
-export async function authenticateWithPasskey(email: string): Promise<{ ok: boolean; error?: string; code?: string }> {
+
+export async function authenticateWithPasskey(email: string): Promise<{ ok: boolean; error?: string; code?: string; fallback?: boolean }> {
   try {
-    if (!isWebAuthnSupported()) return { ok: false, error: "Non supporté", code: "UNSUPPORTED" };
+    if (!isWebAuthnSupported()) {
+      return { ok: false, error: "Empreinte non disponible sur cet appareil", code: "UNSUPPORTED", fallback: true };
+    }
 
     const { data: chData, error: chErr } = await supabase.functions.invoke("webauthn-authenticate", {
       body: { action: "challenge", email },
     });
-    if (chErr || !chData || (chData as any).error) {
-      const msg = chErr?.message || (chData as any)?.error || "";
-      const code = /Aucune empreinte/i.test(msg) ? "NO_PASSKEY" : "CHALLENGE_FAILED";
-      return { ok: false, error: msg || "Aucune empreinte enregistrée", code };
+    // Network/transport failure — treat as fallback so the UI never crashes.
+    if (chErr) {
+      return { ok: false, error: chErr.message || "Service indisponible", code: "NETWORK", fallback: true };
+    }
+    if (chData && (chData as any).ok === false) {
+      return { ok: false, error: (chData as any).message, code: (chData as any).code, fallback: true };
     }
 
     const allowCredentials = ((chData as any).allowCredentials || []).map((c: any) => ({
@@ -138,26 +144,27 @@ export async function authenticateWithPasskey(email: string): Promise<{ ok: bool
     } catch (err: any) {
       const name = err?.name || "";
       if (name === "NotAllowedError") {
-        return { ok: false, error: "Authentification annulée ou expirée", code: "NotAllowedError" };
+        return { ok: false, error: "Authentification annulée ou expirée", code: "NotAllowedError", fallback: true };
       }
       if (name === "InvalidStateError") {
         localStorage.removeItem("passkey_device_active");
-        return { ok: false, error: "Cet appareil n'est pas reconnu", code: "InvalidStateError" };
+        return { ok: false, error: "Cet appareil n'est pas reconnu", code: "InvalidStateError", fallback: true };
       }
-      throw err;
+      return { ok: false, error: err?.message || "Erreur biométrique", code: name || "UNKNOWN", fallback: true };
     }
 
-    if (!assertion) return { ok: false, error: "Annulé", code: "CANCELLED" };
+    if (!assertion) return { ok: false, error: "Annulé", code: "CANCELLED", fallback: true };
 
     const credentialId = bufToB64(assertion.rawId);
 
     const { data, error } = await supabase.functions.invoke("webauthn-authenticate", {
       body: { action: "verify", credentialId },
     });
-    if (error || (data as any)?.error) {
-      const msg = error?.message || (data as any)?.error || "";
-      const code = /non reconnue/i.test(msg) ? "UNKNOWN_DEVICE" : "VERIFY_FAILED";
-      return { ok: false, error: msg, code };
+    if (error) {
+      return { ok: false, error: error.message || "Service indisponible", code: "NETWORK", fallback: true };
+    }
+    if (data && (data as any).ok === false) {
+      return { ok: false, error: (data as any).message, code: (data as any).code, fallback: true };
     }
 
     const { token_hash, type } = data as { token_hash: string; type: string };
@@ -165,13 +172,14 @@ export async function authenticateWithPasskey(email: string): Promise<{ ok: bool
       type: type as any,
       token_hash,
     });
-    if (vErr) return { ok: false, error: vErr.message, code: "OTP_FAILED" };
+    if (vErr) return { ok: false, error: vErr.message, code: "OTP_FAILED", fallback: true };
 
     return { ok: true };
   } catch (e: any) {
-    return { ok: false, error: e?.message || "Erreur", code: "UNKNOWN" };
+    return { ok: false, error: e?.message || "Erreur", code: "UNKNOWN", fallback: true };
   }
 }
+
 
 export const hasLocalPasskey = (userId?: string) => {
   if (typeof window === "undefined") return false;
