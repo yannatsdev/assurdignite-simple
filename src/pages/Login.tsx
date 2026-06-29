@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff, User, ArrowRight, Fingerprint } from 'lucide-react';
@@ -53,29 +53,41 @@ export default function LoginPage() {
   };
 
   const [bioFailed, setBioFailed] = useState(false);
+  const [bioMessage, setBioMessage] = useState<string | null>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
 
   const handleBiometric = async () => {
     if (!email) {
       toast({ title: 'Email requis', description: 'Saisissez d\'abord votre email.', variant: 'destructive' });
+      emailRef.current?.focus();
       return;
     }
     setIsLoading(true);
     setBioFailed(false);
+    setBioMessage(null);
     const r = await authenticateWithPasskey(email);
     setIsLoading(false);
     if (r.ok) {
       navigate('/client');
-    } else {
-      setBioFailed(true);
-      const msg = r.error || '';
-      const friendly = /NotAllowed|cancelled|annul/i.test(msg)
-        ? "Authentification annulée ou expirée. Réessayez ou utilisez votre email."
-        : /InvalidState|UNKNOWN_DEVICE|reconnu/i.test(msg)
-        ? "Cet appareil n'est pas reconnu. Connectez-vous par email."
-        : msg || 'Échec de la vérification.';
-      toast({ title: 'Empreinte refusée', description: friendly, variant: 'destructive' });
+      return;
     }
+    // Always graceful fallback — never block the user.
+    setBioFailed(true);
+    const friendly =
+      r.code === 'NO_PASSKEY' || r.code === 'USER_NOT_FOUND'
+        ? "Aucune empreinte enregistrée pour ce compte. Connectez-vous avec votre mot de passe."
+        : r.code === 'UNSUPPORTED'
+        ? "Empreinte non disponible sur cet appareil. Utilisez votre mot de passe."
+        : r.code === 'NotAllowedError' || r.code === 'CANCELLED'
+        ? "Authentification annulée. Réessayez ou utilisez votre mot de passe."
+        : r.code === 'InvalidStateError' || r.code === 'UNKNOWN_DEVICE'
+        ? "Cet appareil n'est pas reconnu. Connectez-vous par mot de passe."
+        : r.error || "L'empreinte n'a pas fonctionné. Connectez-vous avec votre mot de passe.";
+    setBioMessage(friendly);
+    // Focus email so the user knows what to do next.
+    setTimeout(() => emailRef.current?.focus(), 50);
   };
+
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-gradient-to-br from-background via-background to-primary/5">
@@ -128,8 +140,8 @@ export default function LoginPage() {
 
           {bioFailed && (
             <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
-              className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs text-foreground">
-              <p>L'empreinte n'a pas fonctionné. Connectez-vous avec votre email et votre mot de passe ci-dessous.</p>
+              className="rounded-xl border border-amber-500/30 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-foreground">
+              <p>{bioMessage || "L'empreinte n'a pas fonctionné. Connectez-vous avec votre email et votre mot de passe ci-dessous."}</p>
             </motion.div>
           )}
 
@@ -147,9 +159,10 @@ export default function LoginPage() {
               <Label className="text-xs">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                <Input type="email" placeholder="votre@email.com" className="pl-10 h-11" value={email} onChange={e => setEmail(e.target.value)} required />
+                <Input ref={emailRef} type="email" placeholder="votre@email.com" className="pl-10 h-11" value={email} onChange={e => setEmail(e.target.value)} required />
               </div>
             </div>
+
             <div className="space-y-1.5">
               <Label className="text-xs">Mot de passe</Label>
               <div className="relative">

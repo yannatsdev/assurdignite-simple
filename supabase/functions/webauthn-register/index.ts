@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ error: "Unauthorized" }, 401);
+    if (!authHeader) return ok({ ok: false, fallback: true, code: "UNAUTHORIZED", message: "Connexion requise" });
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -18,16 +18,16 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return json({ error: "Unauthorized" }, 401);
+    if (!user) return ok({ ok: false, fallback: true, code: "UNAUTHORIZED", message: "Session expirée" });
 
-    const body = await req.json();
-    const { action } = body;
+    const body = await req.json().catch(() => ({}));
+    const { action } = body || {};
 
     if (action === "challenge") {
-      // Return challenge + user info for navigator.credentials.create()
       const challenge = crypto.getRandomValues(new Uint8Array(32));
       const challengeB64 = btoa(String.fromCharCode(...challenge));
-      return json({
+      return ok({
+        ok: true,
         challenge: challengeB64,
         rp: { name: "AssurDignité", id: new URL(req.url).hostname.replace(/^[^.]+\./, "") || "localhost" },
         user: {
@@ -40,7 +40,9 @@ Deno.serve(async (req) => {
 
     if (action === "verify") {
       const { credentialId, publicKey, deviceName } = body;
-      if (!credentialId || !publicKey) return json({ error: "Missing credential" }, 400);
+      if (!credentialId || !publicKey) {
+        return ok({ ok: false, fallback: true, code: "MISSING_CREDENTIAL", message: "Empreinte invalide" });
+      }
 
       const admin = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -52,19 +54,20 @@ Deno.serve(async (req) => {
         public_key: publicKey,
         device_name: deviceName || "Appareil",
       });
-      if (error) return json({ error: error.message }, 400);
-      return json({ success: true });
+      if (error) return ok({ ok: false, fallback: true, code: "DB_ERROR", message: error.message });
+      return ok({ ok: true, success: true });
     }
 
-    return json({ error: "Unknown action" }, 400);
+    return ok({ ok: false, fallback: true, code: "UNKNOWN_ACTION", message: "Action inconnue" });
   } catch (e) {
-    return json({ error: String(e) }, 500);
+    console.error("webauthn-register error", e);
+    return ok({ ok: false, fallback: true, code: "SERVER_ERROR", message: String(e?.message ?? e) });
   }
 });
 
-function json(data: unknown, status = 200) {
+function ok(data: unknown) {
   return new Response(JSON.stringify(data), {
-    status,
+    status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }

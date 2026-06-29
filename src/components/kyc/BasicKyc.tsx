@@ -1,13 +1,14 @@
 import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Upload, Camera, Check, Loader2, IdCard, ScanFace, FileText, X } from 'lucide-react';
+import { Upload, Camera, Check, Loader2, IdCard, ScanFace, FileText, X, AlertTriangle, RotateCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { track } from '@/lib/telemetry';
 import { adhesionProgress } from '@/stores/adhesion-progress';
+
 
 export type BasicKycDocType = 'cni_recto' | 'cni_verso' | 'selfie' | 'domicile';
 
@@ -81,6 +82,11 @@ export function BasicKyc({
   });
   const [busy, setBusy] = useState<BasicKycDocType | null>(null);
   const [ocrBusy, setOcrBusy] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<BasicKycDocType, string>>>({});
+  const [lastFile, setLastFile] = useState<Partial<Record<BasicKycDocType, File>>>({});
+  const [ocrError, setOcrError] = useState<string | null>(null);
+  const [ocrSkipped, setOcrSkipped] = useState(false);
+
 
   const docs: BasicKycDocType[] = compact
     ? ['cni_recto', 'cni_verso']
@@ -96,6 +102,8 @@ export function BasicKyc({
       return;
     }
     setBusy(docType);
+    setErrors((p) => ({ ...p, [docType]: undefined }));
+    setLastFile((p) => ({ ...p, [docType]: file }));
     adhesionProgress.setKyc(docType, 'uploading');
     try {
       await track({ kind: 'kyc', name: `kyc.upload.${docType}`, meta: { size: file.size } }, async () => {
@@ -124,8 +132,9 @@ export function BasicKyc({
       adhesionProgress.setKyc(docType, 'done');
 
       // Auto OCR on recto
-      if (docType === 'cni_recto' && onOcrExtracted) {
+      if (docType === 'cni_recto' && onOcrExtracted && !ocrSkipped) {
         setOcrBusy(true);
+        setOcrError(null);
         adhesionProgress.setOcr('compressing');
         try {
           const reader = new FileReader();
@@ -143,28 +152,69 @@ export function BasicKyc({
           if (data) {
             onOcrExtracted(data);
             adhesionProgress.setOcr('done');
-            toast({ title: 'Informations extraites ✓', description: 'Vos champs ont été pré-remplis.' });
+            toast({ title: 'Informations extraites ✓', description: 'Étape suivante : verso de votre pièce.' });
           }
-        } catch (e) {
+        } catch (e: any) {
           console.warn('OCR failed', e);
           adhesionProgress.setOcr('error');
+          setOcrError(e?.message || 'Lecture impossible — image floue ou éclairage insuffisant.');
         } finally {
           setOcrBusy(false);
         }
       }
 
-      toast({ title: 'Document enregistré', description: DOC_META[docType].label });
+      const nextHint =
+        docType === 'cni_recto' ? 'Étape suivante : verso de la pièce.' :
+        docType === 'cni_verso' ? 'Étape suivante : selfie.' :
+        docType === 'selfie' ? 'Étape suivante : justificatif de domicile (optionnel).' :
+        'Vous pouvez continuer.';
+      toast({ title: 'Document enregistré ✓', description: nextHint });
     } catch (err: any) {
       console.error('KYC upload error', err);
       adhesionProgress.setKyc(docType, 'error');
-      toast({ title: 'Erreur upload', description: err.message ?? 'Réessayez.', variant: 'destructive' });
+      setErrors((p) => ({ ...p, [docType]: err?.message || 'Erreur réseau' }));
+      toast({ title: 'Échec — réessayez', description: err.message ?? 'Connexion instable ?', variant: 'destructive' });
     } finally {
       setBusy(null);
     }
   };
 
+  const retryOcr = async () => {
+    const f = lastFile.cni_recto;
+    if (!f) return;
+    setOcrError(null);
+    await handleFile('cni_recto', f);
+  };
+
+  const skipOcr = () => {
+    setOcrSkipped(true);
+    setOcrError(null);
+    adhesionProgress.setOcr('idle');
+    toast({ title: 'Saisie manuelle', description: 'Renseignez vos infos ci-dessus, c\'est tout aussi valide.' });
+  };
+
+
   return (
     <div className="space-y-4">
+      {ocrError && (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-50 dark:bg-amber-950/30 p-3 flex flex-col sm:flex-row sm:items-center gap-2">
+          <div className="flex items-start gap-2 flex-1 min-w-0">
+            <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+            <div className="text-xs">
+              <p className="font-medium">Lecture automatique impossible</p>
+              <p className="text-muted-foreground">{ocrError} — réessayez avec une photo nette ou continuez en saisie manuelle.</p>
+            </div>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <Button type="button" size="sm" variant="outline" onClick={retryOcr} className="gap-1.5 h-8">
+              <RotateCw className="h-3.5 w-3.5" /> Réessayer
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={skipOcr} className="h-8">
+              Saisir manuellement
+            </Button>
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {docs.map((docType) => (
           <DocCard
@@ -172,7 +222,9 @@ export function BasicKyc({
             docType={docType}
             file={uploads[docType]}
             busy={busy === docType || (docType === 'cni_recto' && ocrBusy)}
+            error={errors[docType]}
             onFile={(f) => handleFile(docType, f)}
+            onRetry={lastFile[docType] ? () => handleFile(docType, lastFile[docType]!) : undefined}
             onClear={() => setUploads((p) => ({ ...p, [docType]: undefined }))}
           />
         ))}
@@ -188,15 +240,20 @@ function DocCard({
   docType,
   file,
   busy,
+  error,
   onFile,
+  onRetry,
   onClear,
 }: {
   docType: BasicKycDocType;
   file?: BasicKycFile;
   busy: boolean;
+  error?: string;
   onFile: (f: File) => void;
+  onRetry?: () => void;
   onClear: () => void;
 }) {
+
   const meta = DOC_META[docType];
   const Icon = meta.icon;
   const galleryRef = useRef<HTMLInputElement>(null);
@@ -262,7 +319,19 @@ function DocCard({
         </div>
       )}
 
+      {error && (
+        <div className="mt-2 rounded-lg bg-destructive/10 text-destructive p-2 text-xs flex items-center justify-between gap-2">
+          <span className="truncate">⚠ {error}</span>
+          {onRetry && (
+            <button type="button" onClick={onRetry} className="inline-flex items-center gap-1 underline font-medium shrink-0">
+              <RotateCw className="h-3 w-3" /> Réessayer
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Hidden inputs — gallery vs camera */}
+
       <input
         ref={galleryRef}
         type="file"
