@@ -43,9 +43,15 @@ export function PasskeyEnrollPrompt() {
       toast({ title: "Empreinte activée", description: "Vous pourrez désormais vous connecter avec votre empreinte." });
       setOpen(false);
     } else {
-      toast({ title: "Erreur", description: r.error || "Impossible d'activer", variant: "destructive" });
+      // Silent fallback — never block the user, just inform.
+      toast({
+        title: "Empreinte indisponible",
+        description: r.error || "Vous pouvez continuer normalement avec votre mot de passe.",
+      });
+      dismiss();
     }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && dismiss()}>
