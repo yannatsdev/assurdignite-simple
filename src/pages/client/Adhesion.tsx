@@ -23,6 +23,8 @@ import { IdCardScanner } from '@/components/kyc/IdCardScanner';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { PaymentMethodSelector } from '@/components/payment/PaymentMethodSelector';
 import { MarketingCarousel } from '@/components/client/MarketingCarousel';
+import { UnifiedProgressBar } from '@/components/adhesion/UnifiedProgressBar';
+import { adhesionProgress } from '@/stores/adhesion-progress';
 
 const STEPS = [
   'Simulation', 'Choix Formule', 'KYC Principal', 'Conjoint', 'Assurés Complémentaires',
@@ -341,6 +343,7 @@ export default function AdhesionPage() {
       hasSignature, simResult,
     });
     if (!check.ok) {
+      adhesionProgress.setMissing(check.missing.map((m) => m.label));
       toast({
         title: 'Souscription incomplète',
         description: check.missing.map((m) => `• ${m.label}`).join('\n'),
@@ -349,6 +352,7 @@ export default function AdhesionPage() {
       if (check.firstStep !== null) setStep(check.firstStep);
       return;
     }
+    adhesionProgress.setMissing([]);
     await proceedAfterBio();
   };
 
@@ -572,6 +576,24 @@ export default function AdhesionPage() {
   const progress = ((step + 1) / STEPS.length) * 100;
   const StepIcon = STEP_ICONS[step];
 
+  // Map 14 wizard steps → 5 macro phases for the unified bar
+  useEffect(() => {
+    const macro = step === 0 ? 0 : step <= 2 ? 1 : step <= 7 ? 2 : step <= 12 ? 3 : 4;
+    adhesionProgress.setMacroStep(macro);
+  }, [step]);
+
+  // Persist wizard step across reloads (mobile friendliness)
+  useEffect(() => {
+    try { sessionStorage.setItem('adhesion.step', String(step)); } catch {}
+  }, [step]);
+  useEffect(() => {
+    try {
+      const s = sessionStorage.getItem('adhesion.step');
+      if (s && !incomingSim) setStep(Math.min(parseInt(s, 10) || 0, STEPS.length - 1));
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div>
@@ -580,6 +602,9 @@ export default function AdhesionPage() {
       </div>
 
       <MarketingCarousel />
+
+      <UnifiedProgressBar />
+
 
       {/* Progress */}
       <div className="space-y-2">
@@ -1288,7 +1313,7 @@ export default function AdhesionPage() {
                         <Button variant="outline" size="sm" onClick={clearCanvas}>Effacer la signature</Button>
                       </div>
 
-                      <Button className="w-full gap-2" onClick={proceedAfterBio} disabled={!hasSignature}>
+                      <Button className="w-full gap-2" onClick={handleSign} disabled={!hasSignature}>
                         <PenTool className="w-4 h-4" /> Signer & finaliser ma souscription
                       </Button>
                       <p className="text-[11px] text-muted-foreground text-center">

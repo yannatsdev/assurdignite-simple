@@ -6,6 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
+import { track } from '@/lib/telemetry';
+import { adhesionProgress } from '@/stores/adhesion-progress';
 
 export type BasicKycDocType = 'cni_recto' | 'cni_verso' | 'selfie' | 'domicile';
 
@@ -94,32 +96,37 @@ export function BasicKyc({
       return;
     }
     setBusy(docType);
+    adhesionProgress.setKyc(docType, 'uploading');
     try {
-      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const path = `${user.id}/${contractId || 'draft'}/${scope}-${docType}-${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from('kyc-documents')
-        .upload(path, file, { upsert: true, contentType: file.type });
-      if (upErr) throw upErr;
+      await track({ kind: 'kyc', name: `kyc.upload.${docType}`, meta: { size: file.size } }, async () => {
+        const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+        const path = `${user.id}/${contractId || 'draft'}/${scope}-${docType}-${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from('kyc-documents')
+          .upload(path, file, { upsert: true, contentType: file.type });
+        if (upErr) throw upErr;
 
-      const { error: dbErr } = await supabase.from('kyc_documents').insert({
-        user_id: user.id,
-        contract_id: contractId || null,
-        doc_type: docType,
-        storage_path: path,
-        mime_type: file.type,
-        status: 'pending',
+        const { error: dbErr } = await supabase.from('kyc_documents').insert({
+          user_id: user.id,
+          contract_id: contractId || null,
+          doc_type: docType,
+          storage_path: path,
+          mime_type: file.type,
+          status: 'pending',
+        });
+        if (dbErr) throw dbErr;
+
+        const preview = URL.createObjectURL(file);
+        const next = { doc_type: docType, storage_path: path, preview };
+        setUploads((prev) => ({ ...prev, [docType]: next }));
+        onUploaded?.(next);
       });
-      if (dbErr) throw dbErr;
-
-      const preview = URL.createObjectURL(file);
-      const next = { doc_type: docType, storage_path: path, preview };
-      setUploads((prev) => ({ ...prev, [docType]: next }));
-      onUploaded?.(next);
+      adhesionProgress.setKyc(docType, 'done');
 
       // Auto OCR on recto
       if (docType === 'cni_recto' && onOcrExtracted) {
         setOcrBusy(true);
+        adhesionProgress.setOcr('compressing');
         try {
           const reader = new FileReader();
           const dataUrl: string = await new Promise((resolve, reject) => {
@@ -127,15 +134,20 @@ export function BasicKyc({
             reader.onerror = reject;
             reader.readAsDataURL(file);
           });
-          const { data, error } = await supabase.functions.invoke('kyc-ocr-extract', {
-            body: { image: dataUrl },
+          adhesionProgress.setOcr('analyzing');
+          const data = await track({ kind: 'ocr', name: 'ocr.extract', meta: { bytes: dataUrl.length } }, async () => {
+            const { data, error } = await supabase.functions.invoke('kyc-ocr-extract', { body: { image: dataUrl } });
+            if (error) throw error;
+            return data;
           });
-          if (!error && data) {
+          if (data) {
             onOcrExtracted(data);
+            adhesionProgress.setOcr('done');
             toast({ title: 'Informations extraites ✓', description: 'Vos champs ont été pré-remplis.' });
           }
         } catch (e) {
           console.warn('OCR failed', e);
+          adhesionProgress.setOcr('error');
         } finally {
           setOcrBusy(false);
         }
@@ -144,6 +156,7 @@ export function BasicKyc({
       toast({ title: 'Document enregistré', description: DOC_META[docType].label });
     } catch (err: any) {
       console.error('KYC upload error', err);
+      adhesionProgress.setKyc(docType, 'error');
       toast({ title: 'Erreur upload', description: err.message ?? 'Réessayez.', variant: 'destructive' });
     } finally {
       setBusy(null);

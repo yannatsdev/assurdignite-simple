@@ -262,11 +262,11 @@ export default function DocumentsPage() {
   };
 
   const documents = [
-    { name: "Police d'assurance", type: 'PDF', icon: FileText, date: formatDateFR(contract?.date_effet), action: generatePolice, needsContract: true },
-    { name: 'Conditions Générales', type: 'PDF', icon: BookOpen, date: '01/01/2026', action: generateCG, needsContract: false },
-    { name: 'Conditions Particulières', type: 'PDF', icon: BookOpen, date: formatDateFR(contract?.date_effet), action: generateCP, needsContract: true },
-    { name: 'Reçu de paiement', type: 'PDF', icon: Receipt, date: formatDateFR(paiement?.date_paiement), action: generateRecu, needsContract: true, needsPaiement: true },
-    { name: "Attestation d'assurance", type: 'PDF', icon: Shield, date: formatDateFR(contract?.date_effet), action: generateAttestation, needsContract: true },
+    { name: "Police d'assurance", type: 'PDF', icon: FileText, date: formatDateFR(contract?.date_effet), action: () => trackSync({ kind: 'pdf', name: 'pdf.police' }, generatePolice), needsContract: true },
+    { name: 'Conditions Générales', type: 'PDF', icon: BookOpen, date: '01/01/2026', action: () => trackSync({ kind: 'pdf', name: 'pdf.cg' }, generateCG), needsContract: false },
+    { name: 'Conditions Particulières', type: 'PDF', icon: BookOpen, date: formatDateFR(contract?.date_effet), action: () => trackSync({ kind: 'pdf', name: 'pdf.cp' }, generateCP), needsContract: true },
+    { name: 'Reçu de paiement', type: 'PDF', icon: Receipt, date: formatDateFR(paiement?.date_paiement), action: () => trackSync({ kind: 'pdf', name: 'pdf.recu' }, generateRecu), needsContract: true, needsPaiement: true },
+    { name: "Attestation d'assurance", type: 'PDF', icon: Shield, date: formatDateFR(contract?.date_effet), action: () => trackSync({ kind: 'pdf', name: 'pdf.attestation' }, generateAttestation), needsContract: true },
   ];
 
   if (loading) {
