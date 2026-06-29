@@ -7,8 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { Activity, AlertTriangle, CheckCircle2, Timer } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar } from 'recharts';
+import { Activity, AlertTriangle, CheckCircle2, Timer, Download } from 'lucide-react';
+
 
 type Row = {
   id: string; user_id: string | null; kind: string; name: string;
@@ -17,7 +18,7 @@ type Row = {
 };
 
 const KINDS = ['all', 'ocr', 'pdf', 'kyc', 'payment', 'adhesion'] as const;
-const RANGES: Record<string, number> = { '24h': 1, '7j': 7, '30j': 30 };
+const RANGES: Record<string, number> = { '24h': 1, '7j': 7, '30j': 30, '90j': 90 };
 
 function p95(values: number[]): number {
   if (values.length === 0) return 0;
@@ -36,13 +37,17 @@ export default function AdminTelemetrie() {
   const [range, setRange] = useState<keyof typeof RANGES>('7j');
   const [kind, setKind] = useState<typeof KINDS[number]>('all');
   const [userFilter, setUserFilter] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const since = new Date(Date.now() - RANGES[range] * 24 * 3600 * 1000).toISOString();
-      let q = supabase.from('telemetry_events').select('*').gte('created_at', since).order('created_at', { ascending: false }).limit(2000);
+      const sinceRange = new Date(Date.now() - RANGES[range] * 24 * 3600 * 1000).toISOString();
+      const since = fromDate ? new Date(fromDate).toISOString() : sinceRange;
+      let q = supabase.from('telemetry_events').select('*').gte('created_at', since).order('created_at', { ascending: false }).limit(5000);
+      if (toDate) q = q.lte('created_at', new Date(toDate + 'T23:59:59').toISOString());
       if (kind !== 'all') q = q.eq('kind', kind);
       const { data, error } = await q;
       if (cancelled) return;
@@ -51,12 +56,13 @@ export default function AdminTelemetrie() {
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [range, kind]);
+  }, [range, kind, fromDate, toDate]);
 
   const filtered = useMemo(
-    () => rows.filter((r) => (userFilter ? (r.user_id || '').includes(userFilter.trim()) : true)),
+    () => rows.filter((r) => (userFilter ? (r.user_id || '').toLowerCase().includes(userFilter.trim().toLowerCase()) : true)),
     [rows, userFilter],
   );
+
 
   const kpis = useMemo(() => {
     const total = filtered.length;
