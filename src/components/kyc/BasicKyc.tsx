@@ -1,13 +1,14 @@
 import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Upload, Camera, Check, Loader2, IdCard, ScanFace, FileText, X } from 'lucide-react';
+import { Upload, Camera, Check, Loader2, IdCard, ScanFace, FileText, X, AlertTriangle, RotateCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { track } from '@/lib/telemetry';
 import { adhesionProgress } from '@/stores/adhesion-progress';
+
 
 export type BasicKycDocType = 'cni_recto' | 'cni_verso' | 'selfie' | 'domicile';
 
