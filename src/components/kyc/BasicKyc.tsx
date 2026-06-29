@@ -196,6 +196,25 @@ export function BasicKyc({
 
   return (
     <div className="space-y-4">
+      {ocrError && (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-50 dark:bg-amber-950/30 p-3 flex flex-col sm:flex-row sm:items-center gap-2">
+          <div className="flex items-start gap-2 flex-1 min-w-0">
+            <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+            <div className="text-xs">
+              <p className="font-medium">Lecture automatique impossible</p>
+              <p className="text-muted-foreground">{ocrError} — réessayez avec une photo nette ou continuez en saisie manuelle.</p>
+            </div>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <Button type="button" size="sm" variant="outline" onClick={retryOcr} className="gap-1.5 h-8">
+              <RotateCw className="h-3.5 w-3.5" /> Réessayer
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={skipOcr} className="h-8">
+              Saisir manuellement
+            </Button>
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {docs.map((docType) => (
           <DocCard
@@ -203,7 +222,9 @@ export function BasicKyc({
             docType={docType}
             file={uploads[docType]}
             busy={busy === docType || (docType === 'cni_recto' && ocrBusy)}
+            error={errors[docType]}
             onFile={(f) => handleFile(docType, f)}
+            onRetry={lastFile[docType] ? () => handleFile(docType, lastFile[docType]!) : undefined}
             onClear={() => setUploads((p) => ({ ...p, [docType]: undefined }))}
           />
         ))}
@@ -219,15 +240,20 @@ function DocCard({
   docType,
   file,
   busy,
+  error,
   onFile,
+  onRetry,
   onClear,
 }: {
   docType: BasicKycDocType;
   file?: BasicKycFile;
   busy: boolean;
+  error?: string;
   onFile: (f: File) => void;
+  onRetry?: () => void;
   onClear: () => void;
 }) {
+
   const meta = DOC_META[docType];
   const Icon = meta.icon;
   const galleryRef = useRef<HTMLInputElement>(null);
