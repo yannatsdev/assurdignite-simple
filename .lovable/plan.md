@@ -1,70 +1,80 @@
-# Plan — OCR, PDF, Subscription Guardrails & Observability
 
-Most of the foundations from the previous turn are in place (signatures on PDFs, flat stamps, FR date format, compressed OCR payload). This plan closes the remaining gaps and tightens UX.
+# Plan — Parcours simplifié, observabilité & E2E
 
-## 1. OCR — clear progress, faster capture, auto-retry
-File: `src/components/kyc/IdCardScanner.tsx`
+## 1. Parcours simplifié (5 étapes)
+File: `src/pages/client/Adhesion.tsx` (+ small extracted components)
 
-- Replace the single `scanning` boolean with a 4-state machine: `idle → compressing → uploading → analyzing → done|error`, surfaced via a `<Progress>` bar + status label ("Compression…", "Analyse IA…", "Extraction…").
-- Auto-capture assist: detect when video frame is sharp+filled (basic luminance/edge heuristic on a downscaled canvas every 400 ms) and pulse a "Prêt à capturer" hint; user still confirms.
-- Auto-retry: on OCR failure or empty extraction, retry once with higher quality (1600px / q 0.85) before showing the error. Show "Nouvelle tentative en cours…".
-- Faster pipeline: kick off recto compression while user is still capturing verso (parallel preprocess); set explicit `signal: AbortController` so leaving the step cancels in-flight calls.
-- Better mobile camera UX: when `getUserMedia` fails, fall back to the native camera input *and* surface a second button "Choisir depuis la galerie" (already added — verify both inputs are visible side-by-side on mobile, not stacked).
+Collapse the current 14-step wizard into a linear 5-step flow:
 
-## 2. PDF templates — signature & date consistency
-Files: `src/lib/pdf-shared.ts`, `src/pages/client/Documents.tsx`
+```text
+1. Simulation    →  2. Scan OCR + Identité   →  3. KYC + Bénéficiaires
+                                                       ↓
+                              5. Reçu & documents  ←  4. Conditions + Signature + Paiement
+```
 
-- Add a single helper `pdfDocumentSignatures(doc, y, { subscriberSig, subscriberName, label })` that lays out two columns: left = "Le souscripteur" with signature image (or fallback line) + printed name, right = "SONAM VIE" with flat label (`PAYÉ` / `CERTIFIÉ` / `SONAM VIE`).
-- Use this helper in receipt, attestation, and police generators so the layout is identical (same Y baseline, same 50×18 mm signature box, same caption).
-- Scale signature images using `getImageProperties` to preserve aspect ratio inside the 50×18 box (no stretching on tall vs wide pads).
-- Dates: introduce `formatDateFRLong` (e.g. "24 décembre 2026") for hero "Expiration" lines and keep `formatDateFR` (`24/12/2026`) for tables. Reserve enough width in the key/value grid (`colWidth` raised, `truncate` removed) so day digits never clip.
+- Step 1 auto-skipped if `simResult` already present (arrival from landing simulator).
+- Step 2 merges OCR scan and the identity form: extracted fields pre-fill the form inline; user only confirms.
+- Step 3 merges KYC uploads (CNI verso, selfie, justificatif domicile) with beneficiary designation on a single scrollable screen, split into two collapsible cards.
+- Step 4 stacks CG/CP acceptance, signature pad, and Mobile Money payment in one screen with progressive disclosure (payment button enabled only after signature).
+- Step 5 = confirmation + immediate access to Reçu / Attestation / Police downloads.
+- Persist wizard state in `sessionStorage` keyed by user id (already planned previously — confirm wired).
+- After finalize → navigate to `/client/contrats/:id`, never to bare `/client`.
 
-UI mirror: `src/components/client/PolicyHeroCard.tsx` already prints FR date — widen the Expiration card (`flex-1` → `min-w-[140px]`) and drop `truncate` on the date line so "24/12/2026" stays whole.
+## 2. Barre de progression unifiée
+New component: `src/components/adhesion/UnifiedProgressBar.tsx`
 
-## 3. Subscription guardrails — no more dead-ends after signing
-File: `src/pages/client/Adhesion.tsx` (+ small helper `src/lib/adhesion-validation.ts`)
+A single sticky bar (top on desktop, top-under-header on mobile) showing the 5 macro-steps + a sub-status line for the currently running async operation:
 
-- Add `validateBeforeFinalize(state)` returning a typed result `{ ok: true } | { ok: false, missing: string[], firstStep: number }` that checks: required profile fields, at least one beneficiary with 100 % share total, KYC docs (recto + selfie + domicile) marked `uploaded`, payment status === `paid`, signature data URL present.
-- Block the "Finaliser" button when invalid, list missing items inline, and "Aller corriger" jumps back to the offending step instead of navigating to `/client`.
-- After successful finalize, navigate to `/client/contrats/:id` (or `/client/documents`) — never to the bare dashboard — and toast "Contrat actif".
-- Persist wizard state to `sessionStorage` keyed by user id, so an accidental reload resumes at the correct step instead of restarting.
+- OCR: `compressing` → `uploading` → `analyzing` → `done`
+- KYC upload: per-file progress (recto, verso, selfie, domicile) with check marks
+- Validation pre-signature: runs `validateBeforeFinalize`, shows missing items inline before enabling "Signer"
 
-## 4. Observability — error logs & perf metrics
-New table + small client helper.
+Driven by a tiny Zustand-style store (`src/stores/adhesion-progress.ts`) so OCR, KYC, and validation modules can publish status without prop-drilling.
 
-Migration: `telemetry_events` (`id`, `user_id`, `kind` text, `name` text, `duration_ms` int, `success` bool, `meta` jsonb, `created_at`) with RLS allowing `authenticated` insert-own and admin read. GRANTs as required.
+## 3. Admin telemetry dashboard
+New page: `src/pages/admin/Telemetrie.tsx` (route `/admin/telemetrie`, link in `AdminSidebar`)
 
-Client helper `src/lib/telemetry.ts` exposing `track(name, fn)` (measures duration, captures error.message, inserts row best-effort, never throws). Instrument:
-- `kyc-ocr-extract` invocation (success + duration + payload size)
-- PDF generators (receipt / attestation / police): wrap `generate*` calls
-- KYC document uploads in `BasicKyc.tsx`
-- Edge function `kyc-ocr-extract`: add structured `console.log({ event, duration_ms, model, ok })` lines so they show up in edge-function logs.
+Reads from existing `telemetry_events` table. Shows:
 
-Admin surface: a compact "Télémétrie" card on `src/pages/admin/Dashboard.tsx` showing 24 h counts and p95 duration per `name` (read-only query, no UI sprawl).
+- KPI cards: total events 24h / 7j, global success rate, p95 duration
+- Per-`name` table (e.g. `ocr.extract`, `pdf.recu`, `kyc.upload`): count, success %, avg ms, p95 ms, last error
+- Time-series chart (Recharts) of latency p50/p95 per day
+- Filters: date range (preset 24h/7j/30j + custom), `kind` (ocr/pdf/kyc/payment/adhesion), `user_id` (search by email via join with `profiles`)
+- Errors panel: latest 50 failed events with `error_message`, expandable `meta`
 
-## 5. UX simplification — finish the 14→7 collapse
-File: `src/pages/client/Adhesion.tsx`
+No new SQL needed (table already exists with admin-read policy). Add an index in a small migration:
+```sql
+CREATE INDEX IF NOT EXISTS telemetry_events_kind_created_idx
+  ON public.telemetry_events (kind, created_at DESC);
+CREATE INDEX IF NOT EXISTS telemetry_events_user_created_idx
+  ON public.telemetry_events (user_id, created_at DESC);
+```
 
-Final step order:
-1. Formule (skipped automatically when arriving with simulation state)
-2. Identité + OCR (auto-fills 5 fields)
-3. KYC (recto/verso/selfie/domicile in one screen, drag-drop + camera)
-4. Bénéficiaires (single screen, inline add)
-5. Signature
-6. Paiement (Mobile Money)
-7. Confirmation + téléchargements
+## 4. Mobile polish du parcours
+- Sticky bottom action bar (Précédent / Suivant) on `<md` breakpoints in `Adhesion.tsx`.
+- Skeletons (`@/components/ui/skeleton`) on OCR analyzing, PDF generation, payment polling — never blank screens.
+- Short status toasts ("Pièce reconnue", "Paiement reçu", "Contrat actif") instead of long modals.
+- Larger touch targets (min 44px), single-column forms, autofocus next field after OCR fill.
+- Compress hero/marketing imagery on the wizard pages (lazy-load).
 
-- Inline validation per step (no blocking modal).
-- Sticky bottom action bar on mobile with "Suivant" + progress dots.
-- "Reprendre plus tard" button saves draft and emails resume link.
+## 5. Tests end-to-end (Playwright)
+Use existing Playwright config. New specs under `tests/e2e/`:
 
-## Technical notes
-- No new third-party deps.
-- Lovable AI model stays `google/gemini-2.5-flash` for OCR (best speed/quality balance — already switched).
-- All new SQL follows the GRANT-then-RLS pattern.
-- Telemetry inserts are fire-and-forget (`.then().catch()`); never block UX.
+- `adhesion.spec.ts` — happy path: login → simulation → OCR (mock `kyc-ocr-extract` via route intercept returning fixture JSON) → KYC uploads (fixture images) → beneficiary → CG/CP → signature canvas draw → payment (mock Mobile Money callback) → contract active → download Reçu/Attestation/Police (assert PDF blob size > 0 and contains `%PDF`).
+- `validation-gate.spec.ts` — try to finalize with missing beneficiary / unpaid status → assert button disabled, inline messages list missing items, click "Aller corriger" jumps to correct step.
+- `pdf-signatures.spec.ts` — generate the 3 PDFs after a fixture contract, parse first page with `pdf-parse`, assert "Le souscripteur", subscriber name, and flat stamp label ("PAYÉ" / "CERTIFIÉ" / "SONAM VIE") are present and the round stamp markers are absent.
+- `telemetry.spec.ts` — run OCR mock → query `telemetry_events` via admin login → assert row appears with `success=true` and `duration_ms>0`.
+
+Add `npm run test:e2e` script + a tiny `tests/fixtures/` folder (sample CNI/selfie/justificatif placeholder PNGs, signature PNG, OCR JSON).
+
+## 6. Technical notes
+- No new third-party deps for the wizard or dashboard. Charts reuse existing `recharts` install.
+- Telemetry already instrumented in `src/lib/telemetry.ts` and `IdCardScanner.tsx`; extend coverage to `BasicKyc.tsx` uploads, `Adhesion.tsx` finalize, and PDF generators in `Documents.tsx`.
+- Keep `kyc-ocr-extract` on `google/gemini-2.5-flash` for speed (already set).
+- All new SQL follows GRANT-then-RLS pattern (index migration only — no new tables).
 
 ## Out of scope
-- Replacing the wizard library.
-- Re-skinning the landing page.
-- Mobile-app packaging.
+- Re-skinning landing page.
+- Replacing the signature pad library.
+- Native mobile packaging.
+- Multi-language (UI stays FR).
