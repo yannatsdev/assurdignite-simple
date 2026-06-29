@@ -343,6 +343,7 @@ export default function AdhesionPage() {
       hasSignature, simResult,
     });
     if (!check.ok) {
+      adhesionProgress.setMissing(check.missing.map((m) => m.label));
       toast({
         title: 'Souscription incomplète',
         description: check.missing.map((m) => `• ${m.label}`).join('\n'),
@@ -351,6 +352,7 @@ export default function AdhesionPage() {
       if (check.firstStep !== null) setStep(check.firstStep);
       return;
     }
+    adhesionProgress.setMissing([]);
     await proceedAfterBio();
   };
 
