@@ -82,6 +82,11 @@ export function BasicKyc({
   });
   const [busy, setBusy] = useState<BasicKycDocType | null>(null);
   const [ocrBusy, setOcrBusy] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<BasicKycDocType, string>>>({});
+  const [lastFile, setLastFile] = useState<Partial<Record<BasicKycDocType, File>>>({});
+  const [ocrError, setOcrError] = useState<string | null>(null);
+  const [ocrSkipped, setOcrSkipped] = useState(false);
+
 
   const docs: BasicKycDocType[] = compact
     ? ['cni_recto', 'cni_verso']
@@ -97,6 +102,8 @@ export function BasicKyc({
       return;
     }
     setBusy(docType);
+    setErrors((p) => ({ ...p, [docType]: undefined }));
+    setLastFile((p) => ({ ...p, [docType]: file }));
     adhesionProgress.setKyc(docType, 'uploading');
     try {
       await track({ kind: 'kyc', name: `kyc.upload.${docType}`, meta: { size: file.size } }, async () => {
@@ -125,8 +132,9 @@ export function BasicKyc({
       adhesionProgress.setKyc(docType, 'done');
 
       // Auto OCR on recto
-      if (docType === 'cni_recto' && onOcrExtracted) {
+      if (docType === 'cni_recto' && onOcrExtracted && !ocrSkipped) {
         setOcrBusy(true);
+        setOcrError(null);
         adhesionProgress.setOcr('compressing');
         try {
           const reader = new FileReader();
@@ -144,25 +152,47 @@ export function BasicKyc({
           if (data) {
             onOcrExtracted(data);
             adhesionProgress.setOcr('done');
-            toast({ title: 'Informations extraites ✓', description: 'Vos champs ont été pré-remplis.' });
+            toast({ title: 'Informations extraites ✓', description: 'Étape suivante : verso de votre pièce.' });
           }
-        } catch (e) {
+        } catch (e: any) {
           console.warn('OCR failed', e);
           adhesionProgress.setOcr('error');
+          setOcrError(e?.message || 'Lecture impossible — image floue ou éclairage insuffisant.');
         } finally {
           setOcrBusy(false);
         }
       }
 
-      toast({ title: 'Document enregistré', description: DOC_META[docType].label });
+      const nextHint =
+        docType === 'cni_recto' ? 'Étape suivante : verso de la pièce.' :
+        docType === 'cni_verso' ? 'Étape suivante : selfie.' :
+        docType === 'selfie' ? 'Étape suivante : justificatif de domicile (optionnel).' :
+        'Vous pouvez continuer.';
+      toast({ title: 'Document enregistré ✓', description: nextHint });
     } catch (err: any) {
       console.error('KYC upload error', err);
       adhesionProgress.setKyc(docType, 'error');
-      toast({ title: 'Erreur upload', description: err.message ?? 'Réessayez.', variant: 'destructive' });
+      setErrors((p) => ({ ...p, [docType]: err?.message || 'Erreur réseau' }));
+      toast({ title: 'Échec — réessayez', description: err.message ?? 'Connexion instable ?', variant: 'destructive' });
     } finally {
       setBusy(null);
     }
   };
+
+  const retryOcr = async () => {
+    const f = lastFile.cni_recto;
+    if (!f) return;
+    setOcrError(null);
+    await handleFile('cni_recto', f);
+  };
+
+  const skipOcr = () => {
+    setOcrSkipped(true);
+    setOcrError(null);
+    adhesionProgress.setOcr('idle');
+    toast({ title: 'Saisie manuelle', description: 'Renseignez vos infos ci-dessus, c\'est tout aussi valide.' });
+  };
+
 
   return (
     <div className="space-y-4">
