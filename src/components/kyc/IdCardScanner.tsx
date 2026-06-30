@@ -36,6 +36,8 @@ export type OcrExtractedData = {
 
 interface Props {
   onExtracted: (data: OcrExtractedData) => void;
+  /** Called when the user explicitly chooses to bypass OCR and continue with manual input. */
+  onManualFallback?: () => void;
   className?: string;
 }
 

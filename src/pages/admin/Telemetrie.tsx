@@ -126,18 +126,52 @@ export default function AdminTelemetrie() {
       }));
   }, [filtered]);
 
-  const exportCsv = () => {
-    const header = ['created_at', 'kind', 'name', 'duration_ms', 'success', 'user_id', 'error_message'];
+  const exportCsv = async () => {
+    // Resolve user emails for traceability
+    const uniqueUserIds = Array.from(new Set(filtered.map(r => r.user_id).filter(Boolean))) as string[];
+    let emailMap = new Map<string, string>();
+    if (uniqueUserIds.length > 0) {
+      const { data: profs } = await supabase.from('profiles').select('id,email').in('id', uniqueUserIds);
+      (profs || []).forEach((p: any) => emailMap.set(p.id, p.email || ''));
+    }
+    const header = ['date_iso', 'user_id', 'user_email', 'kind', 'name', 'duration_ms', 'success', 'error_message', 'meta_json'];
     const escape = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const lines = [header.join(',')].concat(
-      filtered.map((r) => [r.created_at, r.kind, r.name, r.duration_ms ?? '', r.success, r.user_id ?? '', r.error_message ?? ''].map(escape).join(',')),
+    const detail = [header.join(',')].concat(
+      filtered.map((r) => [
+        r.created_at,
+        r.user_id ?? '',
+        emailMap.get(r.user_id || '') ?? '',
+        r.kind,
+        r.name,
+        r.duration_ms ?? '',
+        r.success,
+        r.error_message ?? '',
+        r.meta ? JSON.stringify(r.meta) : '',
+      ].map(escape).join(',')),
     );
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    // Summary section per kind
+    const kinds = Array.from(new Set(filtered.map((r) => r.kind)));
+    const summary: string[] = ['', 'RESUME', ['kind', 'count', 'avg_ms', 'p95_ms', 'error_rate_pct'].join(',')];
+    kinds.forEach((k) => {
+      const list = filtered.filter((r) => r.kind === k);
+      const durs = list.filter((r) => r.duration_ms != null).map((r) => r.duration_ms!);
+      const errs = list.filter((r) => !r.success).length;
+      summary.push([
+        k,
+        list.length,
+        Math.round(avg(durs)),
+        Math.round(p95(durs)),
+        list.length ? ((errs / list.length) * 100).toFixed(2) : '0.00',
+      ].map(escape).join(','));
+    });
+    const blob = new Blob([detail.concat(summary).join('\n')], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `telemetrie_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
