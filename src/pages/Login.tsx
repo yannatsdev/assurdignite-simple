@@ -1,17 +1,27 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, User, ArrowRight, Fingerprint } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
-import { authenticateWithPasskey, isPlatformAuthenticatorAvailable, hasLocalPasskey } from '@/lib/webauthn';
 import logoSonam from '@/assets/logo-sonamvie.png';
 import logoAssurDignite from '@/assets/logo-assurdignite.png';
 import loginImg from '@/assets/login-client.jpg';
+
+function friendlyAuthError(msg: string | undefined): string {
+  if (!msg) return 'Une erreur est survenue';
+  const m = msg.toLowerCase();
+  if (m.includes('invalid login')) return 'Email ou mot de passe incorrect.';
+  if (m.includes('already registered') || m.includes('user already')) return 'Un compte existe déjà avec cet email. Connectez-vous.';
+  if (m.includes('email not confirmed')) return 'Email non confirmé. Vérifiez votre boîte mail.';
+  if (m.includes('password') && m.includes('6')) return 'Le mot de passe doit contenir au moins 6 caractères.';
+  if (m.includes('rate limit')) return 'Trop de tentatives. Réessayez dans quelques minutes.';
+  return msg;
+}
 
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -20,74 +30,43 @@ export default function LoginPage() {
   const [fullName, setFullName] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [inlineError, setInlineError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
 
-  useEffect(() => {
-    isPlatformAuthenticatorAvailable().then((ok) => {
-      setBiometricAvailable(ok && hasLocalPasskey());
-    });
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setInlineError(null);
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !password) {
+      setInlineError('Email et mot de passe requis.');
+      return;
+    }
+    if (password.length < 6) {
+      setInlineError('Le mot de passe doit contenir au moins 6 caractères.');
+      return;
+    }
     setIsLoading(true);
     try {
       if (isSignUp) {
-        const { error } = await signUp(email, password, fullName);
+        const { error } = await signUp(cleanEmail, password, fullName.trim());
         if (error) throw error;
         toast({ title: 'Inscription réussie', description: 'Vérifiez votre email pour confirmer votre compte.' });
         setIsSignUp(false);
       } else {
-        const { error } = await signIn(email, password);
+        const { error } = await signIn(cleanEmail, password);
         if (error) throw error;
         navigate('/client');
       }
     } catch (err: any) {
-      toast({ title: 'Erreur', description: err.message || 'Une erreur est survenue', variant: 'destructive' });
+      const friendly = friendlyAuthError(err?.message);
+      setInlineError(friendly);
+      toast({ title: 'Erreur', description: friendly, variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
   };
-
-  const [bioFailed, setBioFailed] = useState(false);
-  const [bioMessage, setBioMessage] = useState<string | null>(null);
-  const emailRef = useRef<HTMLInputElement>(null);
-
-  const handleBiometric = async () => {
-    if (!email) {
-      toast({ title: 'Email requis', description: 'Saisissez d\'abord votre email.', variant: 'destructive' });
-      emailRef.current?.focus();
-      return;
-    }
-    setIsLoading(true);
-    setBioFailed(false);
-    setBioMessage(null);
-    const r = await authenticateWithPasskey(email);
-    setIsLoading(false);
-    if (r.ok) {
-      navigate('/client');
-      return;
-    }
-    // Always graceful fallback — never block the user.
-    setBioFailed(true);
-    const friendly =
-      r.code === 'NO_PASSKEY' || r.code === 'USER_NOT_FOUND'
-        ? "Aucune empreinte enregistrée pour ce compte. Connectez-vous avec votre mot de passe."
-        : r.code === 'UNSUPPORTED'
-        ? "Empreinte non disponible sur cet appareil. Utilisez votre mot de passe."
-        : r.code === 'NotAllowedError' || r.code === 'CANCELLED'
-        ? "Authentification annulée. Réessayez ou utilisez votre mot de passe."
-        : r.code === 'InvalidStateError' || r.code === 'UNKNOWN_DEVICE'
-        ? "Cet appareil n'est pas reconnu. Connectez-vous par mot de passe."
-        : r.error || "L'empreinte n'a pas fonctionné. Connectez-vous avec votre mot de passe.";
-    setBioMessage(friendly);
-    // Focus email so the user knows what to do next.
-    setTimeout(() => emailRef.current?.focus(), 50);
-  };
-
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-gradient-to-br from-background via-background to-primary/5">
@@ -103,10 +82,6 @@ export default function LoginPage() {
             <p className="text-white/85 text-sm lg:text-base max-w-md">
               Gérez vos contrats, suivez vos paiements et déclarez vos sinistres en toute simplicité, 100% digital.
             </p>
-            <div className="hidden lg:flex items-center gap-4 mt-6 text-xs text-white/80">
-              <div className="flex items-center gap-1.5">+50 ans d'expérience</div>
-              <div className="flex items-center gap-1.5">Capital garanti</div>
-            </div>
           </motion.div>
         </div>
       </div>
@@ -124,24 +99,10 @@ export default function LoginPage() {
             <p className="text-muted-foreground mt-2 text-sm">{isSignUp ? 'Rejoignez la famille AssurDignité.' : 'Connectez-vous à votre espace sécurisé.'}</p>
           </div>
 
-          {/* Biometric quick login */}
-          {biometricAvailable && !isSignUp && (
-            <motion.button
-              type="button"
-              onClick={handleBiometric}
-              disabled={isLoading}
-              whileTap={{ scale: 0.98 }}
-              className="w-full flex items-center justify-center gap-3 p-4 rounded-xl bg-gradient-to-br from-primary to-[hsl(var(--sonam-blue))] text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
-            >
-              <Fingerprint className="w-6 h-6" />
-              <span className="font-medium">Connexion par empreinte</span>
-            </motion.button>
-          )}
-
-          {bioFailed && (
+          {inlineError && (
             <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
-              className="rounded-xl border border-amber-500/30 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-foreground">
-              <p>{bioMessage || "L'empreinte n'a pas fonctionné. Connectez-vous avec votre email et votre mot de passe ci-dessous."}</p>
+              className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              {inlineError}
             </motion.div>
           )}
 
@@ -151,7 +112,7 @@ export default function LoginPage() {
                 <Label className="text-xs">Nom complet</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                  <Input placeholder="Votre nom complet" className="pl-10 h-11" value={fullName} onChange={e => setFullName(e.target.value)} required />
+                  <Input placeholder="Votre nom complet" className="pl-10 h-12" value={fullName} onChange={e => setFullName(e.target.value)} required />
                 </div>
               </div>
             )}
@@ -159,7 +120,7 @@ export default function LoginPage() {
               <Label className="text-xs">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                <Input ref={emailRef} type="email" placeholder="votre@email.com" className="pl-10 h-11" value={email} onChange={e => setEmail(e.target.value)} required />
+                <Input type="email" autoComplete="email" inputMode="email" placeholder="votre@email.com" className="pl-10 h-12" value={email} onChange={e => setEmail(e.target.value)} required />
               </div>
             </div>
 
@@ -167,20 +128,20 @@ export default function LoginPage() {
               <Label className="text-xs">Mot de passe</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                <Input type={showPwd ? 'text' : 'password'} placeholder="••••••••" className="pl-10 pr-10 h-11" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
-                <button type="button" className="absolute right-3 top-3" onClick={() => setShowPwd(!showPwd)}>
+                <Input type={showPwd ? 'text' : 'password'} autoComplete={isSignUp ? 'new-password' : 'current-password'} placeholder="••••••••" className="pl-10 pr-10 h-12" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
+                <button type="button" className="absolute right-3 top-3" onClick={() => setShowPwd(!showPwd)} aria-label={showPwd ? 'Masquer' : 'Afficher'}>
                   {showPwd ? <EyeOff className="w-4 h-4 text-muted-foreground" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
                 </button>
               </div>
             </div>
-            <Button type="submit" className="w-full gap-2 h-11" disabled={isLoading}>
+            <Button type="submit" className="w-full gap-2 h-12 text-base" disabled={isLoading}>
               {isLoading ? 'Chargement…' : isSignUp ? "S'inscrire" : 'Se connecter'}
               <ArrowRight className="w-4 h-4" />
             </Button>
           </form>
 
           <div className="text-center space-y-2">
-            <button onClick={() => setIsSignUp(!isSignUp)} className="text-sm text-primary font-medium hover:underline">
+            <button onClick={() => { setIsSignUp(!isSignUp); setInlineError(null); }} className="text-sm text-primary font-medium hover:underline">
               {isSignUp ? 'Déjà un compte ? Se connecter' : "Pas encore de compte ? S'inscrire"}
             </button>
             <p className="text-xs text-muted-foreground">

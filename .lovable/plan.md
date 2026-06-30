@@ -1,98 +1,80 @@
-# Plan — Robustesse, observabilité & parcours rural-friendly
+# Plan — Simplification parcours, OCR rapide, fixes auth & télémétrie
 
-## 1. Tests end-to-end Playwright (anti-régression)
+## 1. OCR plus rapide et plus fiable
+- `supabase/functions/kyc-ocr-extract/index.ts`: garder `gemini-2.5-flash`, réduire le prompt système, supprimer le champ `image2` quand non utilisé (1 seul appel = 2× plus rapide pour CNI recto seul), `max_tokens: 400`, `temperature: 0`.
+- `src/components/kyc/IdCardScanner.tsx`: compression plus agressive (max 1280px, JPEG q=0.72, target <350 KB), démarrage caméra avec `facingMode: { ideal: 'environment' }` + fallback, capture auto dès détection de stabilité (déjà partiel), suppression de l'auto-retry « haute qualité » qui double le temps — un seul appel, puis bouton « Réessayer » manuel.
+- Préchauffage edge function (`supabase.functions.invoke('kyc-ocr-extract', { body: { ping: true } })`) au montage de l'étape Identité pour éviter le cold start.
 
-Nouveau fichier `tests/e2e/parcours-complet.spec.ts` qui couvre toute la chaîne en mode authentifié + mocké :
+## 2. Suppression de l'empreinte sur Login
+- `src/pages/Login.tsx`: retirer le bouton « Connexion par empreinte », l'état `biometricAvailable`, `handleBiometric`, `bioFailed`, `bioMessage`, les imports `Fingerprint` et `authenticateWithPasskey`.
+- `src/components/PasskeyEnrollPrompt.tsx`: ne plus monter le composant (retirer ses usages dans `ClientLayout`/Dashboard si présents).
+- Edge functions `webauthn-*` et table `user_passkeys`: conservées côté backend mais plus appelées depuis le client (pas de migration destructive pour ne pas casser les données existantes).
 
-- **Setup** : helper `tests/e2e/_helpers/auth.ts` qui injecte une session Supabase via `localStorage` (token de test depuis `.env.test`) puis pose des `page.route(...)` pour intercepter :
-  - `functions/v1/kyc-ocr-extract` → renvoie un payload OCR factice (nom, prénom, n° CNI, date).
-  - Upload Storage `kyc-documents` → 200 OK.
-  - `paiements` insert → status `paid`.
-- **Scénario** `parcours complet` :
-  1. Simulation (formule B, âge 45) → assert prime calculée.
-  2. Scan OCR : upload d'une image fixture `tests/e2e/fixtures/cni.jpg` → assert champs pré-remplis.
-  3. Upload KYC verso + selfie → assert badges « Enregistré ».
-  4. Bénéficiaires (1 par défaut, 100%).
-  5. Cocher conditions + signature canvas (`page.mouse` trace).
-  6. Paiement mocké → redirection vers `/espace-client/documents`.
-  7. Générer Reçu / Attestation / Police → assert téléchargement (`page.waitForEvent('download')` × 3).
-- **Spec secondaire** `parcours-erreurs.spec.ts` : OCR 500 → vérifie message retry visible et bouton « Réessayer ».
-- Ajoute `tests/e2e/fixtures/cni.jpg` (image grise 800×500 générée à la volée si absente).
+## 3. Fixes création de compte / sign-in
+- `src/contexts/AuthContext.tsx`: messages d'erreur traduits (Invalid login credentials → « Email ou mot de passe incorrect », User already registered → « Compte existant, connectez-vous »), trim email, lowercase email, validation longueur password ≥ 6 côté client avant appel.
+- `signUp`: ajouter `emailRedirectTo: window.location.origin + '/client'` (corrige la redirection après confirmation email).
+- `src/pages/Login.tsx`: désactiver bouton pendant `isLoading`, afficher erreurs inline (pas seulement toast), reset password link vers `/reset-password` (créer page minimale si absente).
 
-## 2. Dashboard Télémétrie — filtres avancés + CSV
+## 4. Parcours adhésion simplifié — 5 étapes max (mode rural inclus)
+Refonte `src/pages/client/Adhesion.tsx` pour passer de 14 sous-étapes à **5 écrans** :
+1. **Simulation rapide** — formule + capital + âge → prime affichée (gros chiffres).
+2. **Scan identité** — OCR (1 photo recto, verso optionnel), auto-remplissage.
+3. **Confirmation infos + bénéficiaires** — un seul écran, tout pré-rempli, bénéficiaires en accordéon (1 minimum).
+4. **KYC + Conditions + Signature** — upload selfie (optionnel rural), case conditions, signature tactile.
+5. **Paiement + Reçu** — MoMo/Wave, OTP, reçu PDF téléchargeable.
 
-Édite `src/pages/admin/Telemetrie.tsx` :
-- **Filtres** : ajouter `DateRangePicker` (from/to libre via `react-day-picker` déjà installé), filtre `user_id` déjà présent — étendre à recherche par email (join `profiles`).
-- **Charts par kind** : remplacer le graphique unique par 3 `LineChart` côte-à-côte (OCR / PDF / KYC) avec p95 + taux d'erreur en bar overlay (`ComposedChart`).
-- **Export CSV** : bouton « Exporter CSV » → sérialise `filtered` rows (`id,created_at,kind,name,duration_ms,success,error_message,user_id`) via `Blob` + `URL.createObjectURL`. Pas de dep additionnelle.
-- KPI supplémentaires : `Taux d'erreur OCR`, `Taux d'erreur KYC`, `p95 PDF`.
+Implémentation:
+- Refactor en composants `Step1Simulation`, `Step2Scan`, `Step3Infos`, `Step4Signature`, `Step5Paiement` sous `src/components/adhesion/steps/`.
+- État unique `AdhesionDraft` persistant en `sessionStorage` (déjà partiel).
+- **Mode rural**: toggle auto si `navigator.connection.effectiveType` ∈ {`2g`,`slow-2g`} OU viewport <380px → boutons 56px, labels courts, skip selfie, queue offline (IndexedDB simple) + bannière « Mode hors-ligne, vos données seront envoyées dès la reconnexion ».
+- Bouton sticky « Suivant » plein largeur en bas (réutiliser `StickyActionBar`).
 
-## 3. UX retry OCR/KYC + guidance
+## 5. Bouton « Continuer en envoi manuel »
+- `src/components/kyc/IdCardScanner.tsx` et `BasicKyc.tsx`: en cas d'échec OCR/KYC, panneau d'erreur avec :
+  - Bouton primaire **« Réessayer »**.
+  - Bouton secondaire **« Continuer en envoi manuel »** → ouvre un formulaire texte (nom, prénom, n° CNI, date naissance, date expiration) + upload photo brute (sans OCR), marqué `kyc_documents.ocr_status = 'manual'` pour revue admin.
+  - Étapes affichées : « 1. Saisissez vos infos · 2. Photo recto · 3. Photo verso · 4. Un agent vérifiera sous 24h ».
+- `src/pages/admin/KycDocuments.tsx`: filtre « En attente de vérification manuelle » + badge orange.
 
-Édite `src/components/kyc/BasicKyc.tsx` :
-- Stocker `lastError` et `attempts` par doc.
-- En cas d'échec : afficher carte d'erreur avec message court (« Image floue ? Recadrez et réessayez ») + bouton **Réessayer** (ré-ouvre le file picker) + lien **Continuer sans OCR** (saisie manuelle).
-- Sur succès OCR : toast + ligne d'aide « Étape suivante : verso de votre pièce ».
-- Messages courts par phase (« Compression… », « Envoi… », « Analyse IA… »).
+## 6. Export CSV Télémétrie complet
+- `src/pages/admin/Telemetrie.tsx`: revoir `exportCsv` pour inclure colonnes : `date_iso, user_id, user_email, kind (ocr|pdf|kyc), name, duration_ms, success, error_message, meta_json`. Agréger sur la période un second CSV résumé : `kind, count, avg_ms, p95_ms, error_rate_pct`. Bouton « Export détaillé » et « Export résumé ». Garantir téléchargement via `Blob` + `URL.createObjectURL` + `<a download>`.
+- Tester localement que filtre date+user est appliqué avant export.
 
-Édite `src/components/adhesion/UnifiedProgressBar.tsx` pour exposer un slot « action » (bouton retry) quand `ocr.phase === 'error'`.
+## 7. Test Playwright complet en CI
+- `tests/e2e/parcours-complet.spec.ts`: étendre pour couvrir parcours réel mock (simulation → scan stubbed → infos → signature canvas → paiement mock → reçu PDF téléchargé). Assert `download.suggestedFilename()` contient `recu`.
+- `package.json`: script `"test:e2e": "playwright test"`.
+- `.github/workflows/e2e.yml` (créer): job Ubuntu, `bun install`, `bunx playwright install --with-deps chromium`, build, `bun run test:e2e`, upload artefacts.
 
-## 4. Mobile : skeletons + sticky actions cohérentes
+## 8. Fixes erreurs diverses
+- `Adhesion.tsx` : corriger redirection après simulation qui renvoyait vers `/client` au lieu de l'étape 2 (garder `step` synchronisé avec sessionStorage au mount).
+- Console errors: vérifier `BasicKyc` n'appelle pas `adhesionProgress.setKyc` avec un doc non typé.
 
-- Nouveau `src/components/adhesion/StepSkeleton.tsx` (squelettes : OcrSkeleton, PdfSkeleton, KycSkeleton — utilisent `<Skeleton />` shadcn).
-- Édite `src/pages/client/Adhesion.tsx` :
-  - Afficher skeleton pendant `ocrBusy` / `pdfBusy` / `kycBusy` au lieu de simple spinner.
-  - Extraire la barre d'action en composant `<StickyActionBar prev next loading />` rendu en `fixed bottom-0` sur mobile (`md:static`) pour **toutes** les macro-étapes — actuellement incohérente d'un step à l'autre.
-  - Boutons : pleine largeur mobile, hauteur 56px, label court (« Suivant »).
+## Section technique
 
-Édite `src/pages/client/Documents.tsx` : skeleton card pendant `trackSync` de génération PDF.
+### Fichiers créés
+- `src/components/adhesion/steps/Step1Simulation.tsx`
+- `src/components/adhesion/steps/Step2Scan.tsx`
+- `src/components/adhesion/steps/Step3Infos.tsx`
+- `src/components/adhesion/steps/Step4Signature.tsx`
+- `src/components/adhesion/steps/Step5Paiement.tsx`
+- `src/components/kyc/ManualKycForm.tsx`
+- `src/hooks/useRuralMode.ts`
+- `src/lib/offline-queue.ts` (IndexedDB minimal via `idb-keyval`)
+- `.github/workflows/e2e.yml`
+- `src/pages/ResetPassword.tsx` (si absent)
 
-## 5. Fix « Empreinte refusée » (WebAuthn / passkey)
+### Fichiers modifiés
+- `src/pages/Login.tsx`, `src/contexts/AuthContext.tsx`
+- `src/pages/client/Adhesion.tsx` (refonte majeure)
+- `src/components/kyc/IdCardScanner.tsx`, `src/components/kyc/BasicKyc.tsx`
+- `supabase/functions/kyc-ocr-extract/index.ts`
+- `src/pages/admin/Telemetrie.tsx`, `src/pages/admin/KycDocuments.tsx`
+- `tests/e2e/parcours-complet.spec.ts`, `playwright.config.ts`
+- `package.json` (script test:e2e, dep `idb-keyval`)
 
-Erreur signalée : *« Emprunte refusee edge function returned a non-2xx »* + message UI « L'empreinte n'a pas fonctionné. Connectez-vous… ».
+### Migration BDD
+- Ajout colonne `kyc_documents.ocr_status text default 'auto'` (valeurs: `auto|manual|verified|rejected`) avec GRANT + RLS conservée.
 
-- Édite `supabase/functions/webauthn-authenticate/index.ts` (et `webauthn-register`) : ne **jamais** renvoyer 4xx/5xx sur échec attendu. Toujours `status: 200` avec `{ ok: false, fallback: true, code, message }`. Réserver les non-200 aux pannes réelles.
-- Édite `src/lib/webauthn.ts` + `src/components/PasskeyEnrollPrompt.tsx` + `src/pages/Login.tsx` :
-  - Catch `fallback: true` → afficher un message clair *non bloquant* : « Empreinte indisponible, utilisez votre email/mot de passe ci-dessous » et **focus** le champ email.
-  - Ne plus crasher si `navigator.credentials` absent (rural, vieux Android) : détection upfront, masquer le bouton passkey.
-- Ajoute télémétrie `track({ kind: 'auth', name: 'passkey.authenticate' })`.
-
-## 6. Parcours d'inscription simplifié (population rurale)
-
-Édite `src/pages/Login.tsx` (signup) + `src/pages/client/Adhesion.tsx` :
-- **Signup minimal** : email + mot de passe (ou téléphone + OTP si dispo) — supprimer champs accessoires (déplacés dans le profil post-onboarding).
-- **Wording** : phrases courtes, vocabulaire concret (« Votre nom », « Votre date de naissance »), pas de jargon assurance dans les labels.
-- **Mode « assistance »** : toggle en haut du wizard « Je préfère être appelé » → masque le wizard et affiche un seul écran avec numéros SONAM (27 20 31 71 82) + bouton WhatsApp.
-- **Saisie tolérante** : dates en 3 champs JJ/MM/AAAA (`date-input` existant), numéros sans format strict, OCR comme chemin par défaut pour éviter la saisie manuelle.
-- **Macro-steps réduits à 4** sur mobile : *Vous → Vos proches → Signature & Paiement → Reçu* (la simulation devient pré-remplie depuis la home, l'identité fusionnée avec le scan).
-
-## Détails techniques
-
-- Aucune nouvelle dépendance npm — `react-day-picker`, `recharts`, `framer-motion` déjà présents.
-- Pas de migration DB (la table `telemetry_events` et ses index existent).
-- Edge functions WebAuthn : adapter le pattern « toujours 200 + fallback » documenté dans le knowledge stack-overflow.
-- E2E : `playwright.config.ts` déjà configuré ; ajouter `testDir: 'tests/e2e'` si manquant et un projet `webServer` qui pointe sur `http://localhost:8080`.
-- Telemetry CSV : pure client-side, pas de backend.
-
-## Fichiers touchés
-
-Création :
-- `tests/e2e/parcours-complet.spec.ts`
-- `tests/e2e/parcours-erreurs.spec.ts`
-- `tests/e2e/_helpers/auth.ts`
-- `tests/e2e/fixtures/cni.jpg`
-- `src/components/adhesion/StepSkeleton.tsx`
-- `src/components/adhesion/StickyActionBar.tsx`
-
-Édition :
-- `src/pages/admin/Telemetrie.tsx`
-- `src/components/kyc/BasicKyc.tsx`
-- `src/components/adhesion/UnifiedProgressBar.tsx`
-- `src/pages/client/Adhesion.tsx`
-- `src/pages/client/Documents.tsx`
-- `src/pages/Login.tsx`
-- `src/lib/webauthn.ts`
-- `src/components/PasskeyEnrollPrompt.tsx`
-- `supabase/functions/webauthn-authenticate/index.ts`
-- `supabase/functions/webauthn-register/index.ts`
-- `playwright.config.ts` (si besoin)
+### Non-objectifs
+- Pas de suppression de la table `user_passkeys` ni des edge functions webauthn (gardées pour usage futur côté espace client).
+- Pas de refonte visuelle du landing ni de l'admin hors pages citées.

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ChatBot } from '@/components/ChatBot';
-import { PasskeyEnrollPrompt } from '@/components/PasskeyEnrollPrompt';
+// PasskeyEnrollPrompt removed — fingerprint login disabled per request.
 
 const bottomNav = [
   { icon: LayoutDashboard, label: 'Accueil', path: '/client' },
@@ -74,7 +74,7 @@ export default function ClientLayout() {
         </div>
       </div>
       <ChatBot />
-      <PasskeyEnrollPrompt />
+      
     </SidebarProvider>
   );
 }

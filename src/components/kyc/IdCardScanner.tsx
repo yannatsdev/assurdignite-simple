@@ -36,6 +36,8 @@ export type OcrExtractedData = {
 
 interface Props {
   onExtracted: (data: OcrExtractedData) => void;
+  /** Called when the user explicitly chooses to bypass OCR and continue with manual input. */
+  onManualFallback?: () => void;
   className?: string;
 }
 
@@ -89,7 +91,7 @@ function normalizeExtracted(raw: any): OcrExtractedData {
   };
 }
 
-export function IdCardScanner({ onExtracted, className }: Props) {
+export function IdCardScanner({ onExtracted, onManualFallback, className }: Props) {
   const { toast } = useToast();
   const videoRef = useRef<HTMLVideoElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -164,39 +166,34 @@ export function IdCardScanner({ onExtracted, className }: Props) {
     else { setVerso(compressed); }
   };
 
+  // Warmup OCR edge function once on mount to remove cold-start latency.
+  useEffect(() => {
+    supabase.functions.invoke('kyc-ocr-extract', { body: { ping: true } }).catch(() => {});
+  }, []);
+
   const runOcr = async () => {
     if (!recto) return;
     setScanning(true);
     setError(null);
     setPhase('compressing');
 
-    const attempt = async (quality: number, maxDim: number) => {
-      const [r2, v2] = await Promise.all([
-        compressDataUrl(recto, maxDim, quality),
-        verso ? compressDataUrl(verso, maxDim, quality) : Promise.resolve<string | null>(null),
-      ]);
-      const { data, error } = await supabase.functions.invoke('kyc-ocr-extract', {
-        body: { image: r2, image2: v2 || undefined },
-      });
-      if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
-      const extracted = normalizeExtracted(data?.data ?? data);
-      if (!extracted || Object.values(extracted).every((v) => !v)) {
-        throw new Error('Aucune donnée extraite');
-      }
-      return extracted;
-    };
-
     try {
       const extracted = await track({ kind: 'ocr', name: 'kyc_ocr_extract' }, async () => {
+        const [r2, v2] = await Promise.all([
+          compressDataUrl(recto, 1024, 0.72),
+          verso ? compressDataUrl(verso, 1024, 0.72) : Promise.resolve<string | null>(null),
+        ]);
         setPhase('analyzing');
-        try {
-          return await attempt(0.7, 1024);
-        } catch (e) {
-          // Auto-retry once at higher fidelity before giving up
-          setPhase('retrying');
-          return await attempt(0.85, 1600);
+        const { data, error } = await supabase.functions.invoke('kyc-ocr-extract', {
+          body: { image: r2, image2: v2 || undefined },
+        });
+        if (error) throw new Error(error.message);
+        if (data?.error) throw new Error(data.error);
+        const extracted = normalizeExtracted(data?.data ?? data);
+        if (!extracted || Object.values(extracted).every((v) => !v)) {
+          throw new Error('Aucune donnée extraite');
         }
+        return extracted;
       });
       setPhase('done');
       onExtracted(extracted);
@@ -213,7 +210,6 @@ export function IdCardScanner({ onExtracted, className }: Props) {
       toast({ title: 'Échec OCR', description: msg, variant: 'destructive' });
     } finally {
       setScanning(false);
-      // Reset phase after a short delay so the "done/error" state stays visible
       setTimeout(() => setPhase((p) => (p === 'done' || p === 'error' ? 'idle' : p)), 2200);
     }
   };
@@ -322,7 +318,24 @@ export function IdCardScanner({ onExtracted, className }: Props) {
         )}
       </AnimatePresence>
 
-      {error && !scanning && <p className="text-xs text-destructive">{error}</p>}
+      {error && !scanning && (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-50 dark:bg-amber-950/30 p-3 space-y-2">
+          <p className="text-xs text-destructive font-medium">⚠ {error}</p>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            <span className="font-semibold">Étapes en envoi manuel :</span> 1. Saisissez vos infos vous-même · 2. Téléchargez recto/verso · 3. Un agent vérifie sous 24h.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" onClick={runOcr} disabled={scanning} className="gap-1.5 h-9">
+              <RotateCcw className="h-3.5 w-3.5" /> Réessayer l'OCR
+            </Button>
+            {onManualFallback && (
+              <Button size="sm" variant="outline" onClick={onManualFallback} className="gap-1.5 h-9">
+                Continuer en envoi manuel
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Hidden inputs — camera (mobile native) and gallery (file picker) */}
       <input
