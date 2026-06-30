@@ -91,7 +91,7 @@ function normalizeExtracted(raw: any): OcrExtractedData {
   };
 }
 
-export function IdCardScanner({ onExtracted, className }: Props) {
+export function IdCardScanner({ onExtracted, onManualFallback, className }: Props) {
   const { toast } = useToast();
   const videoRef = useRef<HTMLVideoElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
