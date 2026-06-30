@@ -74,7 +74,7 @@ export default function ClientLayout() {
         </div>
       </div>
       <ChatBot />
-      <PasskeyEnrollPrompt />
+      
     </SidebarProvider>
   );
 }
