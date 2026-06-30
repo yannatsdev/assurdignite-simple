@@ -164,39 +164,34 @@ export function IdCardScanner({ onExtracted, className }: Props) {
     else { setVerso(compressed); }
   };
 
+  // Warmup OCR edge function once on mount to remove cold-start latency.
+  useEffect(() => {
+    supabase.functions.invoke('kyc-ocr-extract', { body: { ping: true } }).catch(() => {});
+  }, []);
+
   const runOcr = async () => {
     if (!recto) return;
     setScanning(true);
     setError(null);
     setPhase('compressing');
 
-    const attempt = async (quality: number, maxDim: number) => {
-      const [r2, v2] = await Promise.all([
-        compressDataUrl(recto, maxDim, quality),
-        verso ? compressDataUrl(verso, maxDim, quality) : Promise.resolve<string | null>(null),
-      ]);
-      const { data, error } = await supabase.functions.invoke('kyc-ocr-extract', {
-        body: { image: r2, image2: v2 || undefined },
-      });
-      if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
-      const extracted = normalizeExtracted(data?.data ?? data);
-      if (!extracted || Object.values(extracted).every((v) => !v)) {
-        throw new Error('Aucune donnée extraite');
-      }
-      return extracted;
-    };
-
     try {
       const extracted = await track({ kind: 'ocr', name: 'kyc_ocr_extract' }, async () => {
+        const [r2, v2] = await Promise.all([
+          compressDataUrl(recto, 1024, 0.72),
+          verso ? compressDataUrl(verso, 1024, 0.72) : Promise.resolve<string | null>(null),
+        ]);
         setPhase('analyzing');
-        try {
-          return await attempt(0.7, 1024);
-        } catch (e) {
-          // Auto-retry once at higher fidelity before giving up
-          setPhase('retrying');
-          return await attempt(0.85, 1600);
+        const { data, error } = await supabase.functions.invoke('kyc-ocr-extract', {
+          body: { image: r2, image2: v2 || undefined },
+        });
+        if (error) throw new Error(error.message);
+        if (data?.error) throw new Error(data.error);
+        const extracted = normalizeExtracted(data?.data ?? data);
+        if (!extracted || Object.values(extracted).every((v) => !v)) {
+          throw new Error('Aucune donnée extraite');
         }
+        return extracted;
       });
       setPhase('done');
       onExtracted(extracted);
@@ -213,7 +208,6 @@ export function IdCardScanner({ onExtracted, className }: Props) {
       toast({ title: 'Échec OCR', description: msg, variant: 'destructive' });
     } finally {
       setScanning(false);
-      // Reset phase after a short delay so the "done/error" state stays visible
       setTimeout(() => setPhase((p) => (p === 'done' || p === 'error' ? 'idle' : p)), 2200);
     }
   };
