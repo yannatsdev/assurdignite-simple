@@ -318,7 +318,24 @@ export function IdCardScanner({ onExtracted, onManualFallback, className }: Prop
         )}
       </AnimatePresence>
 
-      {error && !scanning && <p className="text-xs text-destructive">{error}</p>}
+      {error && !scanning && (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-50 dark:bg-amber-950/30 p-3 space-y-2">
+          <p className="text-xs text-destructive font-medium">⚠ {error}</p>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            <span className="font-semibold">Étapes en envoi manuel :</span> 1. Saisissez vos infos vous-même · 2. Téléchargez recto/verso · 3. Un agent vérifie sous 24h.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" onClick={runOcr} disabled={scanning} className="gap-1.5 h-9">
+              <RotateCcw className="h-3.5 w-3.5" /> Réessayer l'OCR
+            </Button>
+            {onManualFallback && (
+              <Button size="sm" variant="outline" onClick={onManualFallback} className="gap-1.5 h-9">
+                Continuer en envoi manuel
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Hidden inputs — camera (mobile native) and gallery (file picker) */}
       <input
