@@ -218,6 +218,33 @@ export function IdCardScanner({ onExtracted, onManualFallback, className }: Prop
       });
       setPhase('done');
       onExtracted(extracted);
+      // Persist recto/verso to kyc-documents storage so KYC step doesn't ask again
+      if (user) {
+        try {
+          const uploads = [
+            { key: 'cni_recto', dataUrl: recto },
+            { key: 'cni_verso', dataUrl: verso },
+          ].filter((x) => x.dataUrl);
+          for (const u of uploads) {
+            const blob = dataUrlToBlob(u.dataUrl!);
+            const path = `${user.id}/draft/principal-${u.key}-${Date.now()}.jpg`;
+            const { error: upErr } = await supabase.storage
+              .from('kyc-documents')
+              .upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
+            if (!upErr) {
+              await supabase.from('kyc_documents').insert({
+                user_id: user.id,
+                doc_type: u.key,
+                storage_path: path,
+                mime_type: 'image/jpeg',
+                status: 'pending',
+              });
+            }
+          }
+        } catch (uErr) {
+          console.warn('kyc auto-upload failed', uErr);
+        }
+      }
       toast({
         title: '✓ Pièce scannée avec succès',
         description: 'Vos informations ont été pré-remplies automatiquement.',
