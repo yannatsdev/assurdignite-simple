@@ -368,7 +368,7 @@ export function IdCardScanner({ onExtracted, onManualFallback, className }: Prop
                 </>
               ) : (
                 <span className="text-xs text-muted-foreground flex flex-col items-center gap-1">
-                  <FileText className="h-5 w-5" /> {p.label} {p.label === 'Verso' && '(optionnel)'}
+                  <FileText className="h-5 w-5" /> {p.label} {p.label === 'Verso' && '(obligatoire)'}
                 </span>
               )}
             </div>
