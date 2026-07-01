@@ -27,7 +27,7 @@ import { UnifiedProgressBar } from '@/components/adhesion/UnifiedProgressBar';
 import { adhesionProgress } from '@/stores/adhesion-progress';
 
 const STEPS = [
-  'Simulation', 'Choix Formule', 'KYC Principal', 'Conjoint', 'Assurés Complémentaires',
+  'Simulation', 'Choix Formule', 'KYC Principal', 'Famille & Bénéficiaires', 'Assurés Complémentaires',
   'Bénéficiaires', 'Prestations Nature', 'Ayants-droits', 'Questionnaire Médical',
   'Groupe', 'Conditions Générales', 'Paiement', 'Conditions Particulières', 'Signature & Reçu'
 ];
