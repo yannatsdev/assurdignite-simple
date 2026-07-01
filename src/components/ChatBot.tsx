@@ -43,6 +43,42 @@ export function ChatBot() {
   const [conversationHistory, setConversationHistory] = useState<AiMsg[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Drag position (bottom-right offset in px). Persisted in localStorage.
+  const [pos, setPos] = useState<{ x: number; y: number }>(() => {
+    if (typeof window === 'undefined') return { x: 16, y: 16 };
+    try {
+      const raw = localStorage.getItem('chatbot_pos');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return { x: 16, y: 16 };
+  });
+  const dragState = useRef<{ dragging: boolean; startX: number; startY: number; origX: number; origY: number; moved: boolean }>({
+    dragging: false, startX: 0, startY: 0, origX: 0, origY: 0, moved: false,
+  });
+
+  const onDragStart = (e: React.PointerEvent) => {
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    dragState.current = {
+      dragging: true, startX: e.clientX, startY: e.clientY,
+      origX: pos.x, origY: pos.y, moved: false,
+    };
+  };
+  const onDragMove = (e: React.PointerEvent) => {
+    if (!dragState.current.dragging) return;
+    const dx = e.clientX - dragState.current.startX;
+    const dy = e.clientY - dragState.current.startY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragState.current.moved = true;
+    // pos is offset from bottom-right, so dragging right/down decreases it
+    const nx = Math.max(4, Math.min(window.innerWidth - 60, dragState.current.origX - dx));
+    const ny = Math.max(4, Math.min(window.innerHeight - 60, dragState.current.origY - dy));
+    setPos({ x: nx, y: ny });
+  };
+  const onDragEnd = (e: React.PointerEvent) => {
+    if (!dragState.current.dragging) return;
+    dragState.current.dragging = false;
+    try { localStorage.setItem('chatbot_pos', JSON.stringify(pos)); } catch {}
+  };
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
