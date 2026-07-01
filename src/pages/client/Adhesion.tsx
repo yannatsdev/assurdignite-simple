@@ -27,7 +27,7 @@ import { UnifiedProgressBar } from '@/components/adhesion/UnifiedProgressBar';
 import { adhesionProgress } from '@/stores/adhesion-progress';
 
 const STEPS = [
-  'Simulation', 'Choix Formule', 'KYC Principal', 'Conjoint', 'Assurés Complémentaires',
+  'Simulation', 'Choix Formule', 'KYC Principal', 'Famille & Bénéficiaires', 'Assurés Complémentaires',
   'Bénéficiaires', 'Prestations Nature', 'Ayants-droits', 'Questionnaire Médical',
   'Groupe', 'Conditions Générales', 'Paiement', 'Conditions Particulières', 'Signature & Reçu'
 ];
@@ -578,10 +578,9 @@ export default function AdhesionPage() {
       stepTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
   };
-  // Steps 6 (Prestations Nature) and 7 (Ayants-droits) are skipped:
-  // - Prestations nature: removed from parcours (per product decision)
-  // - Ayants-droits: merged into step 5 (Bénéficiaires)
-  const SKIP_STEPS = new Set([1, 6, 7]);
+  // Steps skipped — merged into step 3 (Famille & Bénéficiaires):
+  // - 4 Assurés complémentaires, 5 Bénéficiaires, 6 Prestations Nature, 7 Ayants-droits
+  const SKIP_STEPS = new Set([1, 4, 5, 6, 7]);
   const next = () => {
     let n = step + 1;
     while (SKIP_STEPS.has(n) && n < STEPS.length - 1) n++;
@@ -867,33 +866,103 @@ export default function AdhesionPage() {
                 </div>
               )}
 
-              {/* Step 3: Conjoint — KYC basic */}
+              {/* Step 3: Famille & Bénéficiaires (conjoint + complémentaires + bénéficiaires + ayants-droits) */}
               {step === 3 && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-base font-semibold">Inclure un(e) conjoint(e) ?</Label>
-                    <Switch checked={hasConjoint} onCheckedChange={setHasConjoint} />
-                  </div>
-                  {hasConjoint && (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-accent/50">
-                        <div><Label>Nom</Label><Input value={conjoint.nom} onChange={e => setConjoint({ ...conjoint, nom: e.target.value })} /></div>
-                        <div><Label>Prénom</Label><Input value={conjoint.prenom} onChange={e => setConjoint({ ...conjoint, prenom: e.target.value })} /></div>
-                        <div><Label>Date de naissance</Label><DateInput value={conjoint.dob} onChange={e => setConjoint({ ...conjoint, dob: e })} /></div>
-                      </div>
-                      <BasicKyc
-                        scope="conjoint"
-                        compact
-                        onUploaded={(f) => {
-                          if (f.doc_type === 'cni_recto') {
-                            setKycFiles(prev => ({ ...prev, cniConjoint: f.storage_path }));
-                          } else if (f.doc_type === 'selfie') {
-                            setKycFiles(prev => ({ ...prev, photoConjoint: f.storage_path }));
-                          }
-                        }}
-                      />
+                <div className="space-y-6">
+                  {/* --- Conjoint --- */}
+                  <section className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-base font-semibold">Inclure un(e) conjoint(e) ?</Label>
+                      <Switch checked={hasConjoint} onCheckedChange={setHasConjoint} />
                     </div>
-                  )}
+                    {hasConjoint && (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-accent/50">
+                          <div><Label>Nom</Label><Input value={conjoint.nom} onChange={e => setConjoint({ ...conjoint, nom: e.target.value })} /></div>
+                          <div><Label>Prénom</Label><Input value={conjoint.prenom} onChange={e => setConjoint({ ...conjoint, prenom: e.target.value })} /></div>
+                          <div><Label>Date de naissance</Label><DateInput value={conjoint.dob} onChange={e => setConjoint({ ...conjoint, dob: e })} /></div>
+                        </div>
+                        <BasicKyc
+                          scope="conjoint"
+                          compact
+                          onUploaded={(f) => {
+                            if (f.doc_type === 'cni_recto') {
+                              setKycFiles(prev => ({ ...prev, cniConjoint: f.storage_path }));
+                            } else if (f.doc_type === 'selfie') {
+                              setKycFiles(prev => ({ ...prev, photoConjoint: f.storage_path }));
+                            }
+                          }}
+                        />
+                      </div>
+                    )}
+                  </section>
+
+                  {/* --- Assurés complémentaires --- */}
+                  <section className="space-y-3 pt-4 border-t border-border/60">
+                    <p className="text-sm font-semibold">Assurés complémentaires</p>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm">Enfants ({enfants.length}/4)</Label>
+                      <Button size="sm" variant="outline" onClick={() => enfants.length < 4 && setEnfants([...enfants, { nom: '', dob: '', prestation: 'Cercueil' }])}><Plus className="w-4 h-4 mr-1" /> Ajouter</Button>
+                    </div>
+                    {enfants.map((e, i) => (
+                      <div key={i} className="p-3 rounded-lg bg-accent/30 space-y-2">
+                        <div className="flex items-center justify-between"><span className="text-sm font-medium">Enfant {i + 1}</span><Button size="icon" variant="ghost" onClick={() => setEnfants(enfants.filter((_, j) => j !== i))}><Minus className="w-4 h-4" /></Button></div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <Input placeholder="Nom" value={e.nom} onChange={ev => { const n = [...enfants]; n[i].nom = ev.target.value; setEnfants(n); }} />
+                          <DateInput value={e.dob} onChange={ev => { const n = [...enfants]; n[i].dob = ev; setEnfants(n); }} />
+                        </div>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between mt-4">
+                      <Label className="text-sm">Ascendants ({ascendants.length}/2)</Label>
+                      <Button size="sm" variant="outline" onClick={() => ascendants.length < 2 && setAscendants([...ascendants, { nom: '', dob: '', lien: 'Père/Mère', prestation: 'Cercueil' }])}><Plus className="w-4 h-4 mr-1" /> Ajouter</Button>
+                    </div>
+                    {ascendants.map((a, i) => (
+                      <div key={i} className="p-3 rounded-lg bg-accent/30 space-y-2">
+                        <div className="flex items-center justify-between"><span className="text-sm font-medium">{a.lien || `Ascendant ${i + 1}`}</span><Button size="icon" variant="ghost" onClick={() => setAscendants(ascendants.filter((_, j) => j !== i))}><Minus className="w-4 h-4" /></Button></div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <Input placeholder="Nom" value={a.nom} onChange={ev => { const n = [...ascendants]; n[i].nom = ev.target.value; setAscendants(n); }} />
+                          <DateInput value={a.dob} onChange={ev => { const n = [...ascendants]; n[i].dob = ev; setAscendants(n); }} />
+                          <Select value={a.lien} onValueChange={v => { const n = [...ascendants]; n[i].lien = v; setAscendants(n); }}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent><SelectItem value="Père/Mère">Père/Mère</SelectItem><SelectItem value="Oncle/Tante">Oncle/Tante</SelectItem></SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    ))}
+                  </section>
+
+                  {/* --- Bénéficiaires --- */}
+                  <section className="space-y-3 pt-4 border-t border-border/60">
+                    <p className="text-sm font-semibold">Bénéficiaires du capital espèces (30%)</p>
+                    {beneficiaires.map((b, i) => (
+                      <div key={i} className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-lg bg-accent/30">
+                        <Input placeholder="Nom complet" value={b.nom} onChange={e => { const n = [...beneficiaires]; n[i].nom = e.target.value; setBeneficiaires(n); }} />
+                        <Select value={b.lien} onValueChange={v => { const n = [...beneficiaires]; n[i].lien = v; setBeneficiaires(n); }}>
+                          <SelectTrigger><SelectValue placeholder="Lien de parenté" /></SelectTrigger>
+                          <SelectContent><SelectItem value="Conjoint">Conjoint</SelectItem><SelectItem value="Enfant">Enfant</SelectItem><SelectItem value="Parent">Parent</SelectItem><SelectItem value="Autre">Autre</SelectItem></SelectContent>
+                        </Select>
+                        <Input placeholder="Téléphone" value={b.telephone} onChange={e => { const n = [...beneficiaires]; n[i].telephone = e.target.value; setBeneficiaires(n); }} />
+                      </div>
+                    ))}
+                    <Button variant="outline" size="sm" onClick={() => setBeneficiaires([...beneficiaires, { nom: '', lien: '', telephone: '' }])}><Plus className="w-4 h-4 mr-1" /> Ajouter un bénéficiaire</Button>
+                  </section>
+
+                  {/* --- Ayants-droits (optionnel) --- */}
+                  <section className="space-y-3 pt-4 border-t border-border/60">
+                    <p className="text-sm font-semibold">Ayants-droits <span className="text-xs font-normal text-muted-foreground">(optionnel)</span></p>
+                    <div><Label>Nombre d'enfants à naître</Label><Input type="number" min={0} max={4} value={enfantsNaitre} onChange={e => setEnfantsNaitre(parseInt(e.target.value) || 0)} /></div>
+                    <div className="flex items-center justify-between">
+                      <Label>Autres ayants-droits</Label>
+                      <Button size="sm" variant="outline" onClick={() => setAyantsDroits([...ayantsDroits, { nom: '', numero: '' }])}><Plus className="w-4 h-4 mr-1" /> Ajouter</Button>
+                    </div>
+                    {ayantsDroits.map((a, i) => (
+                      <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <Input placeholder="Nom" value={a.nom} onChange={e => { const n = [...ayantsDroits]; n[i].nom = e.target.value; setAyantsDroits(n); }} />
+                        <Input placeholder="N° Téléphone" value={a.numero} onChange={e => { const n = [...ayantsDroits]; n[i].numero = e.target.value; setAyantsDroits(n); }} />
+                      </div>
+                    ))}
+                  </section>
                 </div>
               )}
 
