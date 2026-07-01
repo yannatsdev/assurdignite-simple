@@ -483,9 +483,9 @@ export function IdCardScanner({ onExtracted, onManualFallback, className }: Prop
 
           {recto && (
             <>
-              <Button onClick={runOcr} disabled={scanning} className="gap-2 flex-1 sm:flex-none bg-gradient-to-r from-primary to-sonam-green text-white">
+              <Button onClick={runOcr} disabled={scanning || !verso} className="gap-2 flex-1 sm:flex-none bg-gradient-to-r from-primary to-sonam-green text-white">
                 {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                {scanning ? 'Analyse en cours…' : 'Extraire les informations'}
+                {scanning ? 'Analyse en cours…' : !verso ? 'Capturez le verso pour continuer' : 'Extraire les informations'}
               </Button>
               <Button onClick={reset} variant="ghost" size="sm" className="gap-1"><RotateCcw className="h-3 w-3" /> Recommencer</Button>
             </>
