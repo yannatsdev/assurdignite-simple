@@ -130,14 +130,15 @@ export function HeroSection() {
 
 
 
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.6 }} className="flex flex-col sm:flex-row gap-4 mb-16">
-            <Button size="lg" className="bg-secondary hover:bg-secondary/90 text-white text-base sm:text-lg px-8 gap-2 font-semibold" asChild>
-              <a href="#simulateur"><Calculator className="w-5 h-5" /> Simuler ma prime</a>
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.6 }} className="flex flex-col sm:flex-row gap-2.5 sm:gap-4 mb-8 sm:mb-16">
+            <Button size="lg" className="bg-secondary hover:bg-secondary/90 text-white text-sm sm:text-lg px-6 sm:px-8 h-11 sm:h-12 gap-2 font-semibold" asChild>
+              <a href="#simulateur"><Calculator className="w-4 h-4 sm:w-5 sm:h-5" /> Simuler ma prime</a>
             </Button>
-            <Button size="lg" className="bg-white/20 border-2 border-white text-white hover:bg-white/30 text-base sm:text-lg px-8 gap-2 backdrop-blur-sm font-semibold" asChild>
-              <a href="#contact"><ArrowRight className="w-5 h-5" /> Nous contacter</a>
+            <Button size="lg" className="bg-white/20 border-2 border-white text-white hover:bg-white/30 text-sm sm:text-lg px-6 sm:px-8 h-11 sm:h-12 gap-2 backdrop-blur-sm font-semibold" asChild>
+              <a href="#contact"><ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" /> Nous contacter</a>
             </Button>
           </motion.div>
+
 
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.8 }} className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
             {stats.map((stat, i) => (
