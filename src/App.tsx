@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -8,36 +9,48 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/Login";
-import AdminLoginPage from "./pages/AdminLogin";
-import ClientLayout from "./layouts/ClientLayout";
-import AdminLayout from "./layouts/AdminLayout";
-import ClientDashboard from "./pages/client/Dashboard";
-import SouscrirePage from "./pages/client/Souscrire";
-import AdhesionPage from "./pages/client/Adhesion";
-import ContratsPage from "./pages/client/Contrats";
-import PaiementsPage from "./pages/client/Paiements";
-import BeneficiairesPage from "./pages/client/Beneficiaires";
-import SinistrePage from "./pages/client/Sinistre";
-import SinistreSuivi from "./pages/client/SinistreSuivi";
-import SinistresHistoriquePage from "./pages/client/SinistresHistorique";
-import PaiementCheckoutPage from "./pages/client/PaiementCheckoutV2";
-import AssistancePage from "./pages/client/Assistance";
-import DocumentsPage from "./pages/client/Documents";
-import ProfilPage from "./pages/client/Profil";
-import AdminDashboard from "./pages/admin/Dashboard";
-import AdminParametrage from "./pages/admin/Parametrage";
-import AdminContrats from "./pages/admin/Contrats";
-import AdminFinances from "./pages/admin/Finances";
-import AdminSinistres from "./pages/admin/Sinistres";
-import AdminFraude from "./pages/admin/Fraude";
-import AdminReporting from "./pages/admin/Reporting";
-import AdminUtilisateurs from "./pages/admin/Utilisateurs";
-import AdminCommunication from "./pages/admin/Communication";
-import AdminOutils from "./pages/admin/Outils";
-import AdminKycDocuments from "./pages/admin/KycDocuments";
-import AdminTelemetrie from "./pages/admin/Telemetrie";
+
+const AdminLoginPage = lazy(() => import("./pages/AdminLogin"));
+const ClientLayout = lazy(() => import("./layouts/ClientLayout"));
+const AdminLayout = lazy(() => import("./layouts/AdminLayout"));
+const ClientDashboard = lazy(() => import("./pages/client/Dashboard"));
+const SouscrirePage = lazy(() => import("./pages/client/Souscrire"));
+const AdhesionPage = lazy(() => import("./pages/client/Adhesion"));
+const ContratsPage = lazy(() => import("./pages/client/Contrats"));
+const PaiementsPage = lazy(() => import("./pages/client/Paiements"));
+const BeneficiairesPage = lazy(() => import("./pages/client/Beneficiaires"));
+const SinistrePage = lazy(() => import("./pages/client/Sinistre"));
+const SinistreSuivi = lazy(() => import("./pages/client/SinistreSuivi"));
+const SinistresHistoriquePage = lazy(() => import("./pages/client/SinistresHistorique"));
+const PaiementCheckoutPage = lazy(() => import("./pages/client/PaiementCheckoutV2"));
+const AssistancePage = lazy(() => import("./pages/client/Assistance"));
+const DocumentsPage = lazy(() => import("./pages/client/Documents"));
+const ProfilPage = lazy(() => import("./pages/client/Profil"));
+const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
+const AdminParametrage = lazy(() => import("./pages/admin/Parametrage"));
+const AdminContrats = lazy(() => import("./pages/admin/Contrats"));
+const AdminFinances = lazy(() => import("./pages/admin/Finances"));
+const AdminSinistres = lazy(() => import("./pages/admin/Sinistres"));
+const AdminFraude = lazy(() => import("./pages/admin/Fraude"));
+const AdminReporting = lazy(() => import("./pages/admin/Reporting"));
+const AdminUtilisateurs = lazy(() => import("./pages/admin/Utilisateurs"));
+const AdminCommunication = lazy(() => import("./pages/admin/Communication"));
+const AdminOutils = lazy(() => import("./pages/admin/Outils"));
+const AdminKycDocuments = lazy(() => import("./pages/admin/KycDocuments"));
+const AdminTelemetrie = lazy(() => import("./pages/admin/Telemetrie"));
 
 const queryClient = new QueryClient();
+
+const RouteFallback = () => (
+  <div
+    role="status"
+    aria-live="polite"
+    className="min-h-dvh flex items-center justify-center bg-background text-muted-foreground"
+  >
+    <span className="sr-only">Chargement…</span>
+    <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" aria-hidden="true" />
+  </div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -46,7 +59,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/admin/login" element={<AdminLoginPage />} />
@@ -106,7 +120,8 @@ const App = () => (
             </Route>
 
             <Route path="*" element={<NotFound />} />
-          </Routes>
+            </Routes>
+          </Suspense>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
