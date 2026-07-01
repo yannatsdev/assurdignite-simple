@@ -99,7 +99,7 @@ export function Header() {
       </div>
 
       {mobileOpen && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="lg:hidden bg-background border-b border-border p-4 space-y-3">
+        <motion.div id="mobile-nav" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="lg:hidden bg-background border-b border-border p-4 space-y-3">
           {NAV_ITEMS.map(item => (
             <a key={item.href} href={item.href} className="block py-2 text-foreground hover:text-primary font-semibold text-base" onClick={() => setMobileOpen(false)}>
               {item.label}
