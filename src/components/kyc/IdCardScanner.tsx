@@ -61,10 +61,9 @@ const fileToBase64 = (file: File | Blob): Promise<string> =>
   });
 
 /** Downscale a dataURL to max dimension and JPEG quality — speeds up OCR drastically. */
-const compressDataUrl = (dataUrl: string, maxDim = 900, quality = 0.6): Promise<string> =>
+const compressDataUrl = (dataUrl: string, maxDim = 720, quality = 0.55): Promise<string> =>
   new Promise((resolve) => {
-    // Skip re-compress for tiny images (already fast enough)
-    if (dataUrl.length < 250_000) return resolve(dataUrl);
+    if (dataUrl.length < 160_000) return resolve(dataUrl);
     const img = new Image();
     img.onload = () => {
       const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
@@ -118,6 +117,9 @@ export function IdCardScanner({ onExtracted, onManualFallback, className }: Prop
   const [scanning, setScanning] = useState(false);
   const [phase, setPhase] = useState<ScanPhase>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [autoCountdown, setAutoCountdown] = useState<number | null>(null);
+  const detectRef = useRef<{ stable: number; last: number } | null>(null);
+  const capturingRef = useRef(false);
 
   useEffect(() => () => { stream?.getTracks().forEach(t => t.stop()); }, [stream]);
 
@@ -157,7 +159,8 @@ export function IdCardScanner({ onExtracted, onManualFallback, className }: Prop
   };
 
   const capture = async () => {
-    if (!videoRef.current) return;
+    if (!videoRef.current || capturingRef.current) return;
+    capturingRef.current = true;
     const c = document.createElement('canvas');
     c.width = videoRef.current.videoWidth || 1280;
     c.height = videoRef.current.videoHeight || 720;
@@ -167,7 +170,68 @@ export function IdCardScanner({ onExtracted, onManualFallback, className }: Prop
     if (side === 'recto') { setRecto(data); setSide('verso'); }
     else { setVerso(data); }
     stopCamera();
+    setAutoCountdown(null);
+    detectRef.current = null;
+    setTimeout(() => { capturingRef.current = false; }, 300);
   };
+
+  // Auto-capture: analyze video frames, trigger capture when a document appears stable + sharp.
+  useEffect(() => {
+    if (!streaming) return;
+    let raf = 0;
+    let stopped = false;
+    const small = document.createElement('canvas');
+    small.width = 96; small.height = 64;
+    const sctx = small.getContext('2d', { willReadFrequently: true });
+    detectRef.current = { stable: 0, last: 0 };
+
+    const tick = () => {
+      if (stopped || !videoRef.current || !sctx) return;
+      const v = videoRef.current;
+      if (v.readyState >= 2 && !capturingRef.current) {
+        sctx.drawImage(v, 0, 0, small.width, small.height);
+        const { data } = sctx.getImageData(0, 0, small.width, small.height);
+        // Grayscale + simple gradient magnitude (Sobel-ish diff of neighbours)
+        let sum = 0, count = 0;
+        for (let y = 1; y < small.height - 1; y += 2) {
+          for (let x = 1; x < small.width - 1; x += 2) {
+            const i = (y * small.width + x) * 4;
+            const g = data[i] * 0.3 + data[i + 1] * 0.59 + data[i + 2] * 0.11;
+            const iR = i + 4, iD = i + small.width * 4;
+            const gR = data[iR] * 0.3 + data[iR + 1] * 0.59 + data[iR + 2] * 0.11;
+            const gD = data[iD] * 0.3 + data[iD + 1] * 0.59 + data[iD + 2] * 0.11;
+            sum += Math.abs(g - gR) + Math.abs(g - gD);
+            count++;
+          }
+        }
+        const score = sum / count; // ~higher = more edges (document present, in focus)
+        const prev = detectRef.current!;
+        // "Document present" threshold + stable across frames
+        if (score > 22 && Math.abs(score - prev.last) < 6) {
+          prev.stable += 1;
+        } else {
+          prev.stable = 0;
+        }
+        prev.last = score;
+
+        // Show a countdown starting at 2 stable frames
+        if (prev.stable >= 2 && prev.stable < 5) {
+          setAutoCountdown(Math.max(0, 3 - (prev.stable - 1)));
+        } else if (prev.stable >= 5) {
+          setAutoCountdown(0);
+          capture();
+          return;
+        } else {
+          setAutoCountdown(null);
+        }
+      }
+      raf = window.setTimeout(tick, 250) as unknown as number;
+    };
+    tick();
+    return () => { stopped = true; clearTimeout(raf); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [streaming, side]);
+
 
   const onUpload = async (file: File) => {
     if (file.size > 12 * 1024 * 1024) {
@@ -186,7 +250,10 @@ export function IdCardScanner({ onExtracted, onManualFallback, className }: Prop
   }, []);
 
   const runOcr = async () => {
-    if (!recto) return;
+    if (!recto || !verso) {
+      toast({ title: 'Recto et verso requis', description: 'Capturez les deux faces de la pièce avant l\'analyse.', variant: 'destructive' });
+      return;
+    }
     setScanning(true);
     setError(null);
     setPhase('compressing');
@@ -194,19 +261,19 @@ export function IdCardScanner({ onExtracted, onManualFallback, className }: Prop
     try {
       const extracted = await track({ kind: 'ocr', name: 'kyc_ocr_extract' }, async () => {
         const [r2, v2] = await Promise.all([
-          compressDataUrl(recto, 900, 0.6),
-          verso ? compressDataUrl(verso, 900, 0.6) : Promise.resolve<string | null>(null),
+          compressDataUrl(recto, 720, 0.55),
+          compressDataUrl(verso, 720, 0.55),
         ]);
         setPhase('analyzing');
-        // 8s hard timeout with one silent retry
+        // 6s hard timeout with one silent retry
         const invoke = () => supabase.functions.invoke('kyc-ocr-extract', {
-          body: { image: r2, image2: v2 || undefined },
+          body: { image: r2, image2: v2 },
         });
         const withTimeout = <T,>(p: Promise<T>, ms: number) =>
           Promise.race<T>([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
         let resp: any;
-        try { resp = await withTimeout(invoke(), 8000); }
-        catch { resp = await withTimeout(invoke(), 10000); }
+        try { resp = await withTimeout(invoke(), 6000); }
+        catch { setPhase('retrying'); resp = await withTimeout(invoke(), 9000); }
         const { data, error } = resp;
         if (error) throw new Error(error.message);
         if (data?.error) throw new Error(data.error);
@@ -301,7 +368,7 @@ export function IdCardScanner({ onExtracted, onManualFallback, className }: Prop
                 </>
               ) : (
                 <span className="text-xs text-muted-foreground flex flex-col items-center gap-1">
-                  <FileText className="h-5 w-5" /> {p.label} {p.label === 'Verso' && '(optionnel)'}
+                  <FileText className="h-5 w-5" /> {p.label} {p.label === 'Verso' && '(obligatoire)'}
                 </span>
               )}
             </div>
@@ -327,6 +394,11 @@ export function IdCardScanner({ onExtracted, onManualFallback, className }: Prop
             <span className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-mono px-2 py-1 rounded">
               {side === 'recto' ? '1/2 · RECTO' : '2/2 · VERSO'}
             </span>
+            {autoCountdown !== null && (
+              <div className="absolute top-2 right-2 bg-sonam-green text-white text-[11px] font-semibold px-2 py-1 rounded-full flex items-center gap-1 shadow-lg animate-pulse">
+                <Sparkles className="h-3 w-3" /> Document détecté — capture auto
+              </div>
+            )}
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
               <Button size="sm" onClick={capture} className="gap-1 bg-white text-black hover:bg-white/90"><Camera className="h-4 w-4" /> Capturer</Button>
               <Button size="sm" variant="outline" onClick={stopCamera} className="bg-black/60 text-white border-white/30 hover:bg-black/80">Annuler</Button>
@@ -411,9 +483,9 @@ export function IdCardScanner({ onExtracted, onManualFallback, className }: Prop
 
           {recto && (
             <>
-              <Button onClick={runOcr} disabled={scanning} className="gap-2 flex-1 sm:flex-none bg-gradient-to-r from-primary to-sonam-green text-white">
+              <Button onClick={runOcr} disabled={scanning || !verso} className="gap-2 flex-1 sm:flex-none bg-gradient-to-r from-primary to-sonam-green text-white">
                 {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                {scanning ? 'Analyse en cours…' : 'Extraire les informations'}
+                {scanning ? 'Analyse en cours…' : !verso ? 'Capturez le verso pour continuer' : 'Extraire les informations'}
               </Button>
               <Button onClick={reset} variant="ghost" size="sm" className="gap-1"><RotateCcw className="h-3 w-3" /> Recommencer</Button>
             </>
