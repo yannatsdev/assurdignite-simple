@@ -169,9 +169,8 @@ export function IdCardScanner({ onExtracted, onManualFallback, className }: Prop
     if (side === 'recto') { setRecto(data); setSide('verso'); }
     else { setVerso(data); }
     stopCamera();
-    setAutoCountdown(null);
-    detectRef.current = null;
     setTimeout(() => { capturingRef.current = false; }, 300);
+
   };
 
   // Auto-detection removed — trop de faux positifs (objets détectés comme documents).
