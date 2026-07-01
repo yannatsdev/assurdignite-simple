@@ -175,62 +175,9 @@ export function IdCardScanner({ onExtracted, onManualFallback, className }: Prop
     setTimeout(() => { capturingRef.current = false; }, 300);
   };
 
-  // Auto-capture: analyze video frames, trigger capture when a document appears stable + sharp.
-  useEffect(() => {
-    if (!streaming) return;
-    let raf = 0;
-    let stopped = false;
-    const small = document.createElement('canvas');
-    small.width = 96; small.height = 64;
-    const sctx = small.getContext('2d', { willReadFrequently: true });
-    detectRef.current = { stable: 0, last: 0 };
+  // Auto-detection removed — trop de faux positifs (objets détectés comme documents).
+  // L'utilisateur déclenche la capture manuellement via le bouton "Capturer".
 
-    const tick = () => {
-      if (stopped || !videoRef.current || !sctx) return;
-      const v = videoRef.current;
-      if (v.readyState >= 2 && !capturingRef.current) {
-        sctx.drawImage(v, 0, 0, small.width, small.height);
-        const { data } = sctx.getImageData(0, 0, small.width, small.height);
-        // Grayscale + simple gradient magnitude (Sobel-ish diff of neighbours)
-        let sum = 0, count = 0;
-        for (let y = 1; y < small.height - 1; y += 2) {
-          for (let x = 1; x < small.width - 1; x += 2) {
-            const i = (y * small.width + x) * 4;
-            const g = data[i] * 0.3 + data[i + 1] * 0.59 + data[i + 2] * 0.11;
-            const iR = i + 4, iD = i + small.width * 4;
-            const gR = data[iR] * 0.3 + data[iR + 1] * 0.59 + data[iR + 2] * 0.11;
-            const gD = data[iD] * 0.3 + data[iD + 1] * 0.59 + data[iD + 2] * 0.11;
-            sum += Math.abs(g - gR) + Math.abs(g - gD);
-            count++;
-          }
-        }
-        const score = sum / count; // ~higher = more edges (document present, in focus)
-        const prev = detectRef.current!;
-        // "Document present" threshold + stable across frames
-        if (score > 22 && Math.abs(score - prev.last) < 6) {
-          prev.stable += 1;
-        } else {
-          prev.stable = 0;
-        }
-        prev.last = score;
-
-        // Show a countdown starting at 2 stable frames
-        if (prev.stable >= 2 && prev.stable < 5) {
-          setAutoCountdown(Math.max(0, 3 - (prev.stable - 1)));
-        } else if (prev.stable >= 5) {
-          setAutoCountdown(0);
-          capture();
-          return;
-        } else {
-          setAutoCountdown(null);
-        }
-      }
-      raf = window.setTimeout(tick, 250) as unknown as number;
-    };
-    tick();
-    return () => { stopped = true; clearTimeout(raf); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [streaming, side]);
 
 
   const onUpload = async (file: File) => {
