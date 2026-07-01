@@ -336,10 +336,16 @@ export default function AdhesionPage() {
   };
 
   const handleSign = async () => {
+    // Ensure at least one beneficiary — default to "Héritiers légaux" if user skipped.
+    let effectiveBeneficiaires = beneficiaires;
+    if (!beneficiaires.some((b) => (b?.nom || '').trim().length > 0)) {
+      effectiveBeneficiaires = [{ nom: 'Héritiers légaux', lien: 'Héritiers', telephone: kyc.phone || '' }];
+      setBeneficiaires(effectiveBeneficiaires);
+    }
     // Final validation gate — prevents silent redirects after signing.
     const { validateBeforeFinalize } = await import('@/lib/adhesion-validation');
     const check = validateBeforeFinalize({
-      kyc, beneficiaires, kycFiles, paymentDone, cgAccepted, cpAccepted,
+      kyc, beneficiaires: effectiveBeneficiaires, kycFiles, paymentDone, cgAccepted, cpAccepted,
       hasSignature, simResult,
     });
     if (!check.ok) {
@@ -355,6 +361,7 @@ export default function AdhesionPage() {
     adhesionProgress.setMissing([]);
     await proceedAfterBio();
   };
+
 
   const proceedAfterBio = async () => {
     if (!user || !simResult) return;
