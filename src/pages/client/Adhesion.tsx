@@ -800,9 +800,9 @@ export default function AdhesionPage() {
                   </div>
 
                   <div className="border-t pt-4 mt-4">
-                    <h4 className="font-semibold font-display mb-3 flex items-center gap-2"><Shield className="w-4 h-4" /> Vérification d'identité — KYC simple</h4>
+                    <h4 className="font-semibold font-display mb-3 flex items-center gap-2"><Shield className="w-4 h-4" /> Pièces complémentaires</h4>
                     <p className="text-xs text-muted-foreground mb-3">
-                      Importez ou photographiez vos pièces : la pièce d'identité sera analysée automatiquement pour pré-remplir vos informations ci-dessus.
+                      Votre pièce d'identité est déjà enregistrée. Ajoutez simplement un selfie et, si possible, un justificatif de domicile.
                     </p>
                     <BasicKyc
                       scope="principal"
