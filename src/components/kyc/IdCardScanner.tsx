@@ -250,7 +250,10 @@ export function IdCardScanner({ onExtracted, onManualFallback, className }: Prop
   }, []);
 
   const runOcr = async () => {
-    if (!recto) return;
+    if (!recto || !verso) {
+      toast({ title: 'Recto et verso requis', description: 'Capturez les deux faces de la pièce avant l\'analyse.', variant: 'destructive' });
+      return;
+    }
     setScanning(true);
     setError(null);
     setPhase('compressing');
@@ -258,19 +261,19 @@ export function IdCardScanner({ onExtracted, onManualFallback, className }: Prop
     try {
       const extracted = await track({ kind: 'ocr', name: 'kyc_ocr_extract' }, async () => {
         const [r2, v2] = await Promise.all([
-          compressDataUrl(recto, 900, 0.6),
-          verso ? compressDataUrl(verso, 900, 0.6) : Promise.resolve<string | null>(null),
+          compressDataUrl(recto, 720, 0.55),
+          compressDataUrl(verso, 720, 0.55),
         ]);
         setPhase('analyzing');
-        // 8s hard timeout with one silent retry
+        // 6s hard timeout with one silent retry
         const invoke = () => supabase.functions.invoke('kyc-ocr-extract', {
-          body: { image: r2, image2: v2 || undefined },
+          body: { image: r2, image2: v2 },
         });
         const withTimeout = <T,>(p: Promise<T>, ms: number) =>
           Promise.race<T>([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
         let resp: any;
-        try { resp = await withTimeout(invoke(), 8000); }
-        catch { resp = await withTimeout(invoke(), 10000); }
+        try { resp = await withTimeout(invoke(), 6000); }
+        catch { setPhase('retrying'); resp = await withTimeout(invoke(), 9000); }
         const { data, error } = resp;
         if (error) throw new Error(error.message);
         if (data?.error) throw new Error(data.error);
