@@ -578,16 +578,19 @@ export default function AdhesionPage() {
       stepTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
   };
+  // Steps 6 (Prestations Nature) and 7 (Ayants-droits) are skipped:
+  // - Prestations nature: removed from parcours (per product decision)
+  // - Ayants-droits: merged into step 5 (Bénéficiaires)
+  const SKIP_STEPS = new Set([1, 6, 7]);
   const next = () => {
     let n = step + 1;
-    // Skip legacy "Choix Formule" — formule is already picked in step 0 (Simulation)
-    if (n === 1) n = 2;
+    while (SKIP_STEPS.has(n) && n < STEPS.length - 1) n++;
     setStep(Math.min(n, STEPS.length - 1));
     scrollToStepTop();
   };
   const prev = () => {
     let n = step - 1;
-    if (n === 1) n = 0;
+    while (SKIP_STEPS.has(n) && n > 0) n--;
     setStep(Math.max(n, 0));
     scrollToStepTop();
   };
@@ -685,25 +688,31 @@ export default function AdhesionPage() {
                     </div>
                   ))}
 
-                  {/* Comparatif rapide des formules */}
+                  {/* Comparatif complet des formules */}
                   <div className="rounded-xl border border-border/60 bg-gradient-to-br from-accent/40 to-transparent p-3 sm:p-4">
-                    <p className="text-xs sm:text-sm font-semibold mb-2 flex items-center gap-1"><Shield className="w-3.5 h-3.5 text-primary" /> Comparatif des formules</p>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <p className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-1.5"><Shield className="w-4 h-4 text-primary" /> Comparatif des formules</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {(['A','B','C','D'] as OptionKey[]).map(k => {
                         const cap = OPTIONS_CAPITALS[k];
                         const d = FORMULE_DETAILS[k];
                         const active = formule === k;
                         return (
                           <button key={k} type="button" onClick={() => setFormule(k)}
-                            className={`text-left p-2.5 rounded-lg border-2 transition-all ${active ? 'border-primary bg-primary/10 shadow' : 'border-border/60 hover:border-primary/40 bg-background'}`}>
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-[10px] font-bold text-primary">Formule {k}</span>
-                              {k === 'D' && <span className="text-[9px]">⭐</span>}
+                            className={`text-left p-3 sm:p-3.5 rounded-lg border-2 transition-all ${active ? 'border-primary bg-primary/10 shadow' : 'border-border/60 hover:border-primary/40 bg-background'}`}>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="text-xs font-bold text-primary">Formule {k}</span>
+                              {k === 'D' && <span className="text-xs">⭐</span>}
                             </div>
-                            <p className="text-xs font-bold font-display leading-tight">{d.name}</p>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">Capital principal</p>
-                            <p className="text-xs font-semibold text-primary">{formatCFA(cap.principal)}</p>
-                            <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">{d.nature[0]} · {d.nature[2]}</p>
+                            <p className="text-base font-bold font-display leading-tight">{d.name}</p>
+                            <p className="text-xs text-muted-foreground mt-1">Capital principal</p>
+                            <p className="text-base font-semibold text-primary">{formatCFA(cap.principal)}</p>
+                            <ul className="mt-2 space-y-1">
+                              {d.nature.map((item, idx) => (
+                                <li key={idx} className="text-xs text-foreground/80 flex items-start gap-1.5 leading-snug">
+                                  <span className="text-primary mt-0.5">•</span><span>{item}</span>
+                                </li>
+                              ))}
+                            </ul>
                           </button>
                         );
                       })}
@@ -947,6 +956,23 @@ export default function AdhesionPage() {
                     </div>
                   ))}
                   <Button variant="outline" size="sm" onClick={() => setBeneficiaires([...beneficiaires, { nom: '', lien: '', telephone: '' }])}><Plus className="w-4 h-4 mr-1" /> Ajouter un bénéficiaire</Button>
+
+                  {/* Ayants-droits (fusionné depuis l'ancienne étape 7) */}
+                  <div className="pt-4 mt-4 border-t border-border/60 space-y-3">
+                    <p className="text-sm font-semibold">Ayants-droits</p>
+                    <p className="text-xs text-muted-foreground">Déclarez les enfants à naître et autres ayants-droits (optionnel).</p>
+                    <div><Label>Nombre d'enfants à naître</Label><Input type="number" min={0} max={4} value={enfantsNaitre} onChange={e => setEnfantsNaitre(parseInt(e.target.value) || 0)} /></div>
+                    <div className="flex items-center justify-between">
+                      <Label>Autres ayants-droits</Label>
+                      <Button size="sm" variant="outline" onClick={() => setAyantsDroits([...ayantsDroits, { nom: '', numero: '' }])}><Plus className="w-4 h-4 mr-1" /> Ajouter</Button>
+                    </div>
+                    {ayantsDroits.map((a, i) => (
+                      <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <Input placeholder="Nom" value={a.nom} onChange={e => { const n = [...ayantsDroits]; n[i].nom = e.target.value; setAyantsDroits(n); }} />
+                        <Input placeholder="N° Téléphone" value={a.numero} onChange={e => { const n = [...ayantsDroits]; n[i].numero = e.target.value; setAyantsDroits(n); }} />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
