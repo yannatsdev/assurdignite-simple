@@ -394,6 +394,11 @@ export function IdCardScanner({ onExtracted, onManualFallback, className }: Prop
             <span className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-mono px-2 py-1 rounded">
               {side === 'recto' ? '1/2 · RECTO' : '2/2 · VERSO'}
             </span>
+            {autoCountdown !== null && (
+              <div className="absolute top-2 right-2 bg-sonam-green text-white text-[11px] font-semibold px-2 py-1 rounded-full flex items-center gap-1 shadow-lg animate-pulse">
+                <Sparkles className="h-3 w-3" /> Document détecté — capture auto
+              </div>
+            )}
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
               <Button size="sm" onClick={capture} className="gap-1 bg-white text-black hover:bg-white/90"><Camera className="h-4 w-4" /> Capturer</Button>
               <Button size="sm" variant="outline" onClick={stopCamera} className="bg-black/60 text-white border-white/30 hover:bg-black/80">Annuler</Button>
