@@ -88,9 +88,10 @@ export function BasicKyc({
   const [ocrSkipped, setOcrSkipped] = useState(false);
 
 
+  // Piece d'identité déjà scannée en amont via IdCardScanner — on ne demande plus que selfie + domicile.
   const docs: BasicKycDocType[] = compact
     ? ['cni_recto', 'cni_verso']
-    : ['cni_recto', 'cni_verso', 'selfie', 'domicile'];
+    : ['selfie', 'domicile'];
 
   const handleFile = async (docType: BasicKycDocType, file: File) => {
     if (!user) {

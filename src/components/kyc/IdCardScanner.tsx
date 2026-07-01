@@ -50,8 +50,10 @@ const fileToBase64 = (file: File | Blob): Promise<string> =>
   });
 
 /** Downscale a dataURL to max dimension and JPEG quality — speeds up OCR drastically. */
-const compressDataUrl = (dataUrl: string, maxDim = 1280, quality = 0.72): Promise<string> =>
+const compressDataUrl = (dataUrl: string, maxDim = 900, quality = 0.6): Promise<string> =>
   new Promise((resolve) => {
+    // Skip re-compress for tiny images (already fast enough)
+    if (dataUrl.length < 250_000) return resolve(dataUrl);
     const img = new Image();
     img.onload = () => {
       const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
@@ -180,13 +182,20 @@ export function IdCardScanner({ onExtracted, onManualFallback, className }: Prop
     try {
       const extracted = await track({ kind: 'ocr', name: 'kyc_ocr_extract' }, async () => {
         const [r2, v2] = await Promise.all([
-          compressDataUrl(recto, 1024, 0.72),
-          verso ? compressDataUrl(verso, 1024, 0.72) : Promise.resolve<string | null>(null),
+          compressDataUrl(recto, 900, 0.6),
+          verso ? compressDataUrl(verso, 900, 0.6) : Promise.resolve<string | null>(null),
         ]);
         setPhase('analyzing');
-        const { data, error } = await supabase.functions.invoke('kyc-ocr-extract', {
+        // 8s hard timeout with one silent retry
+        const invoke = () => supabase.functions.invoke('kyc-ocr-extract', {
           body: { image: r2, image2: v2 || undefined },
         });
+        const withTimeout = <T,>(p: Promise<T>, ms: number) =>
+          Promise.race<T>([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+        let resp: any;
+        try { resp = await withTimeout(invoke(), 8000); }
+        catch { resp = await withTimeout(invoke(), 10000); }
+        const { data, error } = resp;
         if (error) throw new Error(error.message);
         if (data?.error) throw new Error(data.error);
         const extracted = normalizeExtracted(data?.data ?? data);

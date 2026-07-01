@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         temperature: 0,
-        max_tokens: 400,
+        max_tokens: 250,
         messages: [
           { role: 'system', content: 'OCR expert. Appelle extract_id_data.' },
           { role: 'user', content: userContent },

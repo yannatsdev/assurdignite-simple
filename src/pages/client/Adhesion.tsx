@@ -571,8 +571,19 @@ export default function AdhesionPage() {
       stepTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
   };
-  const next = () => { setStep(Math.min(step + 1, STEPS.length - 1)); scrollToStepTop(); };
-  const prev = () => { setStep(Math.max(step - 1, 0)); scrollToStepTop(); };
+  const next = () => {
+    let n = step + 1;
+    // Skip legacy "Choix Formule" — formule is already picked in step 0 (Simulation)
+    if (n === 1) n = 2;
+    setStep(Math.min(n, STEPS.length - 1));
+    scrollToStepTop();
+  };
+  const prev = () => {
+    let n = step - 1;
+    if (n === 1) n = 0;
+    setStep(Math.max(n, 0));
+    scrollToStepTop();
+  };
   const progress = ((step + 1) / STEPS.length) * 100;
   const StepIcon = STEP_ICONS[step];
 
