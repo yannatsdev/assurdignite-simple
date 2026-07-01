@@ -598,7 +598,7 @@ export default function AdhesionPage() {
     <div className="space-y-6 max-w-4xl mx-auto">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold font-display">Formulaire d'Adhésion</h1>
-        <p className="text-muted-foreground">Complétez les {STEPS.length} étapes pour souscrire à AssurDignité</p>
+        <p className="text-muted-foreground">Complétez quelques étapes pour souscrire à AssurDignité</p>
       </div>
 
       <MarketingCarousel />
