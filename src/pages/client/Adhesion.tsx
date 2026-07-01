@@ -956,6 +956,23 @@ export default function AdhesionPage() {
                     </div>
                   ))}
                   <Button variant="outline" size="sm" onClick={() => setBeneficiaires([...beneficiaires, { nom: '', lien: '', telephone: '' }])}><Plus className="w-4 h-4 mr-1" /> Ajouter un bénéficiaire</Button>
+
+                  {/* Ayants-droits (fusionné depuis l'ancienne étape 7) */}
+                  <div className="pt-4 mt-4 border-t border-border/60 space-y-3">
+                    <p className="text-sm font-semibold">Ayants-droits</p>
+                    <p className="text-xs text-muted-foreground">Déclarez les enfants à naître et autres ayants-droits (optionnel).</p>
+                    <div><Label>Nombre d'enfants à naître</Label><Input type="number" min={0} max={4} value={enfantsNaitre} onChange={e => setEnfantsNaitre(parseInt(e.target.value) || 0)} /></div>
+                    <div className="flex items-center justify-between">
+                      <Label>Autres ayants-droits</Label>
+                      <Button size="sm" variant="outline" onClick={() => setAyantsDroits([...ayantsDroits, { nom: '', numero: '' }])}><Plus className="w-4 h-4 mr-1" /> Ajouter</Button>
+                    </div>
+                    {ayantsDroits.map((a, i) => (
+                      <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <Input placeholder="Nom" value={a.nom} onChange={e => { const n = [...ayantsDroits]; n[i].nom = e.target.value; setAyantsDroits(n); }} />
+                        <Input placeholder="N° Téléphone" value={a.numero} onChange={e => { const n = [...ayantsDroits]; n[i].numero = e.target.value; setAyantsDroits(n); }} />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
