@@ -96,17 +96,19 @@ export function HeroSection() {
           </motion.div>
         </AnimatePresence>
         <div className="absolute inset-0 bg-gradient-hero" />
+        {/* Extra bottom darken for mobile text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent sm:from-black/50 sm:via-transparent" />
       </div>
 
-      <div className="container mx-auto px-4 relative z-10 pb-16">
-        <div className="max-w-3xl mt-4 md:mt-10 lg:mt-14">
+      <div className="container mx-auto px-4 relative z-10 pb-10 sm:pb-16">
+        <div className="max-w-3xl mt-2 md:mt-10 lg:mt-14">
           <AnimatePresence mode="wait">
             <motion.div key={index} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.7 }}>
-              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm text-white/90 text-base font-semibold mb-6">
-                <Shield className="w-4 h-4" />
+              <span className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-white/10 backdrop-blur-sm text-white/90 text-xs sm:text-base font-semibold mb-3 sm:mb-6">
+                <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 {slide.badge}
               </span>
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-3 font-display drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]">
+              <h1 className="text-[28px] leading-[1.1] sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-2 sm:mb-3 font-display drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]">
                 {slide.title}{' '}
                 <span className="text-sonam-green inline-block">
                   <Typewriter
@@ -120,11 +122,12 @@ export function HeroSection() {
                   />
                 </span>
               </h1>
-              <p className="text-lg sm:text-xl md:text-2xl text-white/95 mb-8 max-w-2xl font-sans leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]">
+              <p className="text-sm sm:text-xl md:text-2xl text-white/95 mb-5 sm:mb-8 max-w-2xl font-sans leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)] line-clamp-4 sm:line-clamp-none">
                 {slide.desc}
               </p>
             </motion.div>
           </AnimatePresence>
+
 
 
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.6 }} className="flex flex-col sm:flex-row gap-4 mb-16">
