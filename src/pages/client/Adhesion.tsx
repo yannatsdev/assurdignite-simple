@@ -620,15 +620,9 @@ export default function AdhesionPage() {
       {/* Progress */}
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
-          <span className="font-medium flex items-center gap-2"><StepIcon className="w-4 h-4 text-primary" /> Étape {step + 1} : {STEPS[step]}</span>
-          <span className="text-muted-foreground">{step + 1}/{STEPS.length}</span>
+          <span className="font-medium flex items-center gap-2"><StepIcon className="w-4 h-4 text-primary" /> {STEPS[step]}</span>
         </div>
         <Progress value={progress} className="h-2" />
-        <div className="hidden sm:flex gap-1">
-          {STEPS.map((_, i) => (
-            <div key={i} className={`flex-1 h-1 rounded-full transition-colors ${i <= step ? 'bg-primary' : 'bg-muted'}`} />
-          ))}
-        </div>
       </div>
 
       <AnimatePresence mode="wait">
