@@ -3,7 +3,7 @@
 // or jump back to the offending step with a clear list of missing items.
 
 export interface AdhesionState {
-  kyc: { nom?: string; prenom?: string; dob?: string; phone?: string; adresse?: string };
+  kyc: { nom?: string; prenom?: string; dob?: string; phone?: string; adresse?: string; cni?: string };
   beneficiaires: Array<{ nom?: string }>;
   kycFiles?: { cni?: string; photo?: string; domicile?: string } & Record<string, any>;
   paymentDone: boolean;
