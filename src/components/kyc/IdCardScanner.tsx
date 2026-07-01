@@ -5,9 +5,20 @@ import { Progress } from '@/components/ui/progress';
 import { Loader2, Camera, Upload, X, Check, RotateCcw, ScanLine, FileText, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { track } from '@/lib/telemetry';
 import { cn } from '@/lib/utils';
+
+// Convert a dataURL to Blob for storage upload
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [meta, b64] = dataUrl.split(',');
+  const mime = /data:(.*?);base64/.exec(meta)?.[1] || 'image/jpeg';
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
 
 type ScanPhase = 'idle' | 'compressing' | 'analyzing' | 'retrying' | 'done' | 'error';
 
