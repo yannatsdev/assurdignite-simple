@@ -61,10 +61,9 @@ const fileToBase64 = (file: File | Blob): Promise<string> =>
   });
 
 /** Downscale a dataURL to max dimension and JPEG quality — speeds up OCR drastically. */
-const compressDataUrl = (dataUrl: string, maxDim = 900, quality = 0.6): Promise<string> =>
+const compressDataUrl = (dataUrl: string, maxDim = 720, quality = 0.55): Promise<string> =>
   new Promise((resolve) => {
-    // Skip re-compress for tiny images (already fast enough)
-    if (dataUrl.length < 250_000) return resolve(dataUrl);
+    if (dataUrl.length < 160_000) return resolve(dataUrl);
     const img = new Image();
     img.onload = () => {
       const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
