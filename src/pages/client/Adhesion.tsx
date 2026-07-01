@@ -685,25 +685,31 @@ export default function AdhesionPage() {
                     </div>
                   ))}
 
-                  {/* Comparatif rapide des formules */}
+                  {/* Comparatif complet des formules */}
                   <div className="rounded-xl border border-border/60 bg-gradient-to-br from-accent/40 to-transparent p-3 sm:p-4">
-                    <p className="text-xs sm:text-sm font-semibold mb-2 flex items-center gap-1"><Shield className="w-3.5 h-3.5 text-primary" /> Comparatif des formules</p>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <p className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-1.5"><Shield className="w-4 h-4 text-primary" /> Comparatif des formules</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {(['A','B','C','D'] as OptionKey[]).map(k => {
                         const cap = OPTIONS_CAPITALS[k];
                         const d = FORMULE_DETAILS[k];
                         const active = formule === k;
                         return (
                           <button key={k} type="button" onClick={() => setFormule(k)}
-                            className={`text-left p-2.5 rounded-lg border-2 transition-all ${active ? 'border-primary bg-primary/10 shadow' : 'border-border/60 hover:border-primary/40 bg-background'}`}>
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-[10px] font-bold text-primary">Formule {k}</span>
-                              {k === 'D' && <span className="text-[9px]">⭐</span>}
+                            className={`text-left p-3 sm:p-3.5 rounded-lg border-2 transition-all ${active ? 'border-primary bg-primary/10 shadow' : 'border-border/60 hover:border-primary/40 bg-background'}`}>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="text-xs font-bold text-primary">Formule {k}</span>
+                              {k === 'D' && <span className="text-xs">⭐</span>}
                             </div>
-                            <p className="text-xs font-bold font-display leading-tight">{d.name}</p>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">Capital principal</p>
-                            <p className="text-xs font-semibold text-primary">{formatCFA(cap.principal)}</p>
-                            <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">{d.nature[0]} · {d.nature[2]}</p>
+                            <p className="text-base font-bold font-display leading-tight">{d.name}</p>
+                            <p className="text-xs text-muted-foreground mt-1">Capital principal</p>
+                            <p className="text-base font-semibold text-primary">{formatCFA(cap.principal)}</p>
+                            <ul className="mt-2 space-y-1">
+                              {d.nature.map((item, idx) => (
+                                <li key={idx} className="text-xs text-foreground/80 flex items-start gap-1.5 leading-snug">
+                                  <span className="text-primary mt-0.5">•</span><span>{item}</span>
+                                </li>
+                              ))}
+                            </ul>
                           </button>
                         );
                       })}
