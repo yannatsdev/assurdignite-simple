@@ -59,8 +59,8 @@ const DOC_META: Record<
     capture: 'user',
   },
   domicile: {
-    label: 'Justificatif de domicile (optionnel)',
-    helper: 'Facture eau/électricité de moins de 3 mois.',
+    label: 'Justificatif de domicile',
+    helper: 'Facture eau/électricité de moins de 3 mois — obligatoire.',
     icon: FileText,
   },
 };
