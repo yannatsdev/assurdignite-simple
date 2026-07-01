@@ -43,6 +43,42 @@ export function ChatBot() {
   const [conversationHistory, setConversationHistory] = useState<AiMsg[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Drag position (bottom-right offset in px). Persisted in localStorage.
+  const [pos, setPos] = useState<{ x: number; y: number }>(() => {
+    if (typeof window === 'undefined') return { x: 16, y: 16 };
+    try {
+      const raw = localStorage.getItem('chatbot_pos');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return { x: 16, y: 16 };
+  });
+  const dragState = useRef<{ dragging: boolean; startX: number; startY: number; origX: number; origY: number; moved: boolean }>({
+    dragging: false, startX: 0, startY: 0, origX: 0, origY: 0, moved: false,
+  });
+
+  const onDragStart = (e: React.PointerEvent) => {
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    dragState.current = {
+      dragging: true, startX: e.clientX, startY: e.clientY,
+      origX: pos.x, origY: pos.y, moved: false,
+    };
+  };
+  const onDragMove = (e: React.PointerEvent) => {
+    if (!dragState.current.dragging) return;
+    const dx = e.clientX - dragState.current.startX;
+    const dy = e.clientY - dragState.current.startY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragState.current.moved = true;
+    // pos is offset from bottom-right, so dragging right/down decreases it
+    const nx = Math.max(4, Math.min(window.innerWidth - 60, dragState.current.origX - dx));
+    const ny = Math.max(4, Math.min(window.innerHeight - 60, dragState.current.origY - dy));
+    setPos({ x: nx, y: ny });
+  };
+  const onDragEnd = (e: React.PointerEvent) => {
+    if (!dragState.current.dragging) return;
+    dragState.current.dragging = false;
+    try { localStorage.setItem('chatbot_pos', JSON.stringify(pos)); } catch {}
+  };
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -157,9 +193,16 @@ export function ChatBot() {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-24 right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-[400px] max-h-[560px] rounded-2xl shadow-2xl border border-border bg-card flex flex-col overflow-hidden"
+            style={{ right: pos.x, bottom: pos.y + 64 }}
+            className="fixed z-50 w-[calc(100vw-2rem)] sm:w-[400px] max-h-[560px] rounded-2xl shadow-2xl border border-border bg-card flex flex-col overflow-hidden"
           >
-            <div className="bg-gradient-sonam p-4 flex items-center justify-between">
+            <div
+              className="bg-gradient-sonam p-4 flex items-center justify-between cursor-grab active:cursor-grabbing touch-none select-none"
+              onPointerDown={onDragStart}
+              onPointerMove={onDragMove}
+              onPointerUp={onDragEnd}
+              onPointerCancel={onDragEnd}
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center relative">
                   <Sparkles className="w-5 h-5 text-white" />
@@ -257,9 +300,13 @@ export function ChatBot() {
           animate={{ scale: 1 }}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          onClick={() => { setMinimizedPersist(false); setIsOpen(true); }}
-          className="fixed bottom-4 right-4 sm:right-6 z-50 w-9 h-9 rounded-full bg-primary/90 backdrop-blur text-primary-foreground shadow-md flex items-center justify-center hover:shadow-lg transition-shadow border border-white/20"
-          title="Ouvrir l'assistant"
+          onPointerDown={onDragStart}
+          onPointerMove={onDragMove}
+          onPointerUp={(e) => { onDragEnd(e); if (!dragState.current.moved) { setMinimizedPersist(false); setIsOpen(true); } }}
+          onPointerCancel={onDragEnd}
+          style={{ right: pos.x, bottom: pos.y }}
+          className="fixed z-50 w-9 h-9 rounded-full bg-primary/90 backdrop-blur text-primary-foreground shadow-md flex items-center justify-center hover:shadow-lg transition-shadow border border-white/20 touch-none"
+          title="Glisser pour déplacer · Cliquer pour ouvrir"
           aria-label="Ouvrir l'assistant"
         >
           <Maximize2 className="w-4 h-4" />
@@ -268,8 +315,12 @@ export function ChatBot() {
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => setIsOpen(!isOpen)}
-          className="fixed bottom-6 right-4 sm:right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:shadow-xl transition-shadow group"
+          onPointerDown={onDragStart}
+          onPointerMove={onDragMove}
+          onPointerUp={(e) => { onDragEnd(e); if (!dragState.current.moved) setIsOpen(!isOpen); }}
+          onPointerCancel={onDragEnd}
+          style={{ right: pos.x, bottom: pos.y }}
+          className="fixed z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:shadow-xl transition-shadow group touch-none"
         >
           {isOpen ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
           {!isOpen && (

@@ -107,7 +107,7 @@ export default function ClientDashboard() {
           </div>
         </div>
         <div className="min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-bold font-display truncate">Bonjour, {userName.split(' ')[0]} !</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold font-display truncate">Salut, {userName.split(' ')[0]} !</h1>
           <p className="text-sm text-muted-foreground">
             {completionPct < 100 ? "Complétez votre profil pour profiter de tous les avantages." : 'Bienvenue dans votre espace AssurDignité.'}
           </p>

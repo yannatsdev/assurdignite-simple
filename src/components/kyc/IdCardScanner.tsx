@@ -5,9 +5,20 @@ import { Progress } from '@/components/ui/progress';
 import { Loader2, Camera, Upload, X, Check, RotateCcw, ScanLine, FileText, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { track } from '@/lib/telemetry';
 import { cn } from '@/lib/utils';
+
+// Convert a dataURL to Blob for storage upload
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [meta, b64] = dataUrl.split(',');
+  const mime = /data:(.*?);base64/.exec(meta)?.[1] || 'image/jpeg';
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
 
 type ScanPhase = 'idle' | 'compressing' | 'analyzing' | 'retrying' | 'done' | 'error';
 
@@ -50,8 +61,10 @@ const fileToBase64 = (file: File | Blob): Promise<string> =>
   });
 
 /** Downscale a dataURL to max dimension and JPEG quality — speeds up OCR drastically. */
-const compressDataUrl = (dataUrl: string, maxDim = 1280, quality = 0.72): Promise<string> =>
+const compressDataUrl = (dataUrl: string, maxDim = 900, quality = 0.6): Promise<string> =>
   new Promise((resolve) => {
+    // Skip re-compress for tiny images (already fast enough)
+    if (dataUrl.length < 250_000) return resolve(dataUrl);
     const img = new Image();
     img.onload = () => {
       const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
@@ -93,6 +106,7 @@ function normalizeExtracted(raw: any): OcrExtractedData {
 
 export function IdCardScanner({ onExtracted, onManualFallback, className }: Props) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -180,13 +194,20 @@ export function IdCardScanner({ onExtracted, onManualFallback, className }: Prop
     try {
       const extracted = await track({ kind: 'ocr', name: 'kyc_ocr_extract' }, async () => {
         const [r2, v2] = await Promise.all([
-          compressDataUrl(recto, 1024, 0.72),
-          verso ? compressDataUrl(verso, 1024, 0.72) : Promise.resolve<string | null>(null),
+          compressDataUrl(recto, 900, 0.6),
+          verso ? compressDataUrl(verso, 900, 0.6) : Promise.resolve<string | null>(null),
         ]);
         setPhase('analyzing');
-        const { data, error } = await supabase.functions.invoke('kyc-ocr-extract', {
+        // 8s hard timeout with one silent retry
+        const invoke = () => supabase.functions.invoke('kyc-ocr-extract', {
           body: { image: r2, image2: v2 || undefined },
         });
+        const withTimeout = <T,>(p: Promise<T>, ms: number) =>
+          Promise.race<T>([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+        let resp: any;
+        try { resp = await withTimeout(invoke(), 8000); }
+        catch { resp = await withTimeout(invoke(), 10000); }
+        const { data, error } = resp;
         if (error) throw new Error(error.message);
         if (data?.error) throw new Error(data.error);
         const extracted = normalizeExtracted(data?.data ?? data);
@@ -197,6 +218,33 @@ export function IdCardScanner({ onExtracted, onManualFallback, className }: Prop
       });
       setPhase('done');
       onExtracted(extracted);
+      // Persist recto/verso to kyc-documents storage so KYC step doesn't ask again
+      if (user) {
+        try {
+          const uploads = [
+            { key: 'cni_recto', dataUrl: recto },
+            { key: 'cni_verso', dataUrl: verso },
+          ].filter((x) => x.dataUrl);
+          for (const u of uploads) {
+            const blob = dataUrlToBlob(u.dataUrl!);
+            const path = `${user.id}/draft/principal-${u.key}-${Date.now()}.jpg`;
+            const { error: upErr } = await supabase.storage
+              .from('kyc-documents')
+              .upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
+            if (!upErr) {
+              await supabase.from('kyc_documents').insert({
+                user_id: user.id,
+                doc_type: u.key,
+                storage_path: path,
+                mime_type: 'image/jpeg',
+                status: 'pending',
+              });
+            }
+          }
+        } catch (uErr) {
+          console.warn('kyc auto-upload failed', uErr);
+        }
+      }
       toast({
         title: '✓ Pièce scannée avec succès',
         description: 'Vos informations ont été pré-remplies automatiquement.',

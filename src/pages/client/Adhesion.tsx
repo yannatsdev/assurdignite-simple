@@ -571,8 +571,19 @@ export default function AdhesionPage() {
       stepTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
   };
-  const next = () => { setStep(Math.min(step + 1, STEPS.length - 1)); scrollToStepTop(); };
-  const prev = () => { setStep(Math.max(step - 1, 0)); scrollToStepTop(); };
+  const next = () => {
+    let n = step + 1;
+    // Skip legacy "Choix Formule" — formule is already picked in step 0 (Simulation)
+    if (n === 1) n = 2;
+    setStep(Math.min(n, STEPS.length - 1));
+    scrollToStepTop();
+  };
+  const prev = () => {
+    let n = step - 1;
+    if (n === 1) n = 0;
+    setStep(Math.max(n, 0));
+    scrollToStepTop();
+  };
   const progress = ((step + 1) / STEPS.length) * 100;
   const StepIcon = STEP_ICONS[step];
 
@@ -598,7 +609,7 @@ export default function AdhesionPage() {
     <div className="space-y-6 max-w-4xl mx-auto">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold font-display">Formulaire d'Adhésion</h1>
-        <p className="text-muted-foreground">Complétez les {STEPS.length} étapes pour souscrire à AssurDignité</p>
+        <p className="text-muted-foreground">Complétez quelques étapes pour souscrire à AssurDignité</p>
       </div>
 
       <MarketingCarousel />
@@ -789,9 +800,9 @@ export default function AdhesionPage() {
                   </div>
 
                   <div className="border-t pt-4 mt-4">
-                    <h4 className="font-semibold font-display mb-3 flex items-center gap-2"><Shield className="w-4 h-4" /> Vérification d'identité — KYC simple</h4>
+                    <h4 className="font-semibold font-display mb-3 flex items-center gap-2"><Shield className="w-4 h-4" /> Pièces complémentaires</h4>
                     <p className="text-xs text-muted-foreground mb-3">
-                      Importez ou photographiez vos pièces : la pièce d'identité sera analysée automatiquement pour pré-remplir vos informations ci-dessus.
+                      Votre pièce d'identité est déjà enregistrée. Ajoutez simplement un selfie et, si possible, un justificatif de domicile.
                     </p>
                     <BasicKyc
                       scope="principal"

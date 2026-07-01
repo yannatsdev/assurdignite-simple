@@ -1,80 +1,82 @@
-# Plan — Simplification parcours, OCR rapide, fixes auth & télémétrie
 
-## 1. OCR plus rapide et plus fiable
-- `supabase/functions/kyc-ocr-extract/index.ts`: garder `gemini-2.5-flash`, réduire le prompt système, supprimer le champ `image2` quand non utilisé (1 seul appel = 2× plus rapide pour CNI recto seul), `max_tokens: 400`, `temperature: 0`.
-- `src/components/kyc/IdCardScanner.tsx`: compression plus agressive (max 1280px, JPEG q=0.72, target <350 KB), démarrage caméra avec `facingMode: { ideal: 'environment' }` + fallback, capture auto dès détection de stabilité (déjà partiel), suppression de l'auto-retry « haute qualité » qui double le temps — un seul appel, puis bouton « Réessayer » manuel.
-- Préchauffage edge function (`supabase.functions.invoke('kyc-ocr-extract', { body: { ping: true } })`) au montage de l'étape Identité pour éviter le cold start.
+# Plan — UX polish, flow simplification, staging & security hardening
 
-## 2. Suppression de l'empreinte sur Login
-- `src/pages/Login.tsx`: retirer le bouton « Connexion par empreinte », l'état `biometricAvailable`, `handleBiometric`, `bioFailed`, `bioMessage`, les imports `Fingerprint` et `authenticateWithPasskey`.
-- `src/components/PasskeyEnrollPrompt.tsx`: ne plus monter le composant (retirer ses usages dans `ClientLayout`/Dashboard si présents).
-- Edge functions `webauthn-*` et table `user_passkeys`: conservées côté backend mais plus appelées depuis le client (pas de migration destructive pour ne pas casser les données existantes).
+## 1. Copy & greeting tweaks
+- Replace "Bonjour" with "Salut" in client + admin greetings (`src/pages/client/Dashboard.tsx`, `src/layouts/AdminLayout.tsx`, `src/pages/admin/Dashboard.tsx`, any header components).
+- Global search/replace "Complétez les 14 étapes pour souscrire à AssurDignité" → "Complétez quelques étapes pour souscrire à AssurDignité".
 
-## 3. Fixes création de compte / sign-in
-- `src/contexts/AuthContext.tsx`: messages d'erreur traduits (Invalid login credentials → « Email ou mot de passe incorrect », User already registered → « Compte existant, connectez-vous »), trim email, lowercase email, validation longueur password ≥ 6 côté client avant appel.
-- `signUp`: ajouter `emailRedirectTo: window.location.origin + '/client'` (corrige la redirection après confirmation email).
-- `src/pages/Login.tsx`: désactiver bouton pendant `isLoading`, afficher erreurs inline (pas seulement toast), reset password link vers `/reset-password` (créer page minimale si absente).
+## 2. Adhesion flow — merge step 1 into step 2
+In `src/pages/client/Adhesion.tsx`:
+- After simulation, land directly on a combined step that pre-fills principal info (nom, prénom, DOB, tel, email) alongside the simulation summary.
+- Reduce macro steps from current set to **5**: Simulation+Infos → KYC/OCR → Bénéficiaires → Signature → Paiement → Confirmation (align `UnifiedProgressBar` MACRO array).
 
-## 4. Parcours adhésion simplifié — 5 étapes max (mode rural inclus)
-Refonte `src/pages/client/Adhesion.tsx` pour passer de 14 sous-étapes à **5 écrans** :
-1. **Simulation rapide** — formule + capital + âge → prime affichée (gros chiffres).
-2. **Scan identité** — OCR (1 photo recto, verso optionnel), auto-remplissage.
-3. **Confirmation infos + bénéficiaires** — un seul écran, tout pré-rempli, bénéficiaires en accordéon (1 minimum).
-4. **KYC + Conditions + Signature** — upload selfie (optionnel rural), case conditions, signature tactile.
-5. **Paiement + Reçu** — MoMo/Wave, OTP, reçu PDF téléchargeable.
+## 3. OCR reuse across KYC
+In `src/components/kyc/IdCardScanner.tsx` and `src/components/kyc/BasicKyc.tsx`:
+- Persist the OCR-captured CNI recto/verso images (upload to `kyc-documents` bucket immediately after successful scan) into an adhesion draft store.
+- In `BasicKyc.tsx`, remove the CNI upload tiles. Keep only **Selfie** and **Justificatif de domicile**.
+- Update the intro copy to reflect that the ID card is already captured.
 
-Implémentation:
-- Refactor en composants `Step1Simulation`, `Step2Scan`, `Step3Infos`, `Step4Signature`, `Step5Paiement` sous `src/components/adhesion/steps/`.
-- État unique `AdhesionDraft` persistant en `sessionStorage` (déjà partiel).
-- **Mode rural**: toggle auto si `navigator.connection.effectiveType` ∈ {`2g`,`slow-2g`} OU viewport <380px → boutons 56px, labels courts, skip selfie, queue offline (IndexedDB simple) + bannière « Mode hors-ligne, vos données seront envoyées dès la reconnexion ».
-- Bouton sticky « Suivant » plein largeur en bas (réutiliser `StickyActionBar`).
+## 4. OCR speed
+`supabase/functions/kyc-ocr-extract/index.ts` + `IdCardScanner.tsx`:
+- Lower client compression target (max 900px, quality 0.6) and skip re-compress if already <250KB.
+- Reduce `max_tokens` to 250, drop `image2` when only one side scanned.
+- Fire the warmup `ping` on component mount AND on simulation completion so the function is hot by the time the user reaches the scanner.
+- Add a hard 8s timeout with a single silent retry.
 
-## 5. Bouton « Continuer en envoi manuel »
-- `src/components/kyc/IdCardScanner.tsx` et `BasicKyc.tsx`: en cas d'échec OCR/KYC, panneau d'erreur avec :
-  - Bouton primaire **« Réessayer »**.
-  - Bouton secondaire **« Continuer en envoi manuel »** → ouvre un formulaire texte (nom, prénom, n° CNI, date naissance, date expiration) + upload photo brute (sans OCR), marqué `kyc_documents.ocr_status = 'manual'` pour revue admin.
-  - Étapes affichées : « 1. Saisissez vos infos · 2. Photo recto · 3. Photo verso · 4. Un agent vérifiera sous 24h ».
-- `src/pages/admin/KycDocuments.tsx`: filtre « En attente de vérification manuelle » + badge orange.
+## 5. Client design polish + responsiveness
+- Tighten spacing/typography scale on mobile (`Dashboard.tsx`, `PolicyHeroCard.tsx`, `MarketingCarousel.tsx`).
+- Ensure sticky bottom `StickyActionBar` clears iOS safe-area, and progress bar remains readable on 320px.
+- Audit all `overflow-x` on horizontal cards, add `snap-x` where missing.
 
-## 6. Export CSV Télémétrie complet
-- `src/pages/admin/Telemetrie.tsx`: revoir `exportCsv` pour inclure colonnes : `date_iso, user_id, user_email, kind (ocr|pdf|kyc), name, duration_ms, success, error_message, meta_json`. Agréger sur la période un second CSV résumé : `kind, count, avg_ms, p95_ms, error_rate_pct`. Bouton « Export détaillé » et « Export résumé ». Garantir téléchargement via `Blob` + `URL.createObjectURL` + `<a download>`.
-- Tester localement que filtre date+user est appliqué avant export.
+## 6. Draggable chatbot (also when minimized)
+`src/components/ChatBot.tsx`:
+- Add pointer-based drag handle for both the floating minimized bubble and the expanded panel header.
+- Persist last position in `localStorage`, clamp to viewport, reset on resize.
 
-## 7. Test Playwright complet en CI
-- `tests/e2e/parcours-complet.spec.ts`: étendre pour couvrir parcours réel mock (simulation → scan stubbed → infos → signature canvas → paiement mock → reçu PDF téléchargé). Assert `download.suggestedFilename()` contient `recu`.
-- `package.json`: script `"test:e2e": "playwright test"`.
-- `.github/workflows/e2e.yml` (créer): job Ubuntu, `bun install`, `bunx playwright install --with-deps chromium`, build, `bun run test:e2e`, upload artefacts.
+## 7. Staging publish
+- Run `security--get_scan_results` first; if clean, call `preview_ui--publish` (default Lovable slug remains, staging = current preview).
 
-## 8. Fixes erreurs diverses
-- `Adhesion.tsx` : corriger redirection après simulation qui renvoyait vers `/client` au lieu de l'étape 2 (garder `step` synchronisé avec sessionStorage au mount).
-- Console errors: vérifier `BasicKyc` n'appelle pas `adhesionProgress.setKyc` avec un doc non typé.
+## 8. Fresh security scan
+- `security--run_security_scan` after edits.
+- Fix any new findings; do not touch existing ignored items.
 
-## Section technique
+## 9. E2E validation
+- Execute `bunx playwright test tests/e2e/parcours-complet.spec.ts` in the sandbox against the live preview to confirm OCR→KYC→signature→PDF still passes.
+- Fix selectors if the flow simplification broke them.
 
-### Fichiers créés
-- `src/components/adhesion/steps/Step1Simulation.tsx`
-- `src/components/adhesion/steps/Step2Scan.tsx`
-- `src/components/adhesion/steps/Step3Infos.tsx`
-- `src/components/adhesion/steps/Step4Signature.tsx`
-- `src/components/adhesion/steps/Step5Paiement.tsx`
-- `src/components/kyc/ManualKycForm.tsx`
-- `src/hooks/useRuralMode.ts`
-- `src/lib/offline-queue.ts` (IndexedDB minimal via `idb-keyval`)
-- `.github/workflows/e2e.yml`
-- `src/pages/ResetPassword.tsx` (si absent)
+## 10. Logging & monitoring
+- Extend `src/lib/telemetry.ts` with a `logError(scope, error, meta)` helper that writes to `telemetry_events` with `level='error'`.
+- Wrap OCR, PDF generation, KYC upload, and payment finalization with try/catch → `logError`.
+- Add a lightweight alert threshold view in `src/pages/admin/Telemetrie.tsx` (error rate > 10% in last hour → red banner).
 
-### Fichiers modifiés
-- `src/pages/Login.tsx`, `src/contexts/AuthContext.tsx`
-- `src/pages/client/Adhesion.tsx` (refonte majeure)
-- `src/components/kyc/IdCardScanner.tsx`, `src/components/kyc/BasicKyc.tsx`
-- `supabase/functions/kyc-ocr-extract/index.ts`
-- `src/pages/admin/Telemetrie.tsx`, `src/pages/admin/KycDocuments.tsx`
-- `tests/e2e/parcours-complet.spec.ts`, `playwright.config.ts`
-- `package.json` (script test:e2e, dep `idb-keyval`)
+## 11. Backend RLS & policy tests
+- Add `tests/rls/rls.spec.ts` using the anon key to assert:
+  - anon cannot select `kyc_documents.ocr_payload`
+  - anon cannot insert into `notifications`
+  - non-admin authenticated user cannot insert into `user_roles`
+  - `has_role` not executable by anon
+- Wire into `.github/workflows/e2e.yml` as a separate job.
 
-### Migration BDD
-- Ajout colonne `kyc_documents.ocr_status text default 'auto'` (valeurs: `auto|manual|verified|rejected`) avec GRANT + RLS conservée.
+## 12. Dependency vulnerability monitoring
+- Add `.github/workflows/deps-audit.yml` running weekly + on PR: `bun audit --audit-level=medium` and `bunx osv-scanner --lockfile=bun.lockb`.
+- Fail on high, warn on medium. Upload SARIF to GitHub code scanning.
 
-### Non-objectifs
-- Pas de suppression de la table `user_passkeys` ni des edge functions webauthn (gardées pour usage futur côté espace client).
-- Pas de refonte visuelle du landing ni de l'admin hors pages citées.
+## 13. Audit logging for KYC & notifications
+Migration:
+- Create `public.audit_log(id, user_id, action, table_name, row_id, meta jsonb, created_at)` with RLS: only admins read; service_role writes.
+- Add triggers on `kyc_documents` (insert/update/select via a security-definer wrapper for reads is not feasible; instead log every UPDATE + service function reads) and `notifications` (INSERT/UPDATE/DELETE).
+- Include grants as required.
+
+## 14. Server-side admin authorization
+- In every admin-only edge function (`admin-signup`, `admin-users`, any KYC review call), verify JWT → look up role via `has_role(uid,'admin')` → 403 otherwise.
+- Add a shared `_shared/require-admin.ts` helper and use it consistently.
+- Ensure client-side admin routes call these functions rather than mutating tables directly.
+
+## Technical notes
+- No schema breaking changes to existing tables besides adding `audit_log` and possibly `contracts.draft_kyc_recto_path` / `_verso_path` to persist pre-uploaded OCR images.
+- All new tables get explicit `GRANT` + RLS per project convention.
+- Confirm no regressions in `parcours-complet.spec.ts` after flow merge before publishing.
+
+---
+
+**Confirm to proceed** and I'll implement in this order: copy tweaks → flow merge → OCR reuse/speed → chatbot drag → design polish → migrations (audit log) → edge function auth → tests & CI → security scan → staging publish.
