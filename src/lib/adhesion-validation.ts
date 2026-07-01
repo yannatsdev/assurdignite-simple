@@ -3,7 +3,7 @@
 // or jump back to the offending step with a clear list of missing items.
 
 export interface AdhesionState {
-  kyc: { nom?: string; prenom?: string; dob?: string; phone?: string; adresse?: string };
+  kyc: { nom?: string; prenom?: string; dob?: string; phone?: string; adresse?: string; cni?: string };
   beneficiaires: Array<{ nom?: string }>;
   kycFiles?: { cni?: string; photo?: string; domicile?: string } & Record<string, any>;
   paymentDone: boolean;
@@ -26,10 +26,17 @@ export function validateBeforeFinalize(s: AdhesionState): ValidationResult {
   if (!s.kyc?.nom || !s.kyc?.prenom || !s.kyc?.dob) {
     missing.push({ label: 'Renseigner identité (nom, prénom, date de naissance)', step: 2 });
   }
-  // KYC docs (CNI recto required; photo strongly recommended)
-  if (!s.kycFiles?.cni) missing.push({ label: 'Téléverser la pièce d\'identité (CNI/passeport)', step: 2 });
+  // KYC: accept either an uploaded doc OR a captured CNI number (OCR fills this).
+  const hasKycEvidence = Boolean(
+    s.kycFiles?.cni || s.kycFiles?.photo || s.kycFiles?.domicile || s.kyc?.cni
+  );
+  if (!hasKycEvidence) {
+    missing.push({ label: "Ajouter une preuve d'identité (scan CNI ou n° de pièce)", step: 2 });
+  }
 
-  if (!s.beneficiaires?.some((b) => (b?.nom || '').trim().length > 0)) {
+  // Beneficiaries: soft — auto-defaulted to "Héritiers légaux" upstream, so
+  // only flag if truly nothing is provided.
+  if (!s.beneficiaires || s.beneficiaires.length === 0) {
     missing.push({ label: 'Désigner au moins un bénéficiaire', step: 5 });
   }
   if (!s.cgAccepted) missing.push({ label: 'Accepter les conditions générales', step: 10 });
@@ -43,3 +50,4 @@ export function validateBeforeFinalize(s: AdhesionState): ValidationResult {
     firstStep: missing.length ? missing[0].step : null,
   };
 }
+
