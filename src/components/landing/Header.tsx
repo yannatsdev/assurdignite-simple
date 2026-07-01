@@ -86,8 +86,14 @@ export function Header() {
             </Button>
           </div>
 
-          <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden">
-            {mobileOpen ? <X className="w-6 h-6 text-foreground" /> : <Menu className="w-6 h-6 text-foreground" />}
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="lg:hidden min-h-11 min-w-11 flex items-center justify-center"
+            aria-label={mobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-nav"
+          >
+            {mobileOpen ? <X className="w-6 h-6 text-foreground" aria-hidden="true" /> : <Menu className="w-6 h-6 text-foreground" aria-hidden="true" />}
           </button>
         </div>
       </div>
