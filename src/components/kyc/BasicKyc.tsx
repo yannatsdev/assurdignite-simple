@@ -287,8 +287,8 @@ function DocCard({
       </div>
 
       {file?.preview ? (
-        <div className="mt-3 rounded-xl overflow-hidden ring-1 ring-border bg-background">
-          <img src={file.preview} alt={meta.label} className="w-full h-32 object-cover" />
+        <div className="mt-3 rounded-xl overflow-hidden ring-1 ring-border bg-muted/40">
+          <img src={file.preview} alt={meta.label} className="w-full h-40 object-contain bg-black/5" />
           <div className="px-3 py-1.5 text-xs text-emerald-600 flex items-center gap-1">
             <Check className="h-3.5 w-3.5" /> Enregistré
           </div>
