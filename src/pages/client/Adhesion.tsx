@@ -578,16 +578,19 @@ export default function AdhesionPage() {
       stepTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
   };
+  // Steps 6 (Prestations Nature) and 7 (Ayants-droits) are skipped:
+  // - Prestations nature: removed from parcours (per product decision)
+  // - Ayants-droits: merged into step 5 (Bénéficiaires)
+  const SKIP_STEPS = new Set([1, 6, 7]);
   const next = () => {
     let n = step + 1;
-    // Skip legacy "Choix Formule" — formule is already picked in step 0 (Simulation)
-    if (n === 1) n = 2;
+    while (SKIP_STEPS.has(n) && n < STEPS.length - 1) n++;
     setStep(Math.min(n, STEPS.length - 1));
     scrollToStepTop();
   };
   const prev = () => {
     let n = step - 1;
-    if (n === 1) n = 0;
+    while (SKIP_STEPS.has(n) && n > 0) n--;
     setStep(Math.max(n, 0));
     scrollToStepTop();
   };
