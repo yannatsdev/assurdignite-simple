@@ -578,10 +578,9 @@ export default function AdhesionPage() {
       stepTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
   };
-  // Steps 6 (Prestations Nature) and 7 (Ayants-droits) are skipped:
-  // - Prestations nature: removed from parcours (per product decision)
-  // - Ayants-droits: merged into step 5 (Bénéficiaires)
-  const SKIP_STEPS = new Set([1, 6, 7]);
+  // Steps skipped — merged into step 3 (Famille & Bénéficiaires):
+  // - 4 Assurés complémentaires, 5 Bénéficiaires, 6 Prestations Nature, 7 Ayants-droits
+  const SKIP_STEPS = new Set([1, 4, 5, 6, 7]);
   const next = () => {
     let n = step + 1;
     while (SKIP_STEPS.has(n) && n < STEPS.length - 1) n++;
