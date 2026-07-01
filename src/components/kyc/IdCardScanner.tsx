@@ -117,9 +117,8 @@ export function IdCardScanner({ onExtracted, onManualFallback, className }: Prop
   const [scanning, setScanning] = useState(false);
   const [phase, setPhase] = useState<ScanPhase>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [autoCountdown, setAutoCountdown] = useState<number | null>(null);
-  const detectRef = useRef<{ stable: number; last: number } | null>(null);
   const capturingRef = useRef(false);
+
 
   useEffect(() => () => { stream?.getTracks().forEach(t => t.stop()); }, [stream]);
 
