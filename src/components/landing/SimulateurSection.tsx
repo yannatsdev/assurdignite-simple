@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calculator, Plus, Minus, AlertCircle, ChevronDown, ChevronUp, TrendingUp, Users, UserPlus, Shield, Info, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
