@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "assurdignite-mcp",
+      "version": "0.1.0",
+      "title": "AssurDignité MCP"
+    },
+    "tools": [
+      {
+        "name": "list_formules",
+        "title": "Lister les formules AssurDignité",
+        "description": "Retourne les formules d'assurance obsèques AssurDignité (SONAM Vie): A Essentielle, B Standard, C Premium, D Excellence Diaspora.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "contact_info",
+        "title": "Coordonnées AssurDignité",
+        "description": "Retourne les coordonnées commerciales SONAM Vie / AssurDignité (téléphones, email).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "simuler_prime",
+        "title": "Simuler une prime annuelle",
+        "description": "Estimation indicative de la prime annuelle AssurDignité selon la formule (A/B/C/D) et l'âge de l'assuré principal. Paiement annuel uniquement. Résultat non contractuel.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "formule": {
+              "type": "string",
+              "enum": [
+                "A",
+                "B",
+                "C",
+                "D"
+              ],
+              "description": "Code formule: A, B, C ou D"
+            },
+            "age": {
+              "type": "integer",
+              "minimum": 18,
+              "maximum": 75,
+              "description": "Âge de l'assuré principal (18-75 ans)"
+            }
+          },
+          "required": [
+            "formule",
+            "age"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
