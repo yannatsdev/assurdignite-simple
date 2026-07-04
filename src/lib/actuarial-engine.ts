@@ -176,7 +176,7 @@ export function simulatePrime(input: SimulationInput): SimulationResult {
   const includedAsc = input.ascendants.filter(a => a.included && a.dob);
   const ascAges: number[] = [];
   includedAsc.forEach((a, i) => {
-    const p = buildPerson('Ascendant', a.label || `Ascendant ${i + 1}`, a.dob, cap.ascendant, 79);
+    const p = buildPerson('Ascendant', a.label || `Ascendant ${i + 1}`, a.dob, cap.ascendant, 89);
     ascAges.push(p.age);
     persons.push(p);
   });
