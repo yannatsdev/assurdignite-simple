@@ -13,15 +13,14 @@ export default defineTool({
   name: "simuler_prime",
   title: "Simuler une prime annuelle",
   description:
-    "Estimation indicative de la prime annuelle AssurDignité selon la formule (A/B/C/D) et l'âge de l'assuré principal. Paiement annuel uniquement. Résultat non contractuel.",
+    "Estimation indicative de la prime annuelle AssurDignité selon la formule (A/B/C/D) et l'âge de l'assuré principal (18-64 ans). Paiement annuel. Une ristourne de 30% de la prime de l'assuré principal est restituée si aucun sinistre n'est survenu sur les 3 premières années. Résultat non contractuel.",
   inputSchema: {
     formule: z.enum(["A", "B", "C", "D"]).describe("Code formule: A, B, C ou D"),
-    age: z.number().int().min(18).max(75).describe("Âge de l'assuré principal (18-75 ans)"),
+    age: z.number().int().min(18).max(64).describe("Âge de l'assuré principal (18-64 ans)"),
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: ({ formule, age }) => {
     const capital = CAPITAUX[formule];
-    // Approximation indicative basée sur table de mortalité CIMA H (simplifiée)
     const tauxBase = 0.008 + Math.max(0, age - 30) * 0.0004;
     const prime = Math.round((capital * tauxBase) / 100) * 100;
     const result = {
@@ -30,6 +29,8 @@ export default defineTool({
       age,
       prime_annuelle_indicative_fcfa: prime,
       periodicite: "annuelle",
+      ristourne: "30% de la prime de l'assuré principal restituée si aucun sinistre sur 3 ans",
+      limites_age: { principal: "18-64", conjoint: "18-64", enfants: "0-21", ascendants: "0-89" },
       note: "Estimation non contractuelle. Tarification définitive après KYC et adhésion.",
     };
     return {

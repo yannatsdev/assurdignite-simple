@@ -83,10 +83,10 @@ var CAPITAUX = {
 var simuler_prime_default = defineTool3({
   name: "simuler_prime",
   title: "Simuler une prime annuelle",
-  description: "Estimation indicative de la prime annuelle AssurDignit\xE9 selon la formule (A/B/C/D) et l'\xE2ge de l'assur\xE9 principal. Paiement annuel uniquement. R\xE9sultat non contractuel.",
+  description: "Estimation indicative de la prime annuelle AssurDignit\xE9 selon la formule (A/B/C/D) et l'\xE2ge de l'assur\xE9 principal (18-64 ans). Paiement annuel. Une ristourne de 30% de la prime de l'assur\xE9 principal est restitu\xE9e si aucun sinistre n'est survenu sur les 3 premi\xE8res ann\xE9es. R\xE9sultat non contractuel.",
   inputSchema: {
     formule: z.enum(["A", "B", "C", "D"]).describe("Code formule: A, B, C ou D"),
-    age: z.number().int().min(18).max(75).describe("\xC2ge de l'assur\xE9 principal (18-75 ans)")
+    age: z.number().int().min(18).max(64).describe("\xC2ge de l'assur\xE9 principal (18-64 ans)")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: ({ formule, age }) => {
@@ -99,6 +99,8 @@ var simuler_prime_default = defineTool3({
       age,
       prime_annuelle_indicative_fcfa: prime,
       periodicite: "annuelle",
+      ristourne: "30% de la prime de l'assur\xE9 principal restitu\xE9e si aucun sinistre sur 3 ans",
+      limites_age: { principal: "18-64", conjoint: "18-64", enfants: "0-21", ascendants: "0-89" },
       note: "Estimation non contractuelle. Tarification d\xE9finitive apr\xE8s KYC et adh\xE9sion."
     };
     return {

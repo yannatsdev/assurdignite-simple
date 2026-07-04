@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calculator, Plus, Minus, AlertCircle, ChevronDown, ChevronUp, TrendingUp, Users, UserPlus, Shield, Info, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,20 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
 
   const addEnfant = () => { if (enfants.length < 4) setEnfants([...enfants, { dob: '', included: true }]); };
   const addAscendant = () => { if (ascendants.length < 2) setAscendants([...ascendants, { dob: '', included: true, label: ascendants.length === 0 ? 'Père/Mère' : 'Oncle/Tante' }]); };
+
+  // Auto-recompute on any input change (debounced) — no more "figées" numbers.
+  useEffect(() => {
+    if (!principalDob) { setResult(null); return; }
+    const t = setTimeout(() => {
+      const res = simulatePrime({
+        quoteDate, option, principal: { dob: principalDob },
+        conjoint: conjointIncluded && conjointDob ? { dob: conjointDob, included: true } : undefined,
+        enfants: enfants.filter(e => e.dob), ascendants: ascendants.filter(a => a.dob),
+      });
+      setResult(res);
+    }, 200);
+    return () => clearTimeout(t);
+  }, [option, quoteDate, principalDob, conjointIncluded, conjointDob, enfants, ascendants]);
 
   const handleSimulate = () => {
     if (!principalDob) return;
