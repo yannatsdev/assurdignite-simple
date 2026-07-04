@@ -2,7 +2,7 @@ import { Check, Loader2, AlertTriangle } from 'lucide-react';
 import { useAdhesionProgress, type OcrPhase, type KycDoc, type KycPhase } from '@/stores/adhesion-progress';
 import { cn } from '@/lib/utils';
 
-const MACRO = ['Simulation', 'Identité', 'KYC & bénéficiaires', 'Signature & paiement', 'Confirmation'];
+const MACRO = ['Simulation', 'Informations & bénéficiaires', 'Signature & paiement'];
 
 const OCR_LABEL: Record<OcrPhase, string> = {
   idle: '',
