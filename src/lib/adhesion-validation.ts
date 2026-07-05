@@ -29,8 +29,9 @@ export function validateBeforeFinalize(s: AdhesionState): ValidationResult {
   if (!hasKycEvidence) {
     missing.push({ label: "Ajouter une preuve d'identité (scan CNI ou n° de pièce)", step: 1 });
   }
-  if (!s.beneficiaires || s.beneficiaires.length === 0) {
-    missing.push({ label: 'Désigner au moins un bénéficiaire', step: 1 });
+  const validBenefs = (s.beneficiaires || []).filter(b => b?.nom && b.nom.trim().length > 0);
+  if (validBenefs.length === 0) {
+    missing.push({ label: 'Désigner au moins un bénéficiaire (nom complet)', step: 1 });
   }
   if (!s.cgAccepted) missing.push({ label: 'Accepter les conditions générales', step: 2 });
   if (!s.paymentDone) missing.push({ label: 'Effectuer le paiement', step: 2 });

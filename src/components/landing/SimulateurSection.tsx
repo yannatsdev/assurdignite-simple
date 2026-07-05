@@ -44,7 +44,9 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
   const addEnfant = () => { if (enfants.length < 4) setEnfants([...enfants, { dob: '', included: true }]); };
   const addAscendant = () => { if (ascendants.length < 2) setAscendants([...ascendants, { dob: '', included: true, label: ascendants.length === 0 ? 'Père/Mère' : 'Oncle/Tante' }]); };
 
-  // Auto-recompute on any input change (debounced) — no more "figées" numbers.
+  // Auto-recompute on any input change (debounced) — stringified deps so array mutations trigger re-runs.
+  const enfantsKey = JSON.stringify(enfants);
+  const ascendantsKey = JSON.stringify(ascendants);
   useEffect(() => {
     if (!principalDob) { setResult(null); return; }
     const t = setTimeout(() => {
@@ -56,7 +58,8 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
       setResult(res);
     }, 200);
     return () => clearTimeout(t);
-  }, [option, quoteDate, principalDob, conjointIncluded, conjointDob, enfants, ascendants]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [option, quoteDate, principalDob, conjointIncluded, conjointDob, enfantsKey, ascendantsKey]);
 
   const handleSimulate = () => {
     if (!principalDob) return;
