@@ -115,8 +115,18 @@ export default function AdhesionPage() {
   const quoteDate = new Date().toISOString().slice(0, 10);
 
   // === Live simulation — always up-to-date, never "figée" ===
+  // Use stringified deps for enfants/ascendants so array mutations trigger re-runs.
+  const enfantsKey = JSON.stringify(enfants);
+  const ascendantsKey = JSON.stringify(ascendants);
   useEffect(() => {
     if (!simPrincipalDob) { setSimResult(null); return; }
+    // Reset if principal age is out of legal bounds (18-64)
+    const birth = new Date(simPrincipalDob);
+    const now = new Date(quoteDate);
+    let age = now.getFullYear() - birth.getFullYear();
+    const m = now.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+    if (isNaN(age) || age < 18 || age > 64) { setSimResult(null); return; }
     const t = setTimeout(() => {
       const res = simulatePrime({
         quoteDate, option: formule, principal: { dob: simPrincipalDob },
@@ -127,7 +137,8 @@ export default function AdhesionPage() {
       setSimResult(res);
     }, 200);
     return () => clearTimeout(t);
-  }, [formule, simPrincipalDob, hasConjoint, conjoint.dob, enfants, ascendants, quoteDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formule, simPrincipalDob, hasConjoint, conjoint.dob, enfantsKey, ascendantsKey, quoteDate]);
 
   // Track macro step for the global bar
   useEffect(() => { adhesionProgress.setMacroStep(step); }, [step]);
