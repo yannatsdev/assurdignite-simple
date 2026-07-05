@@ -303,23 +303,26 @@ export default function AdhesionPage() {
       <MarketingCarousel />
       <UnifiedProgressBar />
 
-      {/* Compact step indicator */}
-      <div className="flex items-center gap-3">
+      {/* Compact step indicator — icons centered on mobile & desktop */}
+      <div className="flex items-center justify-between gap-1 sm:gap-3 px-2 sm:px-0">
         {STEPS.map((s, i) => {
           const Icon = STEP_ICONS[i];
           const active = i === step;
           const done = i < step;
           return (
-            <div key={s} className="flex items-center gap-2 flex-1">
-              <div className={`w-9 h-9 shrink-0 rounded-full flex items-center justify-center border-2 transition ${
-                active ? 'bg-primary text-primary-foreground border-primary' : done ? 'bg-sonam-green text-white border-sonam-green' : 'bg-background text-muted-foreground border-border'
-              }`}>{done ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}</div>
-              <span className={`text-xs sm:text-sm font-medium hidden sm:inline ${active ? 'text-primary' : done ? 'text-sonam-green' : 'text-muted-foreground'}`}>{s}</span>
-              {i < STEPS.length - 1 && <div className={`h-0.5 flex-1 ${done ? 'bg-sonam-green' : 'bg-border'}`} />}
+            <div key={s} className="flex items-center gap-2 flex-1 last:flex-none">
+              <div className="flex flex-col items-center gap-1 shrink-0">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition ${
+                  active ? 'bg-primary text-primary-foreground border-primary' : done ? 'bg-sonam-green text-white border-sonam-green' : 'bg-background text-muted-foreground border-border'
+                }`}>{done ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}</div>
+                <span className={`text-[10px] sm:text-xs font-medium text-center hidden sm:inline ${active ? 'text-primary' : done ? 'text-sonam-green' : 'text-muted-foreground'}`}>{s}</span>
+              </div>
+              {i < STEPS.length - 1 && <div className={`h-0.5 flex-1 self-center mt-0 sm:-mt-4 ${done ? 'bg-sonam-green' : 'bg-border'}`} />}
             </div>
           );
         })}
       </div>
+
 
       <AnimatePresence mode="wait">
         <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
