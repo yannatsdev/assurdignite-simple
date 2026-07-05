@@ -539,7 +539,7 @@ export default function AdhesionPage() {
                   {/* --- Bénéficiaires --- */}
                   <section className="space-y-3 pt-4 border-t">
                     <h3 className="font-semibold text-sm text-primary uppercase tracking-wider flex items-center gap-2"><FileText className="w-4 h-4" /> Bénéficiaires du capital (30% espèces)</h3>
-                    <p className="text-xs text-muted-foreground">Laissez vide pour désigner automatiquement vos héritiers légaux.</p>
+                    <p className="text-xs text-muted-foreground">Renseignez au moins un bénéficiaire. Sans désignation valide, le capital est versé aux héritiers légaux.</p>
                     {beneficiaires.map((b, i) => (
                       <div key={i} className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 rounded-lg bg-accent/30">
                         <Input placeholder="Nom complet" value={b.nom} onChange={e => { const n = [...beneficiaires]; n[i].nom = e.target.value; setBeneficiaires(n); }} />
