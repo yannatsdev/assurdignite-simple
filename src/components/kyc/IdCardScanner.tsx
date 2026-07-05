@@ -436,7 +436,7 @@ export function IdCardScanner({ onExtracted, onManualFallback, className }: Prop
       )}
 
       <p className="text-[11px] text-muted-foreground italic">
-        🔒 Vos images sont traitées par notre IA de manière sécurisée et ne sont pas stockées.
+        🔒 Vos images sont traitées par notre IA de manière sécurisée.
       </p>
     </div>
   );
