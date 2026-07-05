@@ -44,6 +44,28 @@ Article 7 – Résiliation : Possible à tout moment par lettre. Non-paiement : 
 
 Article 8 – Juridiction : Tribunaux d'Abidjan, Côte d'Ivoire. Code des Assurances CIMA.`;
 
+const CP_TEXT = `SONAM VIE – CONDITIONS PARTICULIÈRES ASSURDIGNITÉ
+
+1. Souscripteur & assurés : le contrat est établi au nom de l'assuré principal désigné lors de l'adhésion. Les co-assurés (conjoint, enfants, ascendants) sont ceux déclarés dans la simulation et confirmés au KYC.
+
+2. Formule choisie : la formule (A/B/C/D) sélectionnée détermine les capitaux garantis pour chaque catégorie d'assuré (voir tableau du récapitulatif). Toute modification nécessite un avenant.
+
+3. Prime & périodicité : la prime annuelle affichée est calculée sur la table CIMA H (Note Technique 26/05/2026), taux technique 3,5%. Périodicités disponibles : annuelle (défaut), semestrielle, trimestrielle, mensuelle — avec accessoires selon la note technique.
+
+4. Prise d'effet : la couverture prend effet le jour du paiement effectif de la première prime, sous réserve d'acceptation du dossier par SONAM VIE.
+
+5. Délai de carence : aucun délai de carence pour décès accidentel. Décès par maladie : carence de 30 jours après la date d'effet.
+
+6. Bénéficiaires : le capital 30% espèces est versé aux bénéficiaires désignés dans le présent contrat. À défaut de désignation valide, il est versé aux héritiers légaux selon l'ordre successoral ivoirien.
+
+7. Prestations en nature (70%) : fournies par le réseau de partenaires SONAM VIE dans un rayon de 200 km du lieu de décès (métropolitain) ou selon les conditions de rapatriement pour la formule D.
+
+8. Modifications & renouvellement : le contrat se renouvelle tacitement à chaque échéance annuelle sauf résiliation adressée 30 jours avant terme.
+
+9. Ristourne : versée sur le compte Mobile Money du souscripteur au terme des 3 ans si aucun sinistre n'a été déclaré et si toutes les primes ont été régulièrement payées.
+
+10. Réclamations : servicecommercialsonamvie@sonam.ci — 27 20 31 71 82 / 05 95 45 21 65.`;
+
 const FORMULE_DETAILS: Record<string, { name: string; desc: string; nature: string[] }> = {
   A: { name: 'Dignité Simple', desc: 'Couverture essentielle pour protéger votre famille.', nature: ['Cercueil standard', 'Conservation', 'Transport local', 'Inhumation simple'] },
   B: { name: 'Serein', desc: 'Protection élargie et capital confortable.', nature: ['Cercueil semi-luxe', 'Embaumement', 'Transport interurbain', 'Cérémonie'] },
