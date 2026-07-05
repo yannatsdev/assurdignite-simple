@@ -585,17 +585,22 @@ export default function AdhesionPage() {
                         <p className="pt-2 border-t border-border/40 mt-2"><strong>Prime annuelle :</strong> <span className="text-primary font-bold text-lg">{simResult ? formatCFA(simResult.primeAnnuelle) : '—'}</span></p>
                       </section>
 
-                      {/* CG */}
+                      {/* Conditions Générales + Particulières */}
                       <section className="space-y-2">
                         <details className="rounded-xl border p-3 bg-muted/30">
-                          <summary className="cursor-pointer text-sm font-medium">Lire les Conditions Générales</summary>
+                          <summary className="cursor-pointer text-sm font-medium">📄 Lire les Conditions Générales</summary>
                           <div className="mt-3 max-h-56 overflow-y-auto text-xs whitespace-pre-wrap leading-relaxed">{CG_TEXT}</div>
+                        </details>
+                        <details className="rounded-xl border p-3 bg-muted/30">
+                          <summary className="cursor-pointer text-sm font-medium">📋 Lire les Conditions Particulières</summary>
+                          <div className="mt-3 max-h-56 overflow-y-auto text-xs whitespace-pre-wrap leading-relaxed">{CP_TEXT}</div>
                         </details>
                         <div className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
                           <Checkbox checked={cgAccepted} onCheckedChange={v => setCgAccepted(v === true)} />
                           <span className="text-sm">J'ai lu et j'accepte les <strong>Conditions Générales</strong> et les <strong>Conditions Particulières</strong> d'AssurDignité.</span>
                         </div>
                       </section>
+
 
                       {/* Signature */}
                       <section className="space-y-2">
