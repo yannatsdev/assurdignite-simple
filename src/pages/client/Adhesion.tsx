@@ -338,9 +338,6 @@ export default function AdhesionPage() {
                 <div className="space-y-5">
                   <p className="text-sm text-muted-foreground">Choisissez votre formule et renseignez votre famille. La prime se calcule en temps réel.</p>
 
-                  {/* Formule cards */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                    {(['A','B','C','D'] as OptionKey[]).map(k => {
                   {/* Formule cards with visible advantages */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     {(['A','B','C','D'] as OptionKey[]).map(k => {
