@@ -341,21 +341,32 @@ export default function AdhesionPage() {
                   {/* Formule cards */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                     {(['A','B','C','D'] as OptionKey[]).map(k => {
+                  {/* Formule cards with visible advantages */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {(['A','B','C','D'] as OptionKey[]).map(k => {
                       const cap = OPTIONS_CAPITALS[k];
                       const d = FORMULE_DETAILS[k];
                       const active = formule === k;
                       return (
                         <button key={k} type="button" onClick={() => setFormule(k)}
-                          className={`text-left p-3 rounded-xl border-2 transition-all relative ${active ? 'border-primary bg-primary/10 shadow' : 'border-border/60 hover:border-primary/40 bg-background'}`}>
-                          {k === 'D' && <Badge className="absolute -top-2 right-2 bg-secondary text-[10px]">⭐</Badge>}
+                          className={`text-left p-3 rounded-xl border-2 transition-all relative flex flex-col ${active ? 'border-primary bg-primary/10 shadow-md' : 'border-border/60 hover:border-primary/40 bg-background'}`}>
+                          {k === 'D' && <Badge className="absolute -top-2 right-2 bg-secondary text-[10px]">⭐ Populaire</Badge>}
                           <p className="text-[11px] font-bold text-primary">Formule {k}</p>
                           <p className="text-sm font-bold font-display leading-tight">{d.name}</p>
-                          <p className="text-[11px] text-muted-foreground mt-1">Capital</p>
-                          <p className="text-sm font-semibold text-primary">{formatCFA(cap.principal)}</p>
+                          <p className="text-sm font-semibold text-primary mt-1">{formatCFA(cap.principal)}</p>
+                          <ul className="mt-2 pt-2 border-t border-border/40 space-y-1">
+                            {d.nature.map((adv, i) => (
+                              <li key={i} className="flex items-start gap-1 text-[11px] text-muted-foreground leading-snug">
+                                <Check className="w-3 h-3 text-sonam-green shrink-0 mt-0.5" /> {adv}
+                              </li>
+                            ))}
+                          </ul>
+                          <p className="text-[10px] text-muted-foreground mt-2 pt-2 border-t border-border/40 italic">70% nature + 30% espèces</p>
                         </button>
                       );
                     })}
                   </div>
+
 
                   <div className="p-4 rounded-xl bg-accent/40 space-y-4">
                     <div>
