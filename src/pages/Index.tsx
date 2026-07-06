@@ -32,7 +32,7 @@ const processSteps = [
 const testimonials = [
   { name: 'Mamadou K.', role: 'Entrepreneur, Abidjan', text: 'AssurDignité m\'a permis de protéger ma famille en toute sérénité. Le processus est simple et le paiement rapide.', rating: 5 },
   { name: 'Aminata D.', role: 'Enseignante, Bouaké', text: 'J\'ai souscrit à la formule Serein et je suis rassurée de savoir que mes proches sont couverts. Service excellent !', rating: 5 },
-  { name: 'Kouamé F.', role: 'Fonctionnaire, Yamoussoukro', text: 'Le bonus fidélité est un vrai plus. Après 3 ans, j\'ai reçu 30% de mes primes. Je recommande vivement.', rating: 5 },
+  { name: 'Kouamé F.', role: 'Fonctionnaire, Yamoussoukro', text: 'Le bonus fidélité est un vrai plus. Après 3 ans, j\'ai reçu 30% de la prime annuelle de l\'Assuré Principal. Je recommande vivement.', rating: 5 },
 ];
 
 const statsItems = [
