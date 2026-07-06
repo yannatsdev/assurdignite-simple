@@ -1,78 +1,65 @@
 
-## Objectif
-Fiabiliser la plateforme AssurDignité : corriger les bugs de simulation, garantir la conformité intégrale avec la Note Technique SONAM VIE 26/05/2026, et simplifier définitivement le parcours d'adhésion en 3 étapes.
+# Plan — Corrections AssurDignité (Note Technique 26/05/2026)
 
-> Remarque : aucun nouveau document PDF n'est joint à ce message. Je m'appuie sur la Note Technique 26/05/2026 déjà intégrée en mémoire projet. Si vous voulez que j'intègre un autre document, joignez-le et je l'inclurai dans la même itération.
+Exécution séquentielle des 8 prompts. Un seul chantier, livré en une passe cohérente.
 
-## 1. Bugs de simulation (chiffres figés / incohérences)
+## 1. Moteur de simulation — anti-figement
+Fichiers : `src/lib/actuarial-engine.ts`, `src/components/landing/SimulateurSection.tsx`, `src/components/landing/SmartRecommender.tsx`, `src/pages/client/Adhesion.tsx`, `src/pages/client/Souscrire.tsx`.
+- Reconstruire les `useEffect` de calcul avec deps stables : `option`, `quoteDate`, `principal.dob`, `conjoint.included`, `conjoint.dob`, `JSON.stringify(enfants)`, `JSON.stringify(ascendants)`, `duree`.
+- Debounce 200ms (helper commun).
+- `setResult(null)` immédiat si `principal.dob` vide / invalide / âge hors [18,64].
+- Filtrer `enfants` et `ascendants` sans `dob` avant appel `simulatePrime`.
+- Reset à chaque changement de formule (le résultat ne persiste jamais d'une formule à l'autre).
 
-Fichier : `src/lib/actuarial-engine.ts`, `src/components/landing/SimulateurSection.tsx`, `src/pages/client/Adhesion.tsx`, `src/lib/mcp/tools/simuler-prime.ts`.
+## 2. Coefficient PMC 0,09 (bug 0,087)
+- `simuler_prime` MCP : `mensuelle: PAC * 0.09 + 500` (actuellement 0.087).
+- Grep `0.087` / `0,087` dans tout le repo (code, `.lovable/plan.md`, PDF templates, docs).
+- `PERIODICITY.mensuel.coef` déjà à 0.09 dans `actuarial-engine.ts` — vérifier.
+- Ajout test Vitest `src/lib/actuarial-engine.test.ts` couvrant les 4 formules PAC'/PSC/PTC/PMC avec PAC=100000.
 
-- Recalcul temps réel garanti sur **tous** les inputs (formule, DDN, conjoint, enfants, ascendants, périodicité) via `useEffect` + debounce 200 ms — supprimer tout état `result` non réinitialisé lors du changement de formule.
-- Corriger la clé de dépendance du `useEffect` de simulation pour utiliser un hash stable de `enfants` / `ascendants` (JSON.stringify) — sinon React ne détecte pas les mutations in-place et les chiffres restent figés.
-- Reset explicite de `simResult` à `null` quand la DDN principale devient invalide (< 18 ou > 64) au lieu d'afficher l'ancien montant.
-- Validation d'âge cohérente partout :
-  - Principal / conjoint : 18–64 ans ET `âge + durée ≤ 65`
-  - Enfants : 0–21 ans
-  - Ascendants : 0–89 ans ET `âge + durée ≤ 90`
-- Coefficients de périodicité (Note Technique) appliqués uniformément côté simulateur landing, adhesion, et outil MCP :
-  - `PAC' = PAC + 2 500`
-  - `PSC = 0,51 × PAC + 1 500`
-  - `PTC = 0,26 × PAC + 1 000`
-  - `PMC = 0,087 × PAC + 500`
-- Ristourne : 30 % de la prime **de l'assuré principal** (pas des primes cumulées) restituée si aucun sinistre sur 3 ans — libellé UI + PDF + CG article 6 alignés.
-- Gestion des inputs vides d'enfants / ascendants sans crash (filtrage `dob` valide avant appel moteur).
+## 3. Chargements & taux (fc, fa)
+- Confirmer `TAUX=0.035`, `FC=0.0015`, `FA=0.18`, `ENC_A=2500` (déjà OK dans `actuarial-engine.ts`).
+- Grep `3‰`, `0.003`, `16%`, `0.16` → remplacer par `0,15%` / `18%` partout (bulletin d'adhésion PDF, conditions, avis de situation, labels UI, ChatBot).
+- Vérifier `src/lib/pdf-shared.ts` et tout générateur PDF.
 
-## 2. Parcours adhésion — 3 étapes définitives
+## 4. Limites d'âge cohérentes
+- Règle unique : principal/conjoint 18–64 ET âge+durée ≤ 65 ; enfants 0–21 ; ascendants 0–89 ET âge+durée ≤ 90.
+- MCP `simuler_prime` : `age: z.number().min(18).max(64)` (déjà OK mais re-vérifier après grep 75).
+- `adhesion-validation.ts` : ajouter contrainte âge+durée.
+- Messages d'erreur explicites dans formulaires (Adhesion.tsx, SimulateurSection.tsx).
+- Chatbot FAQ : mise à jour.
 
-Confirmer et durcir la structure existante :
+## 5. Ristourne 30% — assiette = prime principal uniquement
+- Auditer tout calcul/libellé « ristourne » / « 30% ».
+- Si calcul basé sur prime totale famille → corriger vers `persons.find(p=>p.role==='Principal').primeAffichee * 0.30`.
+- Libellés : « 30% de la prime de l'Assuré Principal » — jamais « prime totale ». Fichiers : landing (FormulesSection, AvantagesSection, FAQSection), Dashboard client, Contrats, PDF, CG.
 
-```text
-Étape 1 — Simulation            (formule + famille + prime live)
-Étape 2 — Informations & bénéficiaires (KYC + santé compacte + bénéficiaires)
-Étape 3 — Signature & paiement  (CG+CP + signature + Orange/MoMo/Wave/Moov)
-```
+## 6. MCP — noms formules & cohérence moteur
+- `list-formules.ts` : A=Dignité Simple, B=Serein, C=Prestige, D=Excellence (retirer Essentielle/Standard/Premium/Excellence Diaspora).
+- `simuler-prime.ts` MCP : remplacer la formule ad-hoc `capital * (0.008 + (age-30)*0.0004)` par un appel au vrai moteur `simulatePrime()` (import partagé) pour aligner les résultats site ↔ MCP.
+- Cas de test : principal 42 ans formule A → même montant des deux côtés.
+- Regénérer manifest (`app_mcp_server--extract_mcp_manifest`) + `supabase--deploy_edge_functions ["mcp"]`.
 
-Améliorations :
-- Barre d'étapes : icônes parfaitement centrées mobile + desktop (flex `justify-center items-center`, largeurs égales, connecteur `flex-1` centré verticalement) — comme la capture fournie.
-- Étape 1 : chaque carte formule affiche 3–4 avantages clés (nature) directement visibles, pas seulement au hover.
-- Étape 2 : retirer la mention « et ne sont pas stockées » du bandeau IA (les images sont bien uploadées) → « Vos images sont traitées par notre IA de manière sécurisée. »
-- Étape 2 (bénéficiaires 30 %) : retirer « laissez vide pour désigner… » et remplacer par un champ obligatoire avec valeur par défaut suggérée « Héritiers légaux » modifiable.
-- Étape 2 (santé) : question unique « Êtes-vous en bonne santé ? » avec 6 sous-questions dépliables si « Non ».
-- Étape 3 : afficher **Conditions Générales + Conditions Particulières** (2 blocs distincts, 2 cases à cocher, PDF téléchargeable pour chaque).
-- Persistance de l'étape en `sessionStorage` (déjà présente) + reprise propre après refresh.
+## 7. Contenu produit (Dossier Officiel)
+- Ascendants : jusqu'à 4, souscription ≤ 89 ans, couverture ≤ 90 ans, mise en avant vs marché (55–75 ans).
+- Sinistre : règle cash 100% si prestation nature impossible (étranger, rites rapides). Ajouter dans workflow sinistre + FAQ + CG.
+- Délais : distinguer clairement 15 jours ouvrés contractuel (CIMA) vs objectif interne « quelques heures » (non contractuel, jamais fusionnés).
+- Bonus Fidélité-Santé = même ristourne du Prompt 5 (pas de doublon).
+- ChatBot.tsx : refresh FAQ (âges, ristourne, délais).
+- Grep `IMPACT.02` partout → remplacer par `AssurDignité`.
+- Alignement landing page (Hero, Formules, Avantages, FAQ) sur ces règles.
 
-## 3. Conformité Note Technique 26/05/2026 (rappel des valeurs verrouillées)
+## 8. QA finale
+- `bun run build` + `tsgo` clean.
+- Playwright headless : réparer tests existants + nouveau scénario 6 profils (jeune seul, couple, famille 3 enfants, 2 ascendants 85 ans, diaspora D, senior 63 ans). Vérifier non-figement entre changements.
+- Barre progression 3 étapes mobile/desktop (screenshot Playwright).
+- Vérif RLS : `contrats`, `beneficiaires`, `assures_complementaires`, `paiements` toujours scopés `auth.uid()`.
+- Rapport final : bugs corrigés, tableau avant/après (fc, fa, coef PMC, bornes âge, noms formules), captures simulateur.
 
-- Formules : A 1,5 M / B 2 M / C 3 M / D 5 M FCFA (70 % nature + 30 % espèces).
-- Paiement annuel par défaut, périodicités PAC'/PSC/PTC/PMC disponibles.
-- Contacts SONAM VIE : 27 20 31 71 82 / 05 95 45 21 65 — `servicecommercialsonamvie@sonam.ci`.
-- Table de mortalité CIMA H, taux technique et chargements conformes au moteur actuariel actuel.
-- Manifest MCP + tool `simuler_prime` re-déployés avec les mêmes règles.
+## Livrables
+- Rapport de bugs par prompt (avant/après).
+- Manifest MCP regénéré + fonction `mcp` redéployée.
+- Test unitaire périodicité + scénario Playwright 6 profils.
+- Zéro régression build/type/RLS.
 
-## 4. Autres corrections plateforme
-
-- OCR CNI : passer le worker Tesseract en mode `fast` (langue `fra` seule, `tessedit_pageseg_mode=6`, image redimensionnée à 1600 px max avant OCR) → gain ~40 % de latence.
-- Signature canvas : fix redimensionnement (ResizeObserver + rescale du contenu) pour éviter la perte du tracé lors du passage mobile/desktop.
-- Paiement mobile money : messages d'erreur explicites (timeout, PIN refusé, solde insuffisant) au lieu du générique.
-- Validation finale (`adhesion-validation.ts`) : messages regroupés par étape avec bouton « Corriger » qui saute directement au champ manquant.
-- Chatbot FAQ : mise à jour des réponses avec les nouvelles limites d'âge et la règle ristourne.
-- Audit rapide RLS Lovable Cloud sur `contracts`, `beneficiaires`, `assures_complementaires`, `paiements` (lecture/écriture scopées `auth.uid()`).
-
-## Fichiers impactés (aucune migration DB)
-
-- `src/lib/actuarial-engine.ts`
-- `src/lib/adhesion-validation.ts`
-- `src/lib/mcp/tools/simuler-prime.ts`
-- `src/components/landing/SimulateurSection.tsx`
-- `src/components/adhesion/UnifiedProgressBar.tsx`
-- `src/pages/client/Adhesion.tsx`
-- `src/components/kyc/IdCardScanner.tsx` (OCR)
-- `src/components/payment/PaymentMethodSelector.tsx`
-- `supabase/functions/mcp/index.ts` (redeploy)
-- `.lovable/mcp/manifest.json`
-
-## Validation
-- Simulation : test 6 profils (jeune seul, couple, famille 3 enfants, avec 2 ascendants 85 ans, diaspora D, senior 63 ans) → prime cohérente, chiffres jamais figés.
-- Adhesion : run Playwright headless bout-en-bout (3 étapes) + screenshots.
-- Vérif build + typecheck automatiques.
+Confirmez pour lancer l'implémentation.
