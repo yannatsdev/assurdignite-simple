@@ -241,7 +241,7 @@ export default function ClientDashboard() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm font-display">Bonus Fidélité-Santé</h3>
-                  <p className="text-xs text-muted-foreground">3 ans sans sinistre = 30% des primes</p>
+                  <p className="text-xs text-muted-foreground">3 ans sans sinistre = 30% de la prime de l'Assuré Principal</p>
                 </div>
               </div>
               <div className="space-y-1">
