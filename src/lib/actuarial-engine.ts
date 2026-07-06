@@ -38,6 +38,7 @@ export interface SimulationInput {
   quoteDate: string;
   option: OptionKey;
   duree?: number; // années — défaut 2
+  periodicite?: PeriodicityKey; // défaut 'annuel'
   principal: { dob: string };
   conjoint?: { dob: string; included: boolean };
   enfants: { dob: string; included: boolean }[];
@@ -50,7 +51,7 @@ export interface PersonResult {
   age: number;
   capital: number;
   pap: number;       // prime annuelle commerciale (PC) — sans accessoire
-  primeAffichee: number; // PC + accessoire annuel (comme dans le tableau Excel)
+  primeAffichee: number; // prime pour la périodicité choisie + accessoire de période (comme dans le tableau Excel)
   eligible: boolean;
   reason?: string;
 }
@@ -60,11 +61,14 @@ export interface SimulationResult {
   nbEnfants: number;
   nbAscendants: number;
   agesMoyens: { e?: number; z?: number };
-  papTotal: number;       // somme PC pure (sans accessoires)
+  papTotal: number;       // somme PC pure (sans accessoires), base annuelle
   pai: number;            // = papTotal × (1+fc) — kept for compat
   pac: number;            // = pai/(1-fa-fi) — kept for compat
-  primeAnnuelle: number;  // PRIME TOTALE PTTC = somme(PC) + accessoire (encA)
-  accessoires: number;    // 2500 FCFA
+  primeAnnuelle: number;  // PRIME TOTALE ANNUELLE de référence = somme(PC) + accessoire annuel (toujours en base annuelle, quelle que soit la périodicité choisie)
+  primePeriodique: number; // Montant total réellement dû par échéance, pour la périodicité choisie (= primeAnnuelle si périodicité = annuel)
+  periodicite: PeriodicityKey;
+  periodsPerYear: number;
+  accessoires: number;    // 2500 FCFA (accessoire global, constant quelle que soit la périodicité — cf. macro Excel PCP_TD)
   engagementGlobal: number; // somme des capitaux assurés
   duree: number;
   eligibilityErrors: string[];
@@ -130,6 +134,8 @@ export function PAI(x: number, n: number, C: number): number {
 export function simulatePrime(input: SimulationInput): SimulationResult {
   const cap = OPTIONS_CAPITALS[input.option];
   const n = Math.max(1, Math.floor(input.duree ?? DEFAULT_DUREE));
+  const periodKey: PeriodicityKey = input.periodicite ?? 'annuel';
+  const cfg = PERIODICITY[periodKey];
   const persons: PersonResult[] = [];
   const errors: string[] = [];
 
@@ -143,11 +149,15 @@ export function simulatePrime(input: SimulationInput): SimulationResult {
     const age = getAge(dob, input.quoteDate);
     const elig = age >= 0 && age <= maxAge;
     if (!elig) errors.push(`${label} (${age} ans) doit avoir ≤ ${maxAge} ans`);
+    // Base annuelle pure (PC), utilisée pour papTotal / primeAnnuelle de référence, indépendante de la périodicité.
     const pc = elig ? PC(age, n, capital) : 0;
+    // Montant pour la périodicité choisie : Prime Unique Commerciale pour "unique",
+    // sinon coefficient de fractionnement × PC + accessoire de la période (macro Excel PCP_TD).
+    const periodBase = elig ? (periodKey === 'unique' ? PUC(age, n, capital) : pc * cfg.coef) : 0;
     return {
       role, label, age, capital,
       pap: pc,
-      primeAffichee: pc + ENC_A,
+      primeAffichee: elig ? periodBase + cfg.enc : 0,
       eligible: elig,
       reason: elig ? undefined : `Âge > ${maxAge} ans`,
     };
@@ -182,11 +192,17 @@ export function simulatePrime(input: SimulationInput): SimulationResult {
   });
   const zMoyen = ascAges.length ? Math.round(ascAges.reduce((s,a)=>s+a,0)/ascAges.length) : undefined;
 
-  // Per Excel reference table: each member's displayed prime = PC + ENC_A,
-  // and total PTTC = Σ(displayed) + ENC_A (one global accessoire line).
+  // Chaque assuré (principal, conjoint, CHAQUE enfant, CHAQUE ascendant individuellement — pas un montant
+  // "par tête" multiplié par un effectif) contribue sa propre prime de période + accessoire de période.
+  // Le total dû = Σ(primes de période par assuré) + un accessoire global unique de 2 500 FCFA,
+  // constant quelle que soit la périodicité (cf. macro Excel PCP_TD, lignes I7/I13/I19/I25/I31 = 2 500).
   const sumDisplayed = persons.reduce((s, p) => s + (p.eligible ? p.primeAffichee : 0), 0);
   const sumPC = persons.reduce((s, p) => s + p.pap, 0);
-  const primeAnnuelle = sumDisplayed + ENC_A;
+  const primePeriodique = sumDisplayed + ENC_A;
+
+  // Référence annuelle indépendante de la périodicité choisie (utile pour comparer les formules
+  // et pour les champs "prime_annuelle" stockés en base, quelle que soit la périodicité retenue).
+  const primeAnnuelle = sumPC + persons.filter(p => p.eligible).length * ENC_A + ENC_A;
 
   const engagementGlobal = persons.reduce((s, p) => s + (p.eligible ? p.capital : 0), 0);
 
@@ -199,6 +215,9 @@ export function simulatePrime(input: SimulationInput): SimulationResult {
     pai: Math.round(sumPC * (1 + FC)),
     pac: Math.round((sumPC * (1 + FC)) / (1 - FA - FI)),
     primeAnnuelle: Math.round(primeAnnuelle),
+    primePeriodique: Math.round(primePeriodique),
+    periodicite: periodKey,
+    periodsPerYear: cfg.periods,
     accessoires: ENC_A,
     engagementGlobal,
     duree: n,
@@ -209,13 +228,4 @@ export function simulatePrime(input: SimulationInput): SimulationResult {
 
 export function formatCFA(amount: number): string {
   return Math.round(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' FCFA';
-}
-
-/** Prime périodique (par échéance) selon la macro Excel PCP_TD */
-export function primeForPeriodicity(annualPrime: number, key: PeriodicityKey): number {
-  const cfg = PERIODICITY[key];
-  // annualPrime déjà = PC_total + ENC_A. On retire l'accessoire annuel pour appliquer le coef puis on ajoute l'accessoire de la période.
-  const pcOnly = annualPrime - ENC_A;
-  if (key === 'unique') return Math.round(pcOnly + ENC_A);
-  return Math.round(pcOnly * cfg.coef + cfg.enc);
 }

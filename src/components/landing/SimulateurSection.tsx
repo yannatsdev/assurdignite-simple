@@ -44,9 +44,7 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
   const addEnfant = () => { if (enfants.length < 4) setEnfants([...enfants, { dob: '', included: true }]); };
   const addAscendant = () => { if (ascendants.length < 2) setAscendants([...ascendants, { dob: '', included: true, label: ascendants.length === 0 ? 'Père/Mère' : 'Oncle/Tante' }]); };
 
-  // Auto-recompute on any input change (debounced) — stringified deps so array mutations trigger re-runs.
-  const enfantsKey = JSON.stringify(enfants);
-  const ascendantsKey = JSON.stringify(ascendants);
+  // Auto-recompute on any input change (debounced) — no more "figées" numbers.
   useEffect(() => {
     if (!principalDob) { setResult(null); return; }
     const t = setTimeout(() => {
@@ -58,8 +56,7 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
       setResult(res);
     }, 200);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [option, quoteDate, principalDob, conjointIncluded, conjointDob, enfantsKey, ascendantsKey]);
+  }, [option, quoteDate, principalDob, conjointIncluded, conjointDob, enfants, ascendants]);
 
   const handleSimulate = () => {
     if (!principalDob) return;
@@ -67,10 +64,12 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
     setResult(res);
   };
 
-  const pieData = [
-    { name: 'Nature (70%)', value: 70, color: 'hsl(var(--primary))' },
-    { name: 'Espèces (30%)', value: 30, color: 'hsl(var(--secondary))' },
-  ];
+  const PIE_COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--sonam-blue))', 'hsl(var(--accent-foreground))'];
+  const pieData = (result?.persons.filter(p => p.eligible) || []).map((p, i) => ({
+    name: p.label.length > 14 ? p.label.slice(0, 14) + '…' : p.label,
+    value: Math.round(p.primeAffichee),
+    color: PIE_COLORS[i % PIE_COLORS.length],
+  }));
 
   const barData = result?.persons.filter(p => p.eligible).map(p => ({
     name: p.label.length > 12 ? p.label.slice(0, 12) + '…' : p.label,
@@ -118,7 +117,7 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
                     );
                   })}
                 </div>
-                <p className="text-xs text-muted-foreground text-center mt-3">Chaque formule inclut 70% de prestations en nature (cercueil, conservation, transport, inhumation) et 30% en capital espèces versé au(x) bénéficiaire(s).</p>
+                <p className="text-xs text-muted-foreground text-center mt-3">Chaque formule verse un capital à 100% en espèces aux bénéficiaires désignés, sous 15 jours ouvrés après réception du dossier complet.</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -215,14 +214,14 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-sm font-display">Répartition couverture</CardTitle></CardHeader>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm font-display">Répartition de la prime</CardTitle></CardHeader>
                     <CardContent className="h-48">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" label={({ value }) => `${value}%`}>
+                          <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" label={({ value }) => `${Math.round((value / (pieData.reduce((s, d) => s + d.value, 0) || 1)) * 100)}%`}>
                             {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                           </Pie>
-                          <Tooltip />
+                          <Tooltip formatter={(v: number) => formatCFA(v)} />
                         </PieChart>
                       </ResponsiveContainer>
                     </CardContent>

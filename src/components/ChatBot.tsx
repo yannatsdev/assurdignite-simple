@@ -270,7 +270,7 @@ export function ChatBot() {
               <a href="/client/sinistre" className="text-xs px-3 py-1.5 rounded-full bg-red-50 border border-red-200 text-red-700 hover:bg-red-600 hover:text-white transition-colors">🚨 Déclarer un sinistre</a>
               <a href="/client/documents" className="text-xs px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-600 hover:text-white transition-colors">📄 Mon attestation</a>
               <a href="/client/historique-sinistres" className="text-xs px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-600 hover:text-white transition-colors">🔍 Suivre un sinistre</a>
-              {messages.length <= 2 && ['Quelles formules ?', 'Bonus Fidélité', 'Contact'].map(s => (
+              {messages.length <= 2 && ['Quelles formules ?', 'Ristourne Fidélité', 'Contact'].map(s => (
                 <button key={s} onClick={() => sendMessage(s)} className="text-xs px-3 py-1.5 rounded-full border border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground transition-colors">
                   {s}
                 </button>

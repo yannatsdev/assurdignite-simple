@@ -15,7 +15,7 @@
       {
         "name": "list_formules",
         "title": "Lister les formules AssurDignité",
-        "description": "Retourne les formules d'assurance obsèques AssurDignité (SONAM Vie): A Essentielle, B Standard, C Premium, D Excellence Diaspora.",
+        "description": "Retourne les formules d'assurance obsèques AssurDignité (SONAM Vie): A Dignité Simple, B Serein, C Prestige, D Excellence.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -47,7 +47,7 @@
       {
         "name": "simuler_prime",
         "title": "Simuler une prime annuelle",
-        "description": "Estimation indicative de la prime annuelle AssurDignité selon la formule (A/B/C/D) et l'âge de l'assuré principal (18-64 ans). Paiement annuel. Une ristourne de 30% de la prime de l'assuré principal est restituée si aucun sinistre n'est survenu sur les 3 premières années. Résultat non contractuel.",
+        "description": "Estimation indicative de la prime annuelle commerciale AssurDignité (assuré principal seul) selon la formule (A/B/C/D) et l'âge de l'assuré principal (18-64 ans), calculée avec le même moteur actuariel (table CIMA H, taux technique 3,5%) que le simulateur officiel. Paiement annuel, durée de référence 2 ans. Une ristourne de 30% de la prime de l'assuré principal est restituée si aucun sinistre n'est survenu sur les 3 premières années. Résultat indicatif, hors accessoires et hors conjoint/enfants/ascendants — non contractuel.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,

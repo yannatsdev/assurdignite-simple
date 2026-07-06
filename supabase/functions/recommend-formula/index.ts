@@ -15,10 +15,10 @@ interface Profile {
 }
 
 const FORMULES = [
-  { key: "A", nom: "Essentielle", capital: 1_500_000, idealPour: "budget maîtrisé, célibataire ou jeune couple" },
-  { key: "B", nom: "Standard", capital: 2_000_000, idealPour: "famille avec enfants, sécurité équilibrée" },
-  { key: "C", nom: "Premium", capital: 3_000_000, idealPour: "famille élargie, ascendants à protéger" },
-  { key: "D", nom: "Excellence Diaspora", capital: 5_000_000, idealPour: "diaspora, rapatriement, prestations haut de gamme" },
+  { key: "A", nom: "Dignité Simple", capital: 1_500_000, idealPour: "budget maîtrisé, célibataire ou jeune couple" },
+  { key: "B", nom: "Serein", capital: 2_000_000, idealPour: "famille avec enfants, sécurité équilibrée" },
+  { key: "C", nom: "Prestige", capital: 3_000_000, idealPour: "famille élargie, ascendants à protéger" },
+  { key: "D", nom: "Excellence", capital: 5_000_000, idealPour: "diaspora, rapatriement, capital maximal" },
 ];
 
 serve(async (req) => {
@@ -45,7 +45,7 @@ RÈGLES :
 - Renvoie STRICTEMENT un JSON valide, sans markdown ni texte hors JSON.
 - Schéma : {"formule":"A|B|C|D","titre":"...","justification":"2-3 phrases empathiques, pro, en français","points":["3 bullets courts max 12 mots chacun"],"alternative":"A|B|C|D"}
 - "alternative" = autre formule pertinente pour comparer.
-- Tiens compte de : âge (jeune → plus long horizon), nombre d'enfants/ascendants (capital nature 70% + cash 30%), budget annuel si fourni, situation (diaspora → privilégier D).
+- Tiens compte de : âge (jeune → plus long horizon), nombre d'enfants/ascendants (capital versé à 100% en espèces), budget annuel si fourni, situation (diaspora → privilégier D).
 - Pas de prix dans la justification (calculs faits côté app).`;
 
     const userPrompt = `Profil :

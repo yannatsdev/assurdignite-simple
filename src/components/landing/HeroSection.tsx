@@ -14,7 +14,7 @@ const slides = [
     badge: "Assurance Obsèques par SONAM VIE",
     title: "Votre Assurance Obsèques",
     highlight: "SONAM VIE",
-    desc: "Choisissez votre niveau de protection. Chaque formule offre une répartition de 70 % en prestations en nature et 30 % en capital espèces, avec un paiement en moins de 12 heures après dépôt et analyse des pièces.",
+    desc: "Choisissez votre niveau de protection. Chaque formule verse un capital à 100 % en espèces aux bénéficiaires, sous 15 jours ouvrés après dépôt et analyse des pièces.",
   },
   {
     img: heroImg2,
@@ -35,14 +35,14 @@ const slides = [
     badge: "L'héritage qui rassure",
     title: "Préservez la dignité",
     highlight: "de vos proches",
-    desc: "70 % en prestations funéraires complètes et 30 % en capital espèces versé aux bénéficiaires en moins de 12 heures après dépôt et analyse des pièces.",
+    desc: "Un capital versé à 100 % en espèces aux bénéficiaires désignés, sous 15 jours ouvrés après dépôt et analyse des pièces.",
   },
 ];
 
 const stats = [
   { value: 15000, suffix: '+', label: 'Familles protégées' },
-  { value: 12, prefix: '< ', suffix: 'h', label: 'Délai de paiement', sub: 'après dépôt & analyse' },
-  { value: 30, suffix: '%', label: 'Bonus Fidélité' },
+  { value: 15, suffix: 'j', label: 'Délai de paiement', sub: 'après dépôt & analyse' },
+  { value: 30, suffix: '%', label: 'Ristourne fidélité' },
   { value: 25, suffix: '+', label: "Années d'expérience" },
 ];
 
