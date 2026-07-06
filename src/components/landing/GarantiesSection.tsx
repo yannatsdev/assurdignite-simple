@@ -15,7 +15,7 @@ const garanties = [
   { icon: HeartHandshake, title: 'Assistance funéraire', desc: 'Organisation complète des obsèques par nos prestataires agréés : enlèvement, conservation, cercueil, transport, inhumation.' },
   { icon: Zap, title: 'Paiement rapide', desc: "Versement cash via Mobile Money en moins de 12 heures après dépôt et validation du dossier sinistre." },
   { icon: LifeBuoy, title: 'Assistance renforcée', desc: 'Accompagnement étendu selon la formule choisie : démarches administratives, support familial, coordination logistique.' },
-  { icon: Plane, title: 'Rapatriement diaspora', desc: 'Option dédiée à la formule Excellence Diaspora : rapatriement du corps vers la Côte d\'Ivoire pris en charge.' },
+  { icon: Plane, title: 'Rapatriement diaspora', desc: 'Option dédiée à la formule Excellence : rapatriement du corps vers la Côte d\'Ivoire pris en charge.' },
   { icon: Activity, title: 'Garantie accident', desc: 'Garantie optionnelle activable à la souscription pour renforcer la couverture en cas de décès accidentel.' },
 ];
 

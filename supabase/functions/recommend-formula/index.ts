@@ -15,10 +15,10 @@ interface Profile {
 }
 
 const FORMULES = [
-  { key: "A", nom: "Essentielle", capital: 1_500_000, idealPour: "budget maîtrisé, célibataire ou jeune couple" },
-  { key: "B", nom: "Standard", capital: 2_000_000, idealPour: "famille avec enfants, sécurité équilibrée" },
-  { key: "C", nom: "Premium", capital: 3_000_000, idealPour: "famille élargie, ascendants à protéger" },
-  { key: "D", nom: "Excellence Diaspora", capital: 5_000_000, idealPour: "diaspora, rapatriement, prestations haut de gamme" },
+  { key: "A", nom: "Dignité Simple", capital: 1_500_000, idealPour: "budget maîtrisé, célibataire ou jeune couple" },
+  { key: "B", nom: "Serein", capital: 2_000_000, idealPour: "famille avec enfants, sécurité équilibrée" },
+  { key: "C", nom: "Prestige", capital: 3_000_000, idealPour: "famille élargie, ascendants à protéger" },
+  { key: "D", nom: "Excellence", capital: 5_000_000, idealPour: "diaspora, rapatriement, prestations haut de gamme" },
 ];
 
 serve(async (req) => {
