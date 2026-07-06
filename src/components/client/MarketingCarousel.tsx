@@ -21,14 +21,14 @@ const slides = [
   },
   {
     image: fastPayout,
-    title: 'Versement express en moins de 12h',
-    text: 'Capital versé rapidement après dépôt et analyse des pièces.',
+    title: 'Règlement rapide',
+    text: 'Objectif interne quelques heures. Délai contractuel maximal : 15 jours ouvrés (Code CIMA).',
     icon: Clock,
   },
   {
     image: familyMother,
-    title: 'Bonus Fidélité jusqu\'à 30%',
-    text: '3 années consécutives sans sinistre = 30% de vos primes restituées.',
+    title: 'Bonus Fidélité 30%',
+    text: '30% de la prime de l\'Assuré Principal restitués après 3 années consécutives sans sinistre.',
     icon: Award,
   },
 ];
