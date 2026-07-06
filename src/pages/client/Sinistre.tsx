@@ -124,11 +124,11 @@ export default function SinistrePage() {
       <ClientHeroBanner
         image={fastPayout}
         title="Sinistre Fast-Track"
-        subtitle="Déclarez un sinistre en moins de 5 minutes — versement express en moins de 12h après analyse."
+        subtitle="Déclarez un sinistre en moins de 5 minutes — délai contractuel maximal 15 jours ouvrés, objectif interne quelques heures."
         height="h-52 sm:h-60"
         cta={
           <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/95 backdrop-blur px-3 py-1.5 text-xs font-semibold text-white shadow">
-            <Clock className="w-3.5 h-3.5" /> Versement &lt; 12h
+            <Clock className="w-3.5 h-3.5" /> Max 15 j ouvrés
           </span>
         }
       />
@@ -147,7 +147,7 @@ export default function SinistrePage() {
                 'Activation immédiate de l\'assistance (< 1h)',
                 'Constitution du dossier (pièces)',
                 'Validation technique SONAM Vie',
-                'Versement cash MoMo (< 12h)',
+                'Versement cash MoMo (objectif interne quelques heures)',
                 'Exécution prestations nature (70%)',
                 'Clôture & archivage',
               ].map((s, i) => (
@@ -159,7 +159,7 @@ export default function SinistrePage() {
             </ol>
             <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
               <div className="bg-secondary/10 text-secondary rounded-lg p-2 text-center font-semibold">Prise en charge &lt; 1h</div>
-              <div className="bg-primary/10 text-primary rounded-lg p-2 text-center font-semibold">Cash &lt; 12h</div>
+              <div className="bg-primary/10 text-primary rounded-lg p-2 text-center font-semibold">Max 15 j ouvrés</div>
               <div className="bg-[hsl(var(--sonam-blue))]/10 text-[hsl(var(--sonam-blue))] rounded-lg p-2 text-center font-semibold">Logistique 2–4h</div>
             </div>
           </CardContent>

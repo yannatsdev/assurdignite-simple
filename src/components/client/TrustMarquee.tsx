@@ -3,7 +3,7 @@ import { Marquee } from '@/components/ui/marquee';
 
 const items = [
   { icon: ShieldCheck, text: 'Agréé CIMA' },
-  { icon: Clock, text: 'Versement < 12h' },
+  { icon: Clock, text: 'Règlement max 15 j ouvrés' },
   { icon: Users, text: '50 000+ familles protégées' },
   { icon: Lock, text: 'Paiement sécurisé' },
   { icon: Award, text: 'Bonus Fidélité 30%' },
