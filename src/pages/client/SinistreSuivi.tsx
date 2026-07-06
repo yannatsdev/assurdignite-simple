@@ -137,7 +137,7 @@ export default function SinistreSuivi() {
         {!isRejected && sinistre.status !== 'paid' && (
           <div className="mt-5 bg-primary/5 border border-primary/20 rounded-xl p-3 text-sm">
             <span className="font-semibold text-primary">⏱ Délai estimé : </span>
-            {sinistre.status === 'declared' ? 'Validation sous 2h ouvrées' : 'Versement sous 12h après validation'}
+            {sinistre.status === 'declared' ? 'Validation sous 2h ouvrées (objectif interne)' : 'Règlement max 15 j ouvrés après validation (Code CIMA)'}
           </div>
         )}
       </CardContent></Card>

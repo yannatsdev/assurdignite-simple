@@ -317,7 +317,7 @@ export default function SinistrePage() {
                 <CheckCircle className="w-12 h-12 text-secondary" />
               </div>
               <h3 className="text-2xl font-bold font-display">Déclaration soumise</h3>
-              <p className="text-muted-foreground max-w-md mx-auto">Votre dossier est en cours de traitement. Le capital espèces sera versé en moins de 12 heures.</p>
+              <p className="text-muted-foreground max-w-md mx-auto">Votre dossier est en cours de traitement. Délai contractuel maximal : 15 jours ouvrés (Code CIMA). Notre objectif interne est un versement en quelques heures une fois le dossier vérifié.</p>
 
               {/* Résumé du dossier */}
               <div className="text-left max-w-md mx-auto bg-accent/40 rounded-2xl p-5 space-y-2 text-sm">
@@ -334,8 +334,8 @@ export default function SinistrePage() {
               </div>
 
               <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 max-w-sm mx-auto text-left">
-                <p className="text-xs font-semibold text-primary mb-1">⏱ Délai estimé</p>
-                <p className="text-sm">Validation sous 2h • Versement sous <strong>12h</strong> après acceptation.</p>
+                <p className="text-xs font-semibold text-primary mb-1">⏱ Délais</p>
+                <p className="text-sm">Contractuel max : <strong>15 jours ouvrés</strong> (Code CIMA). Objectif interne non contractuel : quelques heures après validation.</p>
               </div>
 
               {sinistreId && (
