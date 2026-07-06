@@ -32,13 +32,13 @@ Article 1 – Objet : Le présent contrat a pour objet la garantie par SONAM VIE
 
 Article 2 – Conditions d'adhésion : Assuré principal et conjoint 18-64 ans ; enfants 0-21 ans ; ascendants 0-89 ans. Âge + durée du contrat ≤ 65 ans (principal/conjoint) ou ≤ 90 ans (ascendants).
 
-Article 3 – Prestations : En cas de décès, SONAM VIE fournit cercueil, conservation, transport, cérémonie (70%) et verse 30% en espèces au(x) bénéficiaire(s), sous 12h après dépôt des pièces.
+Article 3 – Prestations : En cas de décès, SONAM VIE fournit cercueil, conservation, transport, cérémonie (70%) et verse 30% en espèces au(x) bénéficiaire(s). Délai contractuel maximal de règlement : 15 jours ouvrés après réception des pièces justificatives complètes (conformément au Code CIMA). Un objectif interne de règlement en quelques heures est visé mais non contractuel.
 
 Article 4 – Exclusions : Suicide dans les 2 premières années, faits de guerre, actes terroristes, participation volontaire à des actes criminels, fausses déclarations.
 
 Article 5 – Obligations : Payer la prime annuelle, déclarer tout changement familial, fournir des informations exactes.
 
-Article 6 – Ristourne : 30% de la prime de l'assuré principal restituée si aucun sinistre n'est survenu sur les 3 premières années de souscription.
+Article 6 – Ristourne / Bonus Fidélité-Santé : 30% de la prime annuelle de l'Assuré Principal (et non de la prime familiale totale) restituée par Mobile Money si aucun sinistre n'est survenu dans le groupe familial assuré sur les 3 premières années de souscription et si toutes les primes ont été régulièrement payées.
 
 Article 7 – Résiliation : Possible à tout moment par lettre. Non-paiement : suspension après 30 jours, résiliation après 90 jours.
 
