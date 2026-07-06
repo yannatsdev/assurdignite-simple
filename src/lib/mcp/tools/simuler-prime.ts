@@ -23,13 +23,13 @@ export default defineTool({
     const capital = CAPITAUX[formule];
     const tauxBase = 0.008 + Math.max(0, age - 30) * 0.0004;
     const primeAnnuelle = Math.round((capital * tauxBase) / 100) * 100;
-    // Périodicités — Note Technique 26/05/2026
+    // Périodicités — Note Technique 26/05/2026 (PAC' = PAC+2500, PSC = 0.51·PAC+1500, PTC = 0.26·PAC+1000, PMC = 0.09·PAC+500)
     const periodicites = {
       annuelle:     primeAnnuelle,
       annuelle_prime: primeAnnuelle + 2500,
       semestrielle: Math.round(primeAnnuelle * 0.51 + 1500),
       trimestrielle: Math.round(primeAnnuelle * 0.26 + 1000),
-      mensuelle:    Math.round(primeAnnuelle * 0.087 + 500),
+      mensuelle:    Math.round(primeAnnuelle * 0.09 + 500),
     };
     const result = {
       formule,

@@ -6,7 +6,7 @@ import { SmartImage } from '@/components/SmartImage';
 const avantages = [
   { icon: Gift, title: 'Bonus Fidélité-Santé 30%', desc: 'Si aucun sinistre après 3 ans, 30% du cumul des primes nettes versé en bonus.' },
   { icon: Users, title: 'Solidarité Famille', desc: 'Couvrez conjoint, enfants et ascendants dans un même contrat.' },
-  { icon: Clock, title: 'Paiement < 12h', desc: 'Le capital espèces (30%) versé en moins de 12 heures après déclaration.' },
+  { icon: Clock, title: 'Règlement rapide', desc: "Objectif interne : versement du capital espèces (30%) en quelques heures après validation. Délai contractuel maximal : 15 jours ouvrés (Code CIMA)." },
   { icon: Smartphone, title: 'Simplicité Digitale', desc: 'Souscrivez, payez et déclarez en ligne via Mobile Money (Wave, Orange, MTN, Moov).' },
   { icon: Shield, title: 'Double Couverture', desc: '70% en prestations nature (cercueil, transport, inhumation) + 30% en espèces.' },
   { icon: Heart, title: 'Accompagnement Total', desc: 'Assistance funéraire complète et rapatriement inclus selon la formule choisie.' },

@@ -49,6 +49,13 @@ export function SimulateurSection({ showActuarialBreakdown }: SimulateurSectionP
   const ascendantsKey = JSON.stringify(ascendants);
   useEffect(() => {
     if (!principalDob) { setResult(null); return; }
+    // Reset immediately if principal age is out of legal bounds (18-64)
+    const birth = new Date(principalDob);
+    const now = new Date(quoteDate);
+    let age = now.getFullYear() - birth.getFullYear();
+    const m = now.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+    if (isNaN(age) || age < 18 || age > 64) { setResult(null); return; }
     const t = setTimeout(() => {
       const res = simulatePrime({
         quoteDate, option, principal: { dob: principalDob },

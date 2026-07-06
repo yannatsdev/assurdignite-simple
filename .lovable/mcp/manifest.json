@@ -15,7 +15,7 @@
       {
         "name": "list_formules",
         "title": "Lister les formules AssurDignité",
-        "description": "Retourne les formules d'assurance obsèques AssurDignité (SONAM Vie): A Essentielle, B Standard, C Premium, D Excellence Diaspora.",
+        "description": "Retourne les formules d'assurance obsèques AssurDignité (SONAM Vie): A Dignité Simple, B Serein, C Prestige, D Excellence.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,

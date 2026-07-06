@@ -209,11 +209,11 @@ export default function DocumentsPage() {
     y = pdfTitle(doc, 'CONDITIONS GÉNÉRALES', y);
     const articles: [string, string][] = [
       ['Article 1 — Objet', "Le présent contrat a pour objet la garantie par SONAM VIE du versement d'un capital décès en cas de décès de l'assuré principal ou de l'un des assurés complémentaires. La garantie se décompose en 70% de prestations en nature et 30% en capital espèces."],
-      ["Article 2 — Conditions d'adhésion", "L'adhésion est ouverte à toute personne physique résidant en Côte d'Ivoire ou dans la zone CIMA, âgée de 18 à 64 ans (principal), 0 à 21 ans (enfants) et 0 à 79 ans (ascendants)."],
-      ['Article 3 — Prestations', "En cas de décès, SONAM VIE fournit : cercueil, conservation du corps, transport funéraire, cérémonie d'inhumation (70%) et versement de 30% en espèces aux bénéficiaires, en moins de 12 heures après dépôt et analyse des pièces justificatives."],
+      ["Article 2 — Conditions d'adhésion", "L'adhésion est ouverte à toute personne physique résidant en Côte d'Ivoire ou dans la zone CIMA, âgée de 18 à 64 ans (principal et conjoint, âge + durée ≤ 65 ans), 0 à 21 ans (enfants) et 0 à 89 ans (ascendants, couverture maximale 90 ans)."],
+      ['Article 3 — Prestations', "En cas de décès, SONAM VIE fournit : cercueil, conservation du corps, transport funéraire, cérémonie d'inhumation (70%) et versement de 30% en espèces aux bénéficiaires. Délai contractuel maximal : 15 jours ouvrés après réception des pièces justificatives complètes (Code CIMA). Un objectif interne de règlement en quelques heures est visé mais non contractuel. En cas d'impossibilité de prestation en nature (décès à l'étranger, inhumation déjà réalisée), la totalité (100%) du capital est versée en espèces."],
       ['Article 4 — Exclusions', 'Suicide dans les 2 premières années, faits de guerre, actes terroristes, participation volontaire à des actes criminels, fausses déclarations.'],
       ['Article 5 — Obligations', "Payer la prime annuelle, déclarer tout changement familial, fournir des informations exactes. Toute fausse déclaration entraîne la nullité du contrat."],
-      ['Article 6 — Bonus Fidélité-Santé', "Aucun sinistre pendant 3 ans = bonus de 30% des primes nettes cumulées."],
+      ['Article 6 — Bonus Fidélité-Santé', "Aucun sinistre pendant 3 ans dans le groupe familial assuré = 30% de la prime annuelle de l'Assuré Principal (et non de la prime familiale totale) restitués par Mobile Money."],
       ['Article 7 — Résiliation', "Résiliation possible à tout moment par lettre. Non-paiement : suspension après 30 jours, résiliation après 90 jours."],
       ['Article 8 — Juridiction', "Tribunaux d'Abidjan, Côte d'Ivoire. Code des Assurances CIMA."],
     ];

@@ -66,17 +66,17 @@ export function PremiumShowcaseSection() {
             delay={0}
           />
           <BentoCard
-            title="Délai < 12h"
-            description="Versement express après dépôt et analyse des pièces requises."
+            title="Règlement rapide"
+            description="Objectif interne : versement en quelques heures. Délai contractuel maximal : 15 jours ouvrés (Code CIMA)."
             icon={<Clock className="w-5 h-5" />}
             background={
-              <img src={fastPayout} alt="Conseiller AssurDignité — versement express" className="h-full w-full object-cover" loading="lazy" />
+              <img src={fastPayout} alt="Conseiller AssurDignité — règlement rapide" className="h-full w-full object-cover" loading="lazy" />
             }
             delay={0.1}
           />
           <BentoCard
             title="Bonus Fidélité"
-            description="Jusqu'à 30% de vos primes restituées après 3 années consécutives sans sinistre."
+            description="30% de la prime annuelle de l'Assuré Principal restitués par Mobile Money après 3 années consécutives sans sinistre dans le groupe familial."
             icon={<Award className="w-5 h-5" />}
             background={
               <img src={familyPro} alt="Professionnel africain rassuré" className="h-full w-full object-cover" loading="lazy" />

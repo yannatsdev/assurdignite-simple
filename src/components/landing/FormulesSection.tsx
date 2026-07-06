@@ -66,7 +66,7 @@ export function FormulesSection() {
             Tout est pris en charge par <span className="font-bold text-primary">Sonam Vie</span>.
           </p>
           <p className="text-muted-foreground text-base mt-3 max-w-3xl mx-auto leading-relaxed">
-            Chaque formule offre une répartition de <span className="font-semibold text-primary">70 % en prestations en nature</span> et <span className="font-semibold text-secondary">30 % en capital espèces</span>, avec un paiement en moins de 12 heures.
+            Chaque formule offre une répartition de <span className="font-semibold text-primary">70 % en prestations en nature</span> et <span className="font-semibold text-secondary">30 % en capital espèces</span>. Délai contractuel maximal : 15 jours ouvrés — objectif interne quelques heures.
           </p>
         </motion.div>
 
@@ -139,7 +139,7 @@ export function FormulesSection() {
             ))}
           </div>
           <p className="text-center text-sm text-muted-foreground mt-8 italic max-w-3xl mx-auto">
-            Les 30 % restants sont versés en <span className="font-semibold not-italic text-secondary">capital espèces aux bénéficiaires</span> en moins de 12 heures pour couvrir les frais imprévus.
+            Les 30 % restants sont versés en <span className="font-semibold not-italic text-secondary">capital espèces aux bénéficiaires</span> dans un délai contractuel maximal de 15 jours ouvrés (Code CIMA), pour couvrir les frais imprévus.
           </p>
         </motion.div>
       </div>

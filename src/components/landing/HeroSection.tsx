@@ -14,7 +14,7 @@ const slides = [
     badge: "Assurance Obsèques par SONAM VIE",
     title: "Votre Assurance Obsèques",
     highlight: "SONAM VIE",
-    desc: "Choisissez votre niveau de protection. Chaque formule offre une répartition de 70 % en prestations en nature et 30 % en capital espèces, avec un paiement en moins de 12 heures après dépôt et analyse des pièces.",
+    desc: "Choisissez votre niveau de protection. Chaque formule offre une répartition de 70 % en prestations en nature et 30 % en capital espèces. Délai contractuel maximal de règlement : 15 jours ouvrés — objectif interne de quelques heures.",
   },
   {
     img: heroImg2,
@@ -35,7 +35,7 @@ const slides = [
     badge: "L'héritage qui rassure",
     title: "Préservez la dignité",
     highlight: "de vos proches",
-    desc: "70 % en prestations funéraires complètes et 30 % en capital espèces versé aux bénéficiaires en moins de 12 heures après dépôt et analyse des pièces.",
+    desc: "70 % en prestations funéraires complètes et 30 % en capital espèces versé aux bénéficiaires — délai contractuel maximal 15 jours ouvrés (Code CIMA), objectif interne quelques heures.",
   },
 ];
 

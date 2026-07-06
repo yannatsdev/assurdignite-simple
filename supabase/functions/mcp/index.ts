@@ -10,34 +10,34 @@ import { defineTool } from "npm:@lovable.dev/mcp-js@0.20.0";
 var list_formules_default = defineTool({
   name: "list_formules",
   title: "Lister les formules AssurDignit\xE9",
-  description: "Retourne les formules d'assurance obs\xE8ques AssurDignit\xE9 (SONAM Vie): A Essentielle, B Standard, C Premium, D Excellence Diaspora.",
+  description: "Retourne les formules d'assurance obs\xE8ques AssurDignit\xE9 (SONAM Vie): A Dignit\xE9 Simple, B Serein, C Prestige, D Excellence.",
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: () => {
     const formules = [
       {
         code: "A",
-        nom: "Essentielle",
+        nom: "Dignit\xE9 Simple",
         capital_fcfa: 15e5,
         cible: "Budget ma\xEEtris\xE9, couverture essentielle"
       },
       {
         code: "B",
-        nom: "Standard",
+        nom: "Serein",
         capital_fcfa: 2e6,
         cible: "\xC9quilibre couverture / prime"
       },
       {
         code: "C",
-        nom: "Premium",
+        nom: "Prestige",
         capital_fcfa: 3e6,
         cible: "Prestations \xE9largies, famille"
       },
       {
         code: "D",
-        nom: "Excellence Diaspora",
+        nom: "Excellence",
         capital_fcfa: 5e6,
-        cible: "Diaspora \u2014 70% prestations nature + 30% cash Mobile Money"
+        cible: "Couverture maximale \u2014 diaspora, prestations premium, rapatriement"
       }
     ];
     return {
@@ -98,7 +98,7 @@ var simuler_prime_default = defineTool3({
       annuelle_prime: primeAnnuelle + 2500,
       semestrielle: Math.round(primeAnnuelle * 0.51 + 1500),
       trimestrielle: Math.round(primeAnnuelle * 0.26 + 1e3),
-      mensuelle: Math.round(primeAnnuelle * 0.087 + 500)
+      mensuelle: Math.round(primeAnnuelle * 0.09 + 500)
     };
     const result = {
       formule,
