@@ -3,14 +3,14 @@ import { HelpCircle } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 const faqs = [
-  { q: "Qu'est-ce que AssurDignité ?", a: "AssurDignité est un produit d'assurance obsèques proposé par SONAM VIE. Il offre une couverture en cas de décès avec 70% en prestations nature (cercueil, transport, inhumation) et 30% en capital espèces, versés en moins de 12 heures après dépôt et analyse des pièces justificatives." },
-  { q: "Quelles sont les formules disponibles ?", a: "4 formules : A – Dignité Simple (1 500 000 FCFA), B – Serein (2 000 000 FCFA), C – Prestige (3 000 000 FCFA), D – Excellence (5 000 000 FCFA). Chaque formule couvre l'assuré principal, conjoint, jusqu'à 4 enfants et 2 ascendants." },
+  { q: "Qu'est-ce que AssurDignité ?", a: "AssurDignité est un produit d'assurance obsèques proposé par SONAM VIE. En cas de décès d'un membre assuré de la famille, il verse aux bénéficiaires désignés un capital à 100% en espèces, destiné à financer l'organisation des obsèques, sous 15 jours ouvrés après dépôt et analyse des pièces justificatives." },
+  { q: "Quelles sont les formules disponibles ?", a: "4 formules : A – Dignité Simple (1 500 000 FCFA), B – Serein (2 000 000 FCFA), C – Prestige (3 000 000 FCFA), D – Excellence (5 000 000 FCFA). Chaque formule couvre l'assuré principal, conjoint, jusqu'à 10 enfants et 4 ascendants." },
   { q: "Comment souscrire ?", a: "Simulez votre prime en ligne, choisissez votre formule, complétez quelques étapes d'adhésion, payez via Mobile Money (Wave, Orange, Moov, MTN) ou virement bancaire, et recevez votre attestation immédiatement." },
-  { q: "Qu'est-ce que le Bonus Fidélité-Santé 30% ?", a: "Si aucun sinistre n'est déclaré pendant 3 ans consécutifs, vous recevez un bonus de 30% de vos primes nettes cumulées. C'est notre façon de récompenser votre fidélité !" },
-  { q: "Comment déclarer un sinistre ?", a: "Via votre Espace Client, section Sinistre Fast-Track : remplissez le formulaire en moins de 5 minutes, uploadez les pièces justificatives. Une fois le dossier complet analysé, le capital espèces est versé en moins de 12 heures." },
-  { q: "Qui peut être assuré ?", a: "Assuré principal : jusqu'à 64 ans. Conjoint(e) : jusqu'à 64 ans. Enfants : jusqu'à 21 ans (nés ou à naître). Ascendants : jusqu'à 79 ans (père, mère, oncle, tante)." },
-  { q: "Quels sont les modes de paiement acceptés ?", a: "Mobile Money : Wave, Orange Money, Moov Money, MTN Money. Virement bancaire avec RIB. Le paiement est annuel." },
-  { q: "Que couvrent les prestations en nature (70%) ?", a: "Cercueil extérieur, conservation du corps, transport funéraire, cérémonie d'inhumation, et selon la formule : rapatriement et accompagnement funéraire complet." },
+  { q: "Qu'est-ce que la ristourne fidélité de 30% ?", a: "Si aucun sinistre n'est déclaré pendant les 3 premières années du contrat, 30% de la prime payée par l'assuré principal vous est restitué. C'est notre façon de récompenser votre fidélité !" },
+  { q: "Comment déclarer un sinistre ?", a: "Via votre Espace Client, section Sinistre Fast-Track : remplissez le formulaire en moins de 5 minutes, uploadez les pièces justificatives. Une fois le dossier complet reçu, le capital est versé sous 15 jours ouvrés." },
+  { q: "Qui peut être assuré ?", a: "Assuré principal et conjoint(e) : jusqu'à 64 ans à la souscription (âge + durée du contrat ≤ 65 ans). Enfants : jusqu'à 21 ans. Ascendants : jusqu'à 89 ans à la souscription (âge + durée du contrat ≤ 90 ans)." },
+  { q: "Quels sont les modes de paiement acceptés ?", a: "Mobile Money : Wave, Orange Money, Moov Money, MTN Money. Virement bancaire avec RIB. La prime peut être payée annuellement, semestriellement, trimestriellement ou mensuellement." },
+  { q: "Le contrat a-t-il une valeur de rachat ?", a: "Non. Conformément à l'article 77 du code des assurances CIMA, ce contrat de temporaire décès ne comporte ni valeur de rachat, ni réduction, ni avance." },
 ];
 
 export function FAQSection() {

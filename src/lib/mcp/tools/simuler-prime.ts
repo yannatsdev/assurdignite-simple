@@ -1,7 +1,8 @@
 import { defineTool } from "@lovable.dev/mcp-js";
 import { z } from "zod";
+import { PC, DEFAULT_DUREE } from "@/lib/actuarial-engine";
 
-// Formules officielles AssurDignité (voir memory: actuarial)
+// Formules officielles AssurDignité (voir src/lib/actuarial-engine.ts — source de vérité)
 const CAPITAUX: Record<string, number> = {
   A: 1_500_000,
   B: 2_000_000,
@@ -13,7 +14,7 @@ export default defineTool({
   name: "simuler_prime",
   title: "Simuler une prime annuelle",
   description:
-    "Estimation indicative de la prime annuelle AssurDignité selon la formule (A/B/C/D) et l'âge de l'assuré principal (18-64 ans). Paiement annuel. Une ristourne de 30% de la prime de l'assuré principal est restituée si aucun sinistre n'est survenu sur les 3 premières années. Résultat non contractuel.",
+    "Estimation indicative de la prime annuelle commerciale AssurDignité (assuré principal seul) selon la formule (A/B/C/D) et l'âge de l'assuré principal (18-64 ans), calculée avec le même moteur actuariel (table CIMA H, taux technique 3,5%) que le simulateur officiel. Paiement annuel, durée de référence 2 ans. Une ristourne de 30% de la prime de l'assuré principal est restituée si aucun sinistre n'est survenu sur les 3 premières années. Résultat indicatif, hors accessoires et hors conjoint/enfants/ascendants — non contractuel.",
   inputSchema: {
     formule: z.enum(["A", "B", "C", "D"]).describe("Code formule: A, B, C ou D"),
     age: z.number().int().min(18).max(64).describe("Âge de l'assuré principal (18-64 ans)"),
@@ -21,26 +22,16 @@ export default defineTool({
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: ({ formule, age }) => {
     const capital = CAPITAUX[formule];
-    const tauxBase = 0.008 + Math.max(0, age - 30) * 0.0004;
-    const primeAnnuelle = Math.round((capital * tauxBase) / 100) * 100;
-    // Périodicités — Note Technique 26/05/2026
-    const periodicites = {
-      annuelle:     primeAnnuelle,
-      annuelle_prime: primeAnnuelle + 2500,
-      semestrielle: Math.round(primeAnnuelle * 0.51 + 1500),
-      trimestrielle: Math.round(primeAnnuelle * 0.26 + 1000),
-      mensuelle:    Math.round(primeAnnuelle * 0.087 + 500),
-    };
+    const prime = Math.round(PC(age, DEFAULT_DUREE, capital));
     const result = {
       formule,
       capital_fcfa: capital,
-      couverture: "70% prestations en nature + 30% capital espèces",
       age,
-      prime_annuelle_indicative_fcfa: primeAnnuelle,
-      periodicites_fcfa: periodicites,
+      prime_annuelle_indicative_fcfa: prime,
+      periodicite: "annuelle",
       ristourne: "30% de la prime de l'assuré principal restituée si aucun sinistre sur 3 ans",
       limites_age: { principal: "18-64", conjoint: "18-64", enfants: "0-21", ascendants: "0-89" },
-      note: "Estimation non contractuelle. Tarification définitive après KYC et adhésion.",
+      note: "Estimation indicative pour l'assuré principal seul, hors accessoires d'encaissement. Tarification définitive (avec conjoint/enfants/ascendants) après simulation complète et adhésion.",
     };
     return {
       content: [{ type: "text", text: JSON.stringify(result, null, 2) }],

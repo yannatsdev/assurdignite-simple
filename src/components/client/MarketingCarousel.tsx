@@ -10,25 +10,25 @@ const slides = [
   {
     image: familyUnited,
     title: 'Familles unies, protégées ensemble',
-    text: 'Couverture étendue : principal, conjoint, jusqu\'à 4 enfants et 2 ascendants.',
+    text: 'Couverture étendue : principal, conjoint, jusqu\'à 10 enfants et 4 ascendants.',
     icon: Heart,
   },
   {
     image: familyElderly,
     title: 'Dignité jusqu\'au dernier souffle',
-    text: 'Prestations en nature 70% + 30% en capital espèces aux bénéficiaires.',
+    text: 'Un capital versé à 100% en espèces aux bénéficiaires désignés.',
     icon: Users,
   },
   {
     image: fastPayout,
-    title: 'Versement express en moins de 12h',
-    text: 'Capital versé rapidement après dépôt et analyse des pièces.',
+    title: 'Versement sous 15 jours ouvrés',
+    text: 'Capital versé après dépôt et analyse des pièces.',
     icon: Clock,
   },
   {
     image: familyMother,
-    title: 'Bonus Fidélité jusqu\'à 30%',
-    text: '3 années consécutives sans sinistre = 30% de vos primes restituées.',
+    title: 'Ristourne Fidélité jusqu\'à 30%',
+    text: '3 années consécutives sans sinistre = 30% de la prime de l\'assuré principal restitué.',
     icon: Award,
   },
 ];
