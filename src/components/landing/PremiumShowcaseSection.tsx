@@ -58,7 +58,7 @@ export function PremiumShowcaseSection() {
           <BentoCard
             span="sm:col-span-2 sm:row-span-2"
             title="Familles unies, protégées ensemble"
-            description="Couverture étendue pour le principal, le conjoint, jusqu'à 10 enfants et 4 ascendants. Une seule prime, annuelle ou fractionnée, toute la famille protégée."
+            description="Couverture étendue pour le principal, le conjoint, jusqu'à 4 enfants et 2 ascendants. Une seule prime annuelle, toute la famille protégée."
             icon={<HeartHandshake className="w-5 h-5" />}
             background={
               <img src={familyUnited} alt="Famille africaine unie protégée par AssurDignité" className="h-full w-full object-cover" loading="lazy" />
@@ -66,8 +66,8 @@ export function PremiumShowcaseSection() {
             delay={0}
           />
           <BentoCard
-            title="Délai 15 jours ouvrés"
-            description="Versement du capital après dépôt et analyse des pièces requises."
+            title="Délai < 12h"
+            description="Versement express après dépôt et analyse des pièces requises."
             icon={<Clock className="w-5 h-5" />}
             background={
               <img src={fastPayout} alt="Conseiller AssurDignité — versement express" className="h-full w-full object-cover" loading="lazy" />
@@ -75,8 +75,8 @@ export function PremiumShowcaseSection() {
             delay={0.1}
           />
           <BentoCard
-            title="Ristourne Fidélité"
-            description="30% de la prime de l'assuré principal restitué après 3 années consécutives sans sinistre."
+            title="Bonus Fidélité"
+            description="Jusqu'à 30% de vos primes restituées après 3 années consécutives sans sinistre."
             icon={<Award className="w-5 h-5" />}
             background={
               <img src={familyPro} alt="Professionnel africain rassuré" className="h-full w-full object-cover" loading="lazy" />
@@ -86,7 +86,7 @@ export function PremiumShowcaseSection() {
           <BentoCard
             span="sm:col-span-3"
             title="Dignité jusqu'au dernier souffle"
-            description="Un capital versé à 100% en espèces aux bénéficiaires, pour financer librement cercueil, conservation, transport et inhumation."
+            description="Prestations en nature 70% (cercueil, conservation, transport, inhumation) + 30% en capital espèces aux bénéficiaires."
             icon={<Users2 className="w-5 h-5" />}
             background={
               <img src={familyElderly} alt="Personnes âgées africaines respectées" className="h-full w-full object-cover" loading="lazy" />

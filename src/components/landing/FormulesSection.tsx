@@ -49,10 +49,10 @@ const formules = [
 ];
 
 const servicesNature = [
-  { icon: Truck, title: 'Enlèvement & transport du corps', desc: 'Le capital versé permet de financer la prise en charge depuis le lieu du décès et le transport vers la morgue.' },
-  { icon: Home, title: 'Conservation & traitement', desc: 'Le capital versé permet de financer la conservation en chambre froide et les soins de thanatopraxie.' },
-  { icon: Flower2, title: 'Cercueil & accessoires funéraires', desc: 'Le capital versé permet de financer le cercueil et les accessoires funéraires de votre choix.' },
-  { icon: Users, title: 'Levée du corps & cérémonie', desc: 'Le capital versé permet de financer la levée de corps, le transport au lieu d\'inhumation et la cérémonie.' },
+  { icon: Truck, title: 'Enlèvement & transport du corps', desc: 'Prise en charge immédiate depuis le lieu du décès, brancardage et transport sécurisé vers la morgue.' },
+  { icon: Home, title: 'Conservation & traitement', desc: 'Conservation en chambre froide, soins de thanatopraxie et habillage du défunt dans le respect des traditions.' },
+  { icon: Flower2, title: 'Cercueil & accessoires funéraires', desc: 'Fourniture du cercueil adapté à la formule, capiton, croix et ornements selon vos souhaits.' },
+  { icon: Users, title: 'Levée du corps & cérémonie', desc: 'Organisation de la levée de corps, transport au lieu d\'inhumation et accompagnement de la famille jusqu\'à la sépulture.' },
 ];
 
 export function FormulesSection() {
@@ -66,13 +66,13 @@ export function FormulesSection() {
             Tout est pris en charge par <span className="font-bold text-primary">Sonam Vie</span>.
           </p>
           <p className="text-muted-foreground text-base mt-3 max-w-3xl mx-auto leading-relaxed">
-            Chaque formule verse <span className="font-semibold text-primary">un capital à 100 % en espèces</span> aux bénéficiaires désignés, sous <span className="font-semibold text-secondary">15 jours ouvrés</span> après réception du dossier complet, pour organiser librement les obsèques.
+            Chaque formule offre une répartition de <span className="font-semibold text-primary">70 % en prestations en nature</span> et <span className="font-semibold text-secondary">30 % en capital espèces</span>, avec un paiement en moins de 12 heures.
           </p>
         </motion.div>
 
-        {/* Section title: Ce que votre capital vous permet de financer */}
+        {/* Section title: Nos prestations en nature */}
         <div className="text-center mb-10">
-          <h3 className="text-2xl md:text-3xl font-display font-bold text-foreground">Ce que votre capital vous permet de financer</h3>
+          <h3 className="text-2xl md:text-3xl font-display font-bold text-foreground">Nos prestations en nature</h3>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -118,13 +118,13 @@ export function FormulesSection() {
           ))}
         </div>
 
-        {/* Ce que votre capital vous permet de financer — moved BELOW formules per user request */}
+        {/* Prestations en nature incluses (70%) — moved BELOW formules per user request */}
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mt-20 max-w-6xl mx-auto">
           <div className="text-center mb-10">
             <span className="inline-flex items-center gap-2 text-secondary font-bold text-base uppercase tracking-wider">
-              <Sparkles className="w-5 h-5" /> Capital versé à 100 % en espèces
+              <Sparkles className="w-5 h-5" /> Prestations en nature incluses (70 %)
             </span>
-            <h3 className="text-2xl md:text-3xl font-display font-bold mt-3 text-foreground">Vous décidez librement de l'organisation des obsèques</h3>
+            <h3 className="text-2xl md:text-3xl font-display font-bold mt-3 text-foreground">Tout est pris en charge, vous n'avez rien à organiser</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
             {servicesNature.map((s, i) => (
@@ -139,7 +139,7 @@ export function FormulesSection() {
             ))}
           </div>
           <p className="text-center text-sm text-muted-foreground mt-8 italic max-w-3xl mx-auto">
-            Le capital est versé en <span className="font-semibold not-italic text-secondary">espèces, en totalité, aux bénéficiaires désignés</span>, sous 15 jours ouvrés, pour couvrir tous les frais liés aux obsèques.
+            Les 30 % restants sont versés en <span className="font-semibold not-italic text-secondary">capital espèces aux bénéficiaires</span> en moins de 12 heures pour couvrir les frais imprévus.
           </p>
         </motion.div>
       </div>

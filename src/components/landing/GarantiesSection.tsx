@@ -11,11 +11,11 @@ import {
 
 const garanties = [
   { icon: ShieldCheck, title: 'Décès toutes causes', desc: 'Garantie principale couvrant les décès naturels, par maladie ou par accident, hors exclusions légales.' },
-  { icon: Coins, title: 'Capital décès', desc: 'Capital versé selon la formule souscrite : de 1,5M à 5M FCFA, à 100% en espèces aux bénéficiaires désignés.' },
-  { icon: HeartHandshake, title: 'Assistance funéraire', desc: 'Le capital versé permet de financer librement l\'organisation des obsèques : enlèvement, conservation, cercueil, transport, inhumation.' },
-  { icon: Zap, title: 'Paiement rapide', desc: "Versement en espèces ou Mobile Money sous 15 jours ouvrés après dépôt et validation du dossier sinistre." },
+  { icon: Coins, title: 'Capital décès', desc: 'Capital versé selon la formule souscrite : 1,5M à 5M FCFA, réparti 70% nature et 30% cash MoMo.' },
+  { icon: HeartHandshake, title: 'Assistance funéraire', desc: 'Organisation complète des obsèques par nos prestataires agréés : enlèvement, conservation, cercueil, transport, inhumation.' },
+  { icon: Zap, title: 'Paiement rapide', desc: "Versement cash via Mobile Money en moins de 12 heures après dépôt et validation du dossier sinistre." },
   { icon: LifeBuoy, title: 'Assistance renforcée', desc: 'Accompagnement étendu selon la formule choisie : démarches administratives, support familial, coordination logistique.' },
-  { icon: Plane, title: 'Rapatriement diaspora', desc: 'Option dédiée à la formule Excellence : rapatriement du corps vers la Côte d\'Ivoire pris en charge.' },
+  { icon: Plane, title: 'Rapatriement diaspora', desc: 'Option dédiée à la formule Excellence Diaspora : rapatriement du corps vers la Côte d\'Ivoire pris en charge.' },
   { icon: Activity, title: 'Garantie accident', desc: 'Garantie optionnelle activable à la souscription pour renforcer la couverture en cas de décès accidentel.' },
 ];
 

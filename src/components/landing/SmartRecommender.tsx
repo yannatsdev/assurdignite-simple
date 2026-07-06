@@ -29,10 +29,10 @@ const formuleColor: Record<OptionKey, string> = {
 };
 
 const formuleNom: Record<OptionKey, string> = {
-  A: 'Dignité Simple',
-  B: 'Serein',
-  C: 'Prestige',
-  D: 'Excellence',
+  A: 'Essentielle',
+  B: 'Standard',
+  C: 'Premium',
+  D: 'Excellence Diaspora',
 };
 
 export function SmartRecommender() {

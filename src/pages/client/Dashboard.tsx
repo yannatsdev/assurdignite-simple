@@ -232,7 +232,7 @@ export default function ClientDashboard() {
         </Card>
 
         <div className="space-y-4">
-          {/* Ristourne fidélité */}
+          {/* Bonus */}
           <Card className="bg-gradient-to-br from-amber-50 to-amber-100/50 border-amber-200">
             <CardContent className="pt-5 pb-5">
               <div className="flex items-center gap-3 mb-3">
@@ -240,8 +240,8 @@ export default function ClientDashboard() {
                   <Gift className="w-5 h-5 text-amber-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm font-display">Ristourne Fidélité</h3>
-                  <p className="text-xs text-muted-foreground">3 ans sans sinistre = 30% de la prime de l'assuré principal</p>
+                  <h3 className="font-semibold text-sm font-display">Bonus Fidélité-Santé</h3>
+                  <p className="text-xs text-muted-foreground">3 ans sans sinistre = 30% des primes</p>
                 </div>
               </div>
               <div className="space-y-1">

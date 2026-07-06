@@ -37,7 +37,7 @@ const testimonials = [
 
 const statsItems = [
   { value: '15 000+', label: 'Familles protégées' },
-  { value: '15j', label: 'Délai de paiement', sub: 'après dépôt & analyse des pièces' },
+  { value: '< 12h', label: 'Délai de paiement', sub: 'après dépôt & analyse des pièces' },
   { value: '25+', label: 'Années d\'expérience' },
   { value: '98%', label: 'Taux de satisfaction' },
 ];

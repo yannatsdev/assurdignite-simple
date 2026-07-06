@@ -124,11 +124,11 @@ export default function SinistrePage() {
       <ClientHeroBanner
         image={fastPayout}
         title="Sinistre Fast-Track"
-        subtitle="Déclarez un sinistre en moins de 5 minutes — versement du capital sous 15 jours ouvrés après analyse du dossier."
+        subtitle="Déclarez un sinistre en moins de 5 minutes — versement express en moins de 12h après analyse."
         height="h-52 sm:h-60"
         cta={
           <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/95 backdrop-blur px-3 py-1.5 text-xs font-semibold text-white shadow">
-            <Clock className="w-3.5 h-3.5" /> Versement sous 15j ouvrés
+            <Clock className="w-3.5 h-3.5" /> Versement &lt; 12h
           </span>
         }
       />
@@ -147,8 +147,8 @@ export default function SinistrePage() {
                 'Activation immédiate de l\'assistance (< 1h)',
                 'Constitution du dossier (pièces)',
                 'Validation technique SONAM Vie',
-                'Versement du capital (sous 15 jours ouvrés)',
-                'Financement libre de l\'organisation des obsèques',
+                'Versement cash MoMo (< 12h)',
+                'Exécution prestations nature (70%)',
                 'Clôture & archivage',
               ].map((s, i) => (
                 <li key={i} className="flex items-start gap-2">
@@ -159,7 +159,7 @@ export default function SinistrePage() {
             </ol>
             <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
               <div className="bg-secondary/10 text-secondary rounded-lg p-2 text-center font-semibold">Prise en charge &lt; 1h</div>
-              <div className="bg-primary/10 text-primary rounded-lg p-2 text-center font-semibold">Capital sous 15j ouvrés</div>
+              <div className="bg-primary/10 text-primary rounded-lg p-2 text-center font-semibold">Cash &lt; 12h</div>
               <div className="bg-[hsl(var(--sonam-blue))]/10 text-[hsl(var(--sonam-blue))] rounded-lg p-2 text-center font-semibold">Logistique 2–4h</div>
             </div>
           </CardContent>
@@ -317,7 +317,7 @@ export default function SinistrePage() {
                 <CheckCircle className="w-12 h-12 text-secondary" />
               </div>
               <h3 className="text-2xl font-bold font-display">Déclaration soumise</h3>
-              <p className="text-muted-foreground max-w-md mx-auto">Votre dossier est en cours de traitement. Le capital sera versé en espèces sous 15 jours ouvrés après réception du dossier complet.</p>
+              <p className="text-muted-foreground max-w-md mx-auto">Votre dossier est en cours de traitement. Le capital espèces sera versé en moins de 12 heures.</p>
 
               {/* Résumé du dossier */}
               <div className="text-left max-w-md mx-auto bg-accent/40 rounded-2xl p-5 space-y-2 text-sm">
@@ -335,7 +335,7 @@ export default function SinistrePage() {
 
               <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 max-w-sm mx-auto text-left">
                 <p className="text-xs font-semibold text-primary mb-1">⏱ Délai estimé</p>
-                <p className="text-sm">Validation sous 2h ouvrées • Versement sous <strong>15 jours ouvrés</strong> après réception du dossier complet.</p>
+                <p className="text-sm">Validation sous 2h • Versement sous <strong>12h</strong> après acceptation.</p>
               </div>
 
               {sinistreId && (

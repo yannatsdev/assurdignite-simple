@@ -4,11 +4,11 @@ import familyImg from '@/assets/avantages-family.jpg';
 import { SmartImage } from '@/components/SmartImage';
 
 const avantages = [
-  { icon: Gift, title: 'Ristourne Fidélité 30%', desc: 'Si aucun sinistre pendant les 3 premières années, 30% de la prime de l\'assuré principal vous est restitué.' },
+  { icon: Gift, title: 'Bonus Fidélité-Santé 30%', desc: 'Si aucun sinistre après 3 ans, 30% du cumul des primes nettes versé en bonus.' },
   { icon: Users, title: 'Solidarité Famille', desc: 'Couvrez conjoint, enfants et ascendants dans un même contrat.' },
-  { icon: Clock, title: 'Paiement sous 15 jours ouvrés', desc: 'Le capital est versé en espèces sous 15 jours ouvrés après réception du dossier complet.' },
+  { icon: Clock, title: 'Paiement < 12h', desc: 'Le capital espèces (30%) versé en moins de 12 heures après déclaration.' },
   { icon: Smartphone, title: 'Simplicité Digitale', desc: 'Souscrivez, payez et déclarez en ligne via Mobile Money (Wave, Orange, MTN, Moov).' },
-  { icon: Shield, title: 'Capital 100% en espèces', desc: 'Aucune répartition imposée : le capital est versé en totalité en espèces aux bénéficiaires désignés.' },
+  { icon: Shield, title: 'Double Couverture', desc: '70% en prestations nature (cercueil, transport, inhumation) + 30% en espèces.' },
   { icon: Heart, title: 'Accompagnement Total', desc: 'Assistance funéraire complète et rapatriement inclus selon la formule choisie.' },
 ];
 
@@ -42,7 +42,7 @@ export function AvantagesSection() {
             </div>
             <div className="absolute -bottom-6 -right-6 bg-primary text-white rounded-2xl p-6 shadow-xl hidden sm:block">
               <p className="text-3xl font-bold font-display">30%</p>
-              <p className="text-sm text-white/90 font-medium">Ristourne Fidélité</p>
+              <p className="text-sm text-white/90 font-medium">Bonus Fidélité</p>
             </div>
           </motion.div>
 

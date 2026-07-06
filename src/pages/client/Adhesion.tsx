@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, ArrowRight, Check, Users, FileText, Shield, PenTool, Download, Plus, Minus, AlertCircle, Sparkles, Calculator, CreditCard } from 'lucide-react';
-import { simulatePrime, formatCFA, OPTIONS_CAPITALS, PERIODICITY, type OptionKey, type PeriodicityKey, type SimulationResult } from '@/lib/actuarial-engine';
+import { simulatePrime, formatCFA, OPTIONS_CAPITALS, type OptionKey, type SimulationResult } from '@/lib/actuarial-engine';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -28,25 +28,43 @@ const STEP_ICONS = [Calculator, FileText, CreditCard];
 
 const CG_TEXT = `SONAM VIE – CONDITIONS GÉNÉRALES ASSURDIGNITÉ
 
-Article 1 – Objet : SONAM VIE s'engage, moyennant paiement des primes, à verser en cas de décès d'un membre de la famille déclarée une indemnité, préalablement définie, pour l'organisation des obsèques aux bénéficiaires désignés. En cas de vie de l'assuré au terme du contrat, l'assureur ne verse rien. Le capital est versé à l'assuré lui-même en cas d'invalidité totale et permanente.
+Article 1 – Objet : Le présent contrat a pour objet la garantie par SONAM VIE du versement d'un capital décès en cas de décès de l'assuré principal ou de l'un des assurés complémentaires. La garantie se décompose en 70% de prestations en nature et 30% en capital espèces.
 
 Article 2 – Conditions d'adhésion : Assuré principal et conjoint 18-64 ans ; enfants 0-21 ans ; ascendants 0-89 ans. Âge + durée du contrat ≤ 65 ans (principal/conjoint) ou ≤ 90 ans (ascendants).
 
-Article 3 – Exclusions : Suicide dans les 2 premières années, faits de guerre étrangère, certains risques de navigation aérienne hors cadre réglementaire, activités périlleuses, épidémies/pandémies/catastrophes naturelles reconnues comme telles, meurtre de l'assuré par le bénéficiaire.
+Article 3 – Prestations : En cas de décès, SONAM VIE fournit cercueil, conservation, transport, cérémonie (70%) et verse 30% en espèces au(x) bénéficiaire(s), sous 12h après dépôt des pièces.
 
-Article 4 – Paiement des prestations : Dès transmission des pièces justificatives, l'indemnité est versée sous 15 jours ouvrés. Ce contrat ne comporte pas de participation aux bénéfices.
+Article 4 – Exclusions : Suicide dans les 2 premières années, faits de guerre, actes terroristes, participation volontaire à des actes criminels, fausses déclarations.
 
-Article 5 – Rachat, réduction, avance : Conformément à l'article 77 du code CIMA, ce contrat ne comporte ni valeur de rachat, ni réduction, ni avance.
+Article 5 – Obligations : Payer la prime annuelle, déclarer tout changement familial, fournir des informations exactes.
 
 Article 6 – Ristourne : 30% de la prime de l'assuré principal restituée si aucun sinistre n'est survenu sur les 3 premières années de souscription.
 
-Article 7 – Frais : Gestion 0,15% du capital ; acquisition 18% de la prime commerciale ; encaissement 2 500 FCFA (annuelle), 1 500 FCFA (semestrielle), 1 000 FCFA (trimestrielle), 500 FCFA (mensuelle).
+Article 7 – Résiliation : Possible à tout moment par lettre. Non-paiement : suspension après 30 jours, résiliation après 90 jours.
 
-Article 8 – Non-paiement des primes : Préavis de 40 jours après 10 jours de retard, faute de quoi le contrat est résilié ou réduit.
+Article 8 – Juridiction : Tribunaux d'Abidjan, Côte d'Ivoire. Code des Assurances CIMA.`;
 
-Article 9 – Prescription : Toute action se prescrit par dix ans (article 28 du code des assurances CIMA).
+const CP_TEXT = `SONAM VIE – CONDITIONS PARTICULIÈRES ASSURDIGNITÉ
 
-Article 10 – Juridiction : Tribunaux de Côte d'Ivoire. Code des Assurances CIMA.`;
+1. Souscripteur & assurés : le contrat est établi au nom de l'assuré principal désigné lors de l'adhésion. Les co-assurés (conjoint, enfants, ascendants) sont ceux déclarés dans la simulation et confirmés au KYC.
+
+2. Formule choisie : la formule (A/B/C/D) sélectionnée détermine les capitaux garantis pour chaque catégorie d'assuré (voir tableau du récapitulatif). Toute modification nécessite un avenant.
+
+3. Prime & périodicité : la prime annuelle affichée est calculée sur la table CIMA H (Note Technique 26/05/2026), taux technique 3,5%. Périodicités disponibles : annuelle (défaut), semestrielle, trimestrielle, mensuelle — avec accessoires selon la note technique.
+
+4. Prise d'effet : la couverture prend effet le jour du paiement effectif de la première prime, sous réserve d'acceptation du dossier par SONAM VIE.
+
+5. Délai de carence : aucun délai de carence pour décès accidentel. Décès par maladie : carence de 30 jours après la date d'effet.
+
+6. Bénéficiaires : le capital 30% espèces est versé aux bénéficiaires désignés dans le présent contrat. À défaut de désignation valide, il est versé aux héritiers légaux selon l'ordre successoral ivoirien.
+
+7. Prestations en nature (70%) : fournies par le réseau de partenaires SONAM VIE dans un rayon de 200 km du lieu de décès (métropolitain) ou selon les conditions de rapatriement pour la formule D.
+
+8. Modifications & renouvellement : le contrat se renouvelle tacitement à chaque échéance annuelle sauf résiliation adressée 30 jours avant terme.
+
+9. Ristourne : versée sur le compte Mobile Money du souscripteur au terme des 3 ans si aucun sinistre n'a été déclaré et si toutes les primes ont été régulièrement payées.
+
+10. Réclamations : servicecommercialsonamvie@sonam.ci — 27 20 31 71 82 / 05 95 45 21 65.`;
 
 const FORMULE_DETAILS: Record<string, { name: string; desc: string; nature: string[] }> = {
   A: { name: 'Dignité Simple', desc: 'Couverture essentielle pour protéger votre famille.', nature: ['Cercueil standard', 'Conservation', 'Transport local', 'Inhumation simple'] },
@@ -69,7 +87,6 @@ export default function AdhesionPage() {
 
   // Simulation
   const [formule, setFormule] = useState<OptionKey>('D');
-  const [periodicite, setPeriodicite] = useState<PeriodicityKey>('annuel');
   const [simPrincipalDob, setSimPrincipalDob] = useState('');
   const [hasConjoint, setHasConjoint] = useState(false);
   const [enfants, setEnfants] = useState<{ nom: string; dob: string }[]>([]);
@@ -98,11 +115,21 @@ export default function AdhesionPage() {
   const quoteDate = new Date().toISOString().slice(0, 10);
 
   // === Live simulation — always up-to-date, never "figée" ===
+  // Use stringified deps for enfants/ascendants so array mutations trigger re-runs.
+  const enfantsKey = JSON.stringify(enfants);
+  const ascendantsKey = JSON.stringify(ascendants);
   useEffect(() => {
     if (!simPrincipalDob) { setSimResult(null); return; }
+    // Reset if principal age is out of legal bounds (18-64)
+    const birth = new Date(simPrincipalDob);
+    const now = new Date(quoteDate);
+    let age = now.getFullYear() - birth.getFullYear();
+    const m = now.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+    if (isNaN(age) || age < 18 || age > 64) { setSimResult(null); return; }
     const t = setTimeout(() => {
       const res = simulatePrime({
-        quoteDate, option: formule, periodicite, principal: { dob: simPrincipalDob },
+        quoteDate, option: formule, principal: { dob: simPrincipalDob },
         conjoint: hasConjoint && conjoint.dob ? { dob: conjoint.dob, included: true } : undefined,
         enfants: enfants.filter(e => e.dob).map(e => ({ dob: e.dob, included: true })),
         ascendants: ascendants.filter(a => a.dob).map(a => ({ dob: a.dob, included: true, label: a.lien })),
@@ -110,7 +137,8 @@ export default function AdhesionPage() {
       setSimResult(res);
     }, 200);
     return () => clearTimeout(t);
-  }, [formule, periodicite, simPrincipalDob, hasConjoint, conjoint.dob, enfants, ascendants, quoteDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formule, simPrincipalDob, hasConjoint, conjoint.dob, enfantsKey, ascendantsKey, quoteDate]);
 
   // Track macro step for the global bar
   useEffect(() => { adhesionProgress.setMacroStep(step); }, [step]);
@@ -246,10 +274,8 @@ export default function AdhesionPage() {
       ['Formule', `${formule} — ${FORMULE_NAMES[formule] || FORMULE_DETAILS[formule].name}`],
       ['Capital garanti', formatCFA(simResult.capitaux.principal)],
       ['Prime annuelle', formatCFA(simResult.primeAnnuelle)],
-      ['Périodicité', PERIODICITY[periodicite].label],
-      ['Prime par échéance', formatCFA(simResult.primePeriodique)],
-      ['Date d\'effet', fmt(quoteDate)],
-      ['Couverture', 'Capital versé à 100% en espèces aux bénéficiaires'],
+      ['Date d\u2019effet', fmt(quoteDate)],
+      ['Couverture', '70% nature + 30% espèces'],
     ], y);
     if (beneficiaires.filter(b => b.nom).length) {
       y = pdfSection(doc, 'Bénéficiaires', y);
@@ -277,23 +303,26 @@ export default function AdhesionPage() {
       <MarketingCarousel />
       <UnifiedProgressBar />
 
-      {/* Compact step indicator */}
-      <div className="flex items-center gap-3">
+      {/* Compact step indicator — icons centered on mobile & desktop */}
+      <div className="flex items-center justify-between gap-1 sm:gap-3 px-2 sm:px-0">
         {STEPS.map((s, i) => {
           const Icon = STEP_ICONS[i];
           const active = i === step;
           const done = i < step;
           return (
-            <div key={s} className="flex items-center gap-2 flex-1">
-              <div className={`w-9 h-9 shrink-0 rounded-full flex items-center justify-center border-2 transition ${
-                active ? 'bg-primary text-primary-foreground border-primary' : done ? 'bg-sonam-green text-white border-sonam-green' : 'bg-background text-muted-foreground border-border'
-              }`}>{done ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}</div>
-              <span className={`text-xs sm:text-sm font-medium hidden sm:inline ${active ? 'text-primary' : done ? 'text-sonam-green' : 'text-muted-foreground'}`}>{s}</span>
-              {i < STEPS.length - 1 && <div className={`h-0.5 flex-1 ${done ? 'bg-sonam-green' : 'bg-border'}`} />}
+            <div key={s} className="flex items-center gap-2 flex-1 last:flex-none">
+              <div className="flex flex-col items-center gap-1 shrink-0">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition ${
+                  active ? 'bg-primary text-primary-foreground border-primary' : done ? 'bg-sonam-green text-white border-sonam-green' : 'bg-background text-muted-foreground border-border'
+                }`}>{done ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}</div>
+                <span className={`text-[10px] sm:text-xs font-medium text-center hidden sm:inline ${active ? 'text-primary' : done ? 'text-sonam-green' : 'text-muted-foreground'}`}>{s}</span>
+              </div>
+              {i < STEPS.length - 1 && <div className={`h-0.5 flex-1 self-center mt-0 sm:-mt-4 ${done ? 'bg-sonam-green' : 'bg-border'}`} />}
             </div>
           );
         })}
       </div>
+
 
       <AnimatePresence mode="wait">
         <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
@@ -309,36 +338,32 @@ export default function AdhesionPage() {
                 <div className="space-y-5">
                   <p className="text-sm text-muted-foreground">Choisissez votre formule et renseignez votre famille. La prime se calcule en temps réel.</p>
 
-                  {/* Formule cards */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+                  {/* Formule cards with visible advantages */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     {(['A','B','C','D'] as OptionKey[]).map(k => {
                       const cap = OPTIONS_CAPITALS[k];
                       const d = FORMULE_DETAILS[k];
                       const active = formule === k;
                       return (
                         <button key={k} type="button" onClick={() => setFormule(k)}
-                          className={`text-left p-3 rounded-xl border-2 transition-all relative ${active ? 'border-primary bg-primary/10 shadow' : 'border-border/60 hover:border-primary/40 bg-background'}`}>
-                          {k === 'D' && <Badge className="absolute -top-2 right-2 bg-secondary text-[10px]">⭐</Badge>}
+                          className={`text-left p-3 rounded-xl border-2 transition-all relative flex flex-col ${active ? 'border-primary bg-primary/10 shadow-md' : 'border-border/60 hover:border-primary/40 bg-background'}`}>
+                          {k === 'D' && <Badge className="absolute -top-2 right-2 bg-secondary text-[10px]">⭐ Populaire</Badge>}
                           <p className="text-[11px] font-bold text-primary">Formule {k}</p>
                           <p className="text-sm font-bold font-display leading-tight">{d.name}</p>
-                          <p className="text-[11px] text-muted-foreground mt-1">Capital</p>
-                          <p className="text-sm font-semibold text-primary">{formatCFA(cap.principal)}</p>
+                          <p className="text-sm font-semibold text-primary mt-1">{formatCFA(cap.principal)}</p>
+                          <ul className="mt-2 pt-2 border-t border-border/40 space-y-1">
+                            {d.nature.map((adv, i) => (
+                              <li key={i} className="flex items-start gap-1 text-[11px] text-muted-foreground leading-snug">
+                                <Check className="w-3 h-3 text-sonam-green shrink-0 mt-0.5" /> {adv}
+                              </li>
+                            ))}
+                          </ul>
+                          <p className="text-[10px] text-muted-foreground mt-2 pt-2 border-t border-border/40 italic">70% nature + 30% espèces</p>
                         </button>
                       );
                     })}
                   </div>
 
-                  <div>
-                    <Label className="text-sm font-semibold flex items-center gap-2 mb-1.5"><CreditCard className="w-4 h-4" /> Périodicité de paiement</Label>
-                    <div className="grid grid-cols-4 gap-2">
-                      {(Object.keys(PERIODICITY) as PeriodicityKey[]).filter(k => k !== 'unique').map(k => (
-                        <button key={k} type="button" onClick={() => setPeriodicite(k)}
-                          className={`text-xs font-semibold py-2 rounded-lg border-2 transition-all ${periodicite === k ? 'border-primary bg-primary/10 text-primary' : 'border-border/60 hover:border-primary/40'}`}>
-                          {PERIODICITY[k].label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
 
                   <div className="p-4 rounded-xl bg-accent/40 space-y-4">
                     <div>
@@ -353,8 +378,8 @@ export default function AdhesionPage() {
                     {hasConjoint && <DateInput value={conjoint.dob} onChange={v => setConjoint({ ...conjoint, dob: v })} />}
 
                     <div className="flex items-center justify-between pt-2 border-t border-border/40">
-                      <Label className="text-sm">Enfants ({enfants.length}/10)</Label>
-                      <Button size="sm" variant="outline" onClick={() => enfants.length < 10 && setEnfants([...enfants, { nom: '', dob: '' }])}><Plus className="w-3 h-3 mr-1" />Ajouter</Button>
+                      <Label className="text-sm">Enfants ({enfants.length}/4)</Label>
+                      <Button size="sm" variant="outline" onClick={() => enfants.length < 4 && setEnfants([...enfants, { nom: '', dob: '' }])}><Plus className="w-3 h-3 mr-1" />Ajouter</Button>
                     </div>
                     {enfants.map((e, i) => (
                       <div key={i} className="flex gap-2 items-center pl-2">
@@ -364,8 +389,8 @@ export default function AdhesionPage() {
                     ))}
 
                     <div className="flex items-center justify-between pt-2 border-t border-border/40">
-                      <Label className="text-sm">Ascendants ({ascendants.length}/4)</Label>
-                      <Button size="sm" variant="outline" onClick={() => ascendants.length < 4 && setAscendants([...ascendants, { nom: '', dob: '', lien: 'Père/Mère' }])}><Plus className="w-3 h-3 mr-1" />Ajouter</Button>
+                      <Label className="text-sm">Ascendants ({ascendants.length}/2)</Label>
+                      <Button size="sm" variant="outline" onClick={() => ascendants.length < 2 && setAscendants([...ascendants, { nom: '', dob: '', lien: 'Père/Mère' }])}><Plus className="w-3 h-3 mr-1" />Ajouter</Button>
                     </div>
                     {ascendants.map((a, i) => (
                       <div key={i} className="flex gap-2 items-center pl-2">
@@ -378,11 +403,8 @@ export default function AdhesionPage() {
                   {/* Live prime display */}
                   {simResult ? (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-5 rounded-xl bg-gradient-to-br from-primary/10 to-secondary/10 border-2 border-primary/30 text-center">
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground">Prime {PERIODICITY[periodicite].label.toLowerCase()} à payer</p>
-                      <p className="text-4xl font-bold text-primary font-display mt-1">{formatCFA(simResult.primePeriodique)}</p>
-                      {periodicite !== 'annuel' && (
-                        <p className="text-xs text-muted-foreground mt-1">soit {formatCFA(simResult.primeAnnuelle)} sur l'année ({PERIODICITY[periodicite].periods}x)</p>
-                      )}
+                      <p className="text-xs uppercase tracking-wider text-muted-foreground">Prime annuelle</p>
+                      <p className="text-4xl font-bold text-primary font-display mt-1">{formatCFA(simResult.primeAnnuelle)}</p>
                       <div className="flex justify-center gap-2 mt-2 flex-wrap">
                         <Badge variant="outline">Formule {formule} – {FORMULE_DETAILS[formule].name}</Badge>
                         <Badge variant="outline" className="bg-secondary/10">{simResult.persons.filter(p => p.eligible).length} assuré(s)</Badge>
@@ -517,7 +539,7 @@ export default function AdhesionPage() {
                   {/* --- Bénéficiaires --- */}
                   <section className="space-y-3 pt-4 border-t">
                     <h3 className="font-semibold text-sm text-primary uppercase tracking-wider flex items-center gap-2"><FileText className="w-4 h-4" /> Bénéficiaires du capital (30% espèces)</h3>
-                    <p className="text-xs text-muted-foreground">Laissez vide pour désigner automatiquement vos héritiers légaux.</p>
+                    <p className="text-xs text-muted-foreground">Renseignez au moins un bénéficiaire. Sans désignation valide, le capital est versé aux héritiers légaux.</p>
                     {beneficiaires.map((b, i) => (
                       <div key={i} className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 rounded-lg bg-accent/30">
                         <Input placeholder="Nom complet" value={b.nom} onChange={e => { const n = [...beneficiaires]; n[i].nom = e.target.value; setBeneficiaires(n); }} />
@@ -560,20 +582,25 @@ export default function AdhesionPage() {
                         {hasConjoint && <p><strong>Conjoint :</strong> {conjoint.prenom} {conjoint.nom}</p>}
                         {enfants.length > 0 && <p><strong>Enfants :</strong> {enfants.length}</p>}
                         {ascendants.length > 0 && <p><strong>Ascendants :</strong> {ascendants.length}</p>}
-                        <p className="pt-2 border-t border-border/40 mt-2"><strong>Prime {PERIODICITY[periodicite].label.toLowerCase()} à payer :</strong> <span className="text-primary font-bold text-lg">{simResult ? formatCFA(simResult.primePeriodique) : '—'}</span></p>
+                        <p className="pt-2 border-t border-border/40 mt-2"><strong>Prime annuelle :</strong> <span className="text-primary font-bold text-lg">{simResult ? formatCFA(simResult.primeAnnuelle) : '—'}</span></p>
                       </section>
 
-                      {/* CG */}
+                      {/* Conditions Générales + Particulières */}
                       <section className="space-y-2">
                         <details className="rounded-xl border p-3 bg-muted/30">
-                          <summary className="cursor-pointer text-sm font-medium">Lire les Conditions Générales</summary>
+                          <summary className="cursor-pointer text-sm font-medium">📄 Lire les Conditions Générales</summary>
                           <div className="mt-3 max-h-56 overflow-y-auto text-xs whitespace-pre-wrap leading-relaxed">{CG_TEXT}</div>
+                        </details>
+                        <details className="rounded-xl border p-3 bg-muted/30">
+                          <summary className="cursor-pointer text-sm font-medium">📋 Lire les Conditions Particulières</summary>
+                          <div className="mt-3 max-h-56 overflow-y-auto text-xs whitespace-pre-wrap leading-relaxed">{CP_TEXT}</div>
                         </details>
                         <div className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
                           <Checkbox checked={cgAccepted} onCheckedChange={v => setCgAccepted(v === true)} />
                           <span className="text-sm">J'ai lu et j'accepte les <strong>Conditions Générales</strong> et les <strong>Conditions Particulières</strong> d'AssurDignité.</span>
                         </div>
                       </section>
+
 
                       {/* Signature */}
                       <section className="space-y-2">
@@ -601,7 +628,7 @@ export default function AdhesionPage() {
                           </div>
                         ) : (
                           <PaymentMethodSelector
-                            amount={simResult ? formatCFA(simResult.primePeriodique) : '—'}
+                            amount={simResult ? formatCFA(simResult.primeAnnuelle) : '—'}
                             rib={{
                               bank: 'SGBCI – SONAM VIE',
                               iban: 'CI93 CI108 01001 1234567890 12',
@@ -612,7 +639,7 @@ export default function AdhesionPage() {
                               setPaymentMethod(method);
                               setPaymentNumber(reference);
                               const { error } = await supabase.from('paiements').insert({
-                                user_id: user.id, montant: simResult.primePeriodique,
+                                user_id: user.id, montant: simResult.primeAnnuelle,
                                 methode: method, status: 'pending', reference,
                               });
                               if (error) { toast({ title: 'Erreur paiement', description: error.message, variant: 'destructive' }); return; }

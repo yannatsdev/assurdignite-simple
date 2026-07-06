@@ -79,7 +79,7 @@ export default function DocumentsPage() {
       ["Date d'effet", formatDateFR(contract.date_effet)],
       ["Date d'expiration", formatDateFR(contract.date_expiration)],
       ['Statut', contract.status === 'active' ? 'Actif' : (contract.status || '—')],
-      ['Couverture', 'Capital versé à 100% en espèces aux bénéficiaires désignés'],
+      ['Couverture', '70% prestations en nature + 30% capital espèces'],
     ], y);
 
     y = pdfSection(doc, '3. Assurés complémentaires', y);
@@ -208,16 +208,14 @@ export default function DocumentsPage() {
     let y = 56;
     y = pdfTitle(doc, 'CONDITIONS GÉNÉRALES', y);
     const articles: [string, string][] = [
-      ['Article 1 — Objet', "SONAM VIE s'engage, moyennant paiement des primes, à verser en cas de décès d'un membre de la famille déclarée une indemnité, préalablement définie, pour l'organisation des obsèques aux bénéficiaires désignés. En cas de vie de l'assuré au terme du contrat, l'assureur ne verse rien. Le capital est versé à l'assuré lui-même en cas d'invalidité totale et permanente."],
-      ["Article 2 — Conditions d'adhésion", "Assuré principal et conjoint(e) : 18 à 64 ans inclus à la souscription (âge + durée du contrat ≤ 65 ans). Enfants : 0 à 21 ans. Ascendants : jusqu'à 89 ans à la souscription (âge + durée du contrat ≤ 90 ans)."],
-      ['Article 3 — Exclusions', "Suicide au cours des deux premières années, faits de guerre étrangère, certains risques de navigation aérienne hors cadre réglementaire, activités périlleuses (paris, défis, acrobaties, parachutisme de démonstration), épidémies/pandémies/catastrophes naturelles reconnues comme telles, et meurtre de l'assuré par le bénéficiaire."],
-      ['Article 4 — Paiement des prestations', "Dès transmission des pièces justificatives (acte de décès, certificat du genre de mort, pièces d'identité, formulaire de déclaration de sinistre, etc.), l'indemnité est versée sous 15 jours ouvrés. Ce contrat ne comporte pas de participation aux bénéfices."],
-      ['Article 5 — Rachat, réduction et avance', "Conformément à l'article 77 du code CIMA, ce contrat ne comporte ni valeur de rachat, ni réduction, et ne peut donner lieu à l'octroi d'une avance."],
-      ['Article 6 — Ristourne fidélité', "30% de la prime payée par l'assuré principal est restitué si aucun sinistre n'est survenu pendant les 3 premières années de souscription."],
-      ['Article 7 — Frais', "Frais de gestion : 0,15% du capital assuré. Frais d'acquisition : 18% de la prime commerciale. Frais d'encaissement : 2 500 FCFA (annuelle), 1 500 FCFA (semestrielle), 1 000 FCFA (trimestrielle), 500 FCFA (mensuelle)."],
-      ['Article 8 — Non-paiement des primes', "À défaut de paiement d'une prime dans les 10 jours de son échéance, un préavis de 40 jours est adressé à l'adhérent, au terme duquel le contrat peut être résilié ou réduit."],
-      ['Article 9 — Prescription', "Toute action dérivant du présent contrat se prescrit par dix ans à compter de l'événement qui y donne naissance (article 28 du code des assurances CIMA)."],
-      ['Article 10 — Juridiction', "Le contrat est régi par le Code des Assurances CIMA. Tout litige est soumis, à défaut d'accord amiable ou d'arbitrage, aux tribunaux compétents de Côte d'Ivoire."],
+      ['Article 1 — Objet', "Le présent contrat a pour objet la garantie par SONAM VIE du versement d'un capital décès en cas de décès de l'assuré principal ou de l'un des assurés complémentaires. La garantie se décompose en 70% de prestations en nature et 30% en capital espèces."],
+      ["Article 2 — Conditions d'adhésion", "L'adhésion est ouverte à toute personne physique résidant en Côte d'Ivoire ou dans la zone CIMA, âgée de 18 à 64 ans (principal), 0 à 21 ans (enfants) et 0 à 79 ans (ascendants)."],
+      ['Article 3 — Prestations', "En cas de décès, SONAM VIE fournit : cercueil, conservation du corps, transport funéraire, cérémonie d'inhumation (70%) et versement de 30% en espèces aux bénéficiaires, en moins de 12 heures après dépôt et analyse des pièces justificatives."],
+      ['Article 4 — Exclusions', 'Suicide dans les 2 premières années, faits de guerre, actes terroristes, participation volontaire à des actes criminels, fausses déclarations.'],
+      ['Article 5 — Obligations', "Payer la prime annuelle, déclarer tout changement familial, fournir des informations exactes. Toute fausse déclaration entraîne la nullité du contrat."],
+      ['Article 6 — Bonus Fidélité-Santé', "Aucun sinistre pendant 3 ans = bonus de 30% des primes nettes cumulées."],
+      ['Article 7 — Résiliation', "Résiliation possible à tout moment par lettre. Non-paiement : suspension après 30 jours, résiliation après 90 jours."],
+      ['Article 8 — Juridiction', "Tribunaux d'Abidjan, Côte d'Ivoire. Code des Assurances CIMA."],
     ];
     doc.setTextColor(33, 24, 48);
     articles.forEach(([title, body]) => {
@@ -253,7 +251,7 @@ export default function DocumentsPage() {
       ['Prime annuelle', formatCFA(contract.prime_annuelle)],
       ["Date d'effet", formatDateFR(contract.date_effet)],
       ["Date d'expiration", formatDateFR(contract.date_expiration)],
-      ['Couverture', 'Capital versé à 100% en espèces'],
+      ['Couverture', '70% nature + 30% espèces'],
     ], y);
     y += 4;
     doc.setFontSize(9); doc.setTextColor(110);
